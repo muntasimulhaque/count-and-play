@@ -1,0 +1,18 @@
+{
+  "name": "Count & Play",
+  "short_name": "Count & Play",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#aee7ff",
+  "theme_color": "#7ec8e3",
+  "description": "Visual addition and subtraction for little learners: pick numbers, watch groups of fruits join or go away, and count along.",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "categories": ["education", "kids"]
+}

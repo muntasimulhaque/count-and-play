@@ -1,0 +1,14 @@
+# Never commit Android release artifacts or signing credentials.
+*.aab
+*.apk
+*.keystore
+signing-key-info.txt
+
+# These archives can contain release artifacts or deployment copies.
+*.zip
+
+# Local editor and operating-system files.
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
