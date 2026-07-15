@@ -13,7 +13,7 @@ Everything below is ready to paste into Play Console. Work through it top to bot
 | Feature graphic 1024×500 | `feature-graphic-1024x500.png` |
 | Privacy policy (live) | https://count-and-play.netlify.app/privacy.html |
 | Digital asset links (live, verified) | https://count-and-play.netlify.app/.well-known/assetlinks.json |
-| Package ID | `app.netlify.count_and_play.twa` |
+| Package ID | `app.maqsadah.count_and_play.twa` |
 
 Still needed: at least 2 phone screenshots (and 1 tablet screenshot recommended). Open the app on your tablet/phone and screenshot the Learn picker, an addition scene mid-count, and a subtraction scene with the take-away slots.
 
