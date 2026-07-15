@@ -40,7 +40,7 @@ Inside the Google Play package zip: `signing.keystore` and `signing-key-info.txt
 
 - [x] App built, tested, and live at count-and-play.netlify.app
 - [x] PWA complete (manifest, icons, offline service worker v4)
-- [x] Signed Android package (.aab) generated — package ID `app.netlify.count_and_play.twa`
+- [x] Signed Android package (.aab) generated — package ID `app.maqsadah.count_and_play.twa`
 - [x] Digital asset links live and verified (full-screen app, no browser bar)
 - [x] Privacy policy live
 - [x] Store listing text, data-safety and Families-policy answers drafted
