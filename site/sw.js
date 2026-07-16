@@ -1,4 +1,4 @@
-var CACHE = "count-play-v6";
+var CACHE = "count-play-v7";
 var ASSETS = ["./", "./index.html", "./manifest.json",
               "./icons/icon-192.png", "./icons/icon-512.png", "./icons/icon-maskable-512.png"];
 
