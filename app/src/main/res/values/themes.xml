@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.CountPlay" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/bg_sky</item>
+        <item name="android:statusBarColor">@color/theme_blue</item>
+        <item name="android:navigationBarColor">@color/bg_mint</item>
+    </style>
+</resources>

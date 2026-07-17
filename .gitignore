@@ -2,7 +2,15 @@
 *.aab
 *.apk
 *.keystore
+*.jks
 signing-key-info.txt
+
+# Android / Gradle build outputs
+.gradle/
+build/
+local.properties
+.kotlin/
+captures/
 
 # These archives can contain release artifacts or deployment copies.
 *.zip
@@ -12,3 +20,4 @@ signing-key-info.txt
 Thumbs.db
 .idea/
 .vscode/
+*.iml
