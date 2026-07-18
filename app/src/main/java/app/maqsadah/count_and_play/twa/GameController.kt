@@ -11,7 +11,6 @@ import kotlinx.coroutines.launch
 
 enum class Screen { START, MENU, GAME }
 enum class Mode { LEARN, QUIZ }
-enum class SizeClass { BIG, MID, SMALL }
 
 /** One emoji on stage. Ported from the .item DOM element. */
 class Item(val id: Int, val emoji: String, val group: Char) {
@@ -63,9 +62,11 @@ class GameController(private val speaker: Speaker, private val scope: CoroutineS
     var plateBVisible by mutableStateOf(false)
     var goneVisible by mutableStateOf(false)
     var goneLabel by mutableStateOf("take away")
-    var sizeA by mutableStateOf(SizeClass.BIG)
-    var sizeB by mutableStateOf(SizeClass.BIG)
-    var sizeGone by mutableStateOf(SizeClass.BIG)
+    // How many items each zone will hold this round — drives the auto-fit sizing
+    // in the UI (bigger objects, guaranteed to fit even at 20).
+    var capA by mutableStateOf(1)
+    var capB by mutableStateOf(1)
+    var capGone by mutableStateOf(1)
 
     // picker (learn mode)
     var pickerVisible by mutableStateOf(false)
@@ -119,9 +120,6 @@ class GameController(private val speaker: Speaker, private val scope: CoroutineS
             listOf(part("$a $op $b = $result"))
         }
     }
-
-    private fun sizeClassFor(n: Int) =
-        if (n <= 6) SizeClass.BIG else if (n <= 12) SizeClass.MID else SizeClass.SMALL
 
     private fun newItem(emoji: String, group: Char) = Item(nextId++, emoji, group)
 
@@ -260,8 +258,8 @@ class GameController(private val speaker: Speaker, private val scope: CoroutineS
 
         equation = listOf(part("$a + "), ghostPart("$b"), part(" = "), qPart("?"))
         plateBVisible = true
-        sizeA = sizeClassFor(a)
-        sizeB = sizeClassFor(b)
+        capA = a
+        capB = b
 
         prompt = "${G.word(a)} ${G.plural(nameA, a)}!"
         speaker.speak("${G.word(a)} ${G.plural(nameA, a)}!")
@@ -303,7 +301,7 @@ class GameController(private val speaker: Speaker, private val scope: CoroutineS
         val sum = a + b
 
         // move group B items into plate A
-        sizeA = sizeClassFor(sum)
+        capA = sum
         while (plateB.isNotEmpty()) {
             val itm = plateB.removeAt(0)
             plateA.add(itm)
@@ -344,8 +342,8 @@ class GameController(private val speaker: Speaker, private val scope: CoroutineS
         val name = G.NAMES[em] ?: "things"
 
         equation = listOf(part("$a − "), ghostPart("$b"), part(" = "), qPart("?"))
-        sizeA = sizeClassFor(a)
-        sizeGone = sizeClassFor(b)
+        capA = a
+        capGone = b
 
         prompt = "${G.word(a)} ${G.plural(name, a)}!"
         speaker.speak("${G.word(a)} ${G.plural(name, a)}!")
@@ -451,8 +449,8 @@ class GameController(private val speaker: Speaker, private val scope: CoroutineS
         current = p
         val emoji = G.ITEMS[G.rand(G.ITEMS.size)]
         val name = G.NAMES[emoji] ?: "things"
-        sizeA = sizeClassFor(if (p.op == "+") p.a + p.b else p.a)
-        sizeGone = sizeClassFor(p.b)
+        capA = if (p.op == "+") p.a + p.b else p.a
+        capGone = p.b
 
         delay(400)
 

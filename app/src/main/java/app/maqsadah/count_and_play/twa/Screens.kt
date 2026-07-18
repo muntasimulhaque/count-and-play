@@ -59,6 +59,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.runtime.key
+import kotlin.math.max
 
 @Composable
 fun CountPlayApp(c: GameController, speaker: Speaker) {
@@ -194,31 +195,38 @@ private fun EquationLine(parts: List<EqPart>, vmin: Float) {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun SlotsFlow(c: GameController, vmin: Float, gap: Dp) {
-    val fs = itemFont(c.sizeGone, vmin)
-    val slotSize = with(LocalDensity.current) { fs.toDp() * 1.25f }
-    FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(gap, Alignment.CenterHorizontally),
-        verticalArrangement = Arrangement.spacedBy(gap, Alignment.CenterVertically)
-    ) {
-        c.slots.forEachIndexed { i, s ->
-            key(i) {
-                Box(
-                    Modifier
-                        .size(slotSize)
-                        .background(Color(0x80FFFFFF), CircleShape)
-                        .drawBehind {
-                            drawCircle(
-                                color = Palette.SlotBorder,
-                                style = Stroke(
-                                    width = 3.dp.toPx(),
-                                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 8f), 0f)
+private fun SlotsFlow(c: GameController, gap: Dp) {
+    BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        val density = LocalDensity.current
+        val wPx = with(density) { maxWidth.toPx() }
+        val hPx = with(density) { maxHeight.toPx() }
+        val gapPx = with(density) { gap.toPx() }
+        val n = max(c.capGone, c.slots.size)
+        val fs = fitItemFontSp(wPx, hPx, n, gapPx, density)
+        val slotSize = with(density) { fs.toDp() * 1.2f }
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(gap, Alignment.CenterHorizontally),
+            verticalArrangement = Arrangement.spacedBy(gap, Alignment.CenterVertically)
+        ) {
+            c.slots.forEachIndexed { i, s ->
+                key(i) {
+                    Box(
+                        Modifier
+                            .size(slotSize)
+                            .background(Color(0x80FFFFFF), CircleShape)
+                            .drawBehind {
+                                drawCircle(
+                                    color = Palette.SlotBorder,
+                                    style = Stroke(
+                                        width = 3.dp.toPx(),
+                                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 8f), 0f)
+                                    )
                                 )
-                            )
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    s?.let { ItemView(it, fs) }
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        s?.let { ItemView(it, fs) }
+                    }
                 }
             }
         }
@@ -228,19 +236,23 @@ private fun SlotsFlow(c: GameController, vmin: Float, gap: Dp) {
 @Composable
 private fun GoneZoneContent(c: GameController, vmin: Float, gap: Dp) {
     Column(
+        Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         Text(
             c.goneLabel,
-            color = Palette.LabelGrey,
-            fontSize = clampSp(13f, 2.5f, 20f, vmin),
+            color = Palette.LabelPop,
+            fontSize = clampSp(18f, 4.2f, 30f, vmin),
+            fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center
         )
-        if (c.slots.isNotEmpty()) {
-            SlotsFlow(c, vmin, gap)
-        } else {
-            ItemsFlow(c.goneItems, itemFont(c.sizeGone, vmin), gap)
+        Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+            if (c.slots.isNotEmpty()) {
+                SlotsFlow(c, gap)
+            } else {
+                AutoItemsFlow(c.goneItems, c.capGone, gap)
+            }
         }
     }
 }
@@ -257,11 +269,11 @@ private fun Stage(c: GameController, vmin: Float, modifier: Modifier) {
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             ZoneBox(Modifier.weight(1f).fillMaxWidth(), Palette.PlateABorder) {
-                ItemsFlow(c.plateA, itemFont(c.sizeA, vmin), gap, onTap = { c.onFruitTap(it) })
+                AutoItemsFlow(c.plateA, c.capA, gap, onTap = { c.onFruitTap(it) })
             }
             if (c.plateBVisible) {
                 ZoneBox(Modifier.weight(1f).fillMaxWidth(), Palette.PlateBBorder) {
-                    ItemsFlow(c.plateB, itemFont(c.sizeB, vmin), gap)
+                    AutoItemsFlow(c.plateB, c.capB, gap)
                 }
             }
             if (c.goneVisible) {
@@ -276,11 +288,11 @@ private fun Stage(c: GameController, vmin: Float, modifier: Modifier) {
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             ZoneBox(Modifier.weight(1f).fillMaxHeight(), Palette.PlateABorder) {
-                ItemsFlow(c.plateA, itemFont(c.sizeA, vmin), gap, onTap = { c.onFruitTap(it) })
+                AutoItemsFlow(c.plateA, c.capA, gap, onTap = { c.onFruitTap(it) })
             }
             if (c.plateBVisible) {
                 ZoneBox(Modifier.weight(1f).fillMaxHeight(), Palette.PlateBBorder) {
-                    ItemsFlow(c.plateB, itemFont(c.sizeB, vmin), gap)
+                    AutoItemsFlow(c.plateB, c.capB, gap)
                 }
             }
             if (c.goneVisible) {
@@ -374,15 +386,25 @@ private fun Picker(c: GameController, vmin: Float, modifier: Modifier) {
 
 @Composable
 private fun PromptLine(prompt: String, vmin: Float) {
-    val fs = clampSp(17f, 4f, 30f, vmin)
-    val minH = with(LocalDensity.current) { fs.toDp() * 1.5f }
-    Text(
-        prompt,
+    val fs = clampSp(22f, 5.5f, 40f, vmin)
+    val minH = with(LocalDensity.current) { fs.toDp() * 1.9f }
+    Box(
         Modifier.fillMaxWidth().heightIn(min = minH).padding(horizontal = 10.dp),
-        textAlign = TextAlign.Center,
-        fontSize = fs,
-        color = Palette.PromptGrey
-    )
+        contentAlignment = Alignment.Center
+    ) {
+        if (prompt.isNotBlank()) {
+            Text(
+                prompt,
+                Modifier
+                    .background(Palette.PromptChip, RoundedCornerShape(22.dp))
+                    .padding(horizontal = 18.dp, vertical = 8.dp),
+                textAlign = TextAlign.Center,
+                fontSize = fs,
+                fontWeight = FontWeight.Bold,
+                color = Palette.PromptPop
+            )
+        }
+    }
 }
 
 @Composable

@@ -38,11 +38,14 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
+import kotlin.math.ceil
+import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
 
@@ -54,10 +57,43 @@ fun clampSp(minV: Float, vminPct: Float, maxV: Float, vmin: Float): TextUnit =
 fun clampDp(minV: Float, vminPct: Float, maxV: Float, vmin: Float): Dp =
     max(minV, min(maxV, vminPct / 100f * vmin)).dp
 
-fun itemFont(size: SizeClass, vmin: Float): TextUnit = when (size) {
-    SizeClass.BIG -> clampSp(36f, 9f, 80f, vmin)
-    SizeClass.MID -> clampSp(26f, 6.5f, 56f, vmin)
-    SizeClass.SMALL -> clampSp(20f, 4.8f, 40f, vmin)
+/* ---------- auto-fit item sizing ----------
+ * The counting objects should be as BIG as possible while still fitting inside
+ * their box — even at the worst case of 20 objects. Instead of bucketing by count
+ * (which made 14 items tiny), we measure the box and find the largest emoji size
+ * whose grid of [count] items fits the available width AND height. This is
+ * emoji-agnostic: mango, car or ball all render at the same size for the same box.
+ */
+private const val CELL_W_RATIO = 1.20f   // horizontal footprint per glyph (over-estimated → FlowRow always fits ≥ perRow)
+private const val CELL_H_RATIO = 1.45f   // vertical footprint incl. count-bubble / pulse headroom
+private const val ITEM_MIN_SP = 15f
+private const val ITEM_MAX_SP = 92f
+
+/**
+ * Largest emoji font (sp) so that [count] square-ish items fit inside a box of
+ * [availWidthPx] × [availHeightPx] with [gapPx] spacing, laid out like FlowRow.
+ * Returns [ITEM_MIN_SP] as a floor if even that will not fit.
+ */
+fun fitItemFontSp(
+    availWidthPx: Float,
+    availHeightPx: Float,
+    count: Int,
+    gapPx: Float,
+    density: Density
+): TextUnit {
+    if (count <= 0 || availWidthPx <= 0f || availHeightPx <= 0f) return ITEM_MAX_SP.sp
+    var f = ITEM_MAX_SP
+    while (f > ITEM_MIN_SP) {
+        val fontPx = with(density) { f.sp.toPx() }
+        val cellW = fontPx * CELL_W_RATIO
+        val cellH = fontPx * CELL_H_RATIO
+        val perRow = max(1, floor((availWidthPx + gapPx) / (cellW + gapPx)).toInt())
+        val rows = ceil(count.toFloat() / perRow).toInt()
+        val neededH = rows * cellH + (rows - 1) * gapPx
+        if (cellW <= availWidthPx && neededH <= availHeightPx) break
+        f -= 1f
+    }
+    return f.sp
 }
 
 /* ---------- chunky 3D-shadow button (the app's signature look) ---------- */
@@ -217,6 +253,33 @@ fun ItemsFlow(
                 ItemView(itm, fontSize, onTap)
             }
         }
+    }
+}
+
+/* ---------- a group of items that auto-sizes to fill its box ----------
+ * [capacity] is the number of items this box will ultimately hold this round.
+ * We size for that (not the current count) so the objects don't wobble in size
+ * as they drop in one by one, and so they never overflow the box.
+ */
+@Composable
+fun AutoItemsFlow(
+    items: List<Item>,
+    capacity: Int,
+    gap: Dp,
+    modifier: Modifier = Modifier,
+    onTap: ((Item) -> Unit)? = null
+) {
+    BoxWithConstraints(
+        modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        val density = LocalDensity.current
+        val wPx = with(density) { maxWidth.toPx() }
+        val hPx = with(density) { maxHeight.toPx() }
+        val gapPx = with(density) { gap.toPx() }
+        val n = max(capacity, items.size)
+        val fs = fitItemFontSp(wPx, hPx, n, gapPx, density)
+        ItemsFlow(items, fs, gap, onTap)
     }
 }
 

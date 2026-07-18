@@ -110,4 +110,8 @@ object Palette {
     val PromptGrey = Color(0xFF444444)
     val LabelGrey = Color(0xFF999999)
     val WrongPink = Color(0xFFFFD6D6)
+    // Bright, playful attention colors for the instruction text so kids notice it.
+    val PromptPop = Color(0xFF8A3FFC)       // vivid purple — the main prompt
+    val PromptChip = Color(0xE6FFFFFF)      // near-white rounded chip behind the prompt
+    val LabelPop = Color(0xFFF4712E)        // bright orange — the "take away N" label
 }
