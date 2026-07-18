@@ -3,6 +3,14 @@ name: Build signed Android release
 on:
   push:
     branches: [main]
+    # Only rebuild when something that affects the app actually changes,
+    # so doc-only commits (README, play-store assets) don't burn a build.
+    paths:
+      - "app/**"
+      - "*.gradle.kts"
+      - "gradle.properties"
+      - "gradle/**"
+      - ".github/workflows/build.yml"
   workflow_dispatch:
 
 permissions:

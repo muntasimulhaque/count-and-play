@@ -231,15 +231,10 @@ class GameController(private val speaker: Speaker, private val scope: CoroutineS
     }
 
     fun diceRoll() {
-        val op = if (G.rand(2) == 0) "+" else "−"
-        if (op == "+") {
-            la = 1 + G.rand(G.MAX_N - 1)         // 1..19
-            lb = 1 + G.rand(G.MAX_N - la)        // sum ≤ 20
-        } else {
-            la = 2 + G.rand(G.MAX_N - 1)         // 2..20
-            lb = 1 + G.rand(la)                  // 1..a
-        }
-        lop = op
+        val p = G.diceProblem()
+        la = p.a
+        lb = p.b
+        lop = p.op
         startActing()
     }
 
@@ -436,29 +431,11 @@ class GameController(private val speaker: Speaker, private val scope: CoroutineS
        QUIZ MODE — watch, count, answer
        ============================================================ */
 
-    private fun makeProblem(): Problem {
-        val max = if (correctCount >= 5) 10 else 5    // level up after 5 stars
-        val isAdd = round % 2 == 0                    // alternate + and −
-        return if (isAdd) {
-            val total = 2 + G.rand(max - 1)
-            val a = 1 + G.rand(total - 1)
-            Problem("+", a, total - a, total)
-        } else {
-            val n = 2 + G.rand(max - 1)
-            val k = 1 + G.rand(n - 1)
-            Problem("−", n, k, n - k)
-        }
-    }
+    private fun makeProblem(): Problem = G.quizProblem(round, correctCount)
 
     private fun showAnswers(correct: Int, maxN: Int) {
-        val candidates = (0..maxN).filter { it != correct }
-            .map { it to Math.random() }
-            .sortedWith(compareBy({ kotlin.math.abs(it.first - correct) }, { it.second }))
-            .map { it.first }
-        val opts = mutableListOf(correct, candidates[0], candidates[1])
-        opts.shuffle()
         answers.clear()
-        answers.addAll(opts)
+        answers.addAll(G.answerOptions(correct, maxN))
         ansCorrectIdx = -1
         ansWrongIdx = -1
         dimOthers = false

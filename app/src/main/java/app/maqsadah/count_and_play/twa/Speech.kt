@@ -33,7 +33,13 @@ class Speaker(context: Context) {
         tts = TextToSpeech(context.applicationContext) { status ->
             if (status == TextToSpeech.SUCCESS) {
                 val t = tts ?: return@TextToSpeech
-                val lang = t.setLanguage(Locale.US)
+                // Prefer en-US; if that voice data is missing, fall back to the
+                // device's default locale so narration still works out of the box
+                // (the numbers/words are English, but any voice is better than silence).
+                var lang = t.setLanguage(Locale.US)
+                if (lang == TextToSpeech.LANG_MISSING_DATA || lang == TextToSpeech.LANG_NOT_SUPPORTED) {
+                    lang = t.setLanguage(Locale.getDefault())
+                }
                 if (lang != TextToSpeech.LANG_MISSING_DATA && lang != TextToSpeech.LANG_NOT_SUPPORTED) {
                     t.setSpeechRate(0.85f)
                     t.setPitch(1.15f)

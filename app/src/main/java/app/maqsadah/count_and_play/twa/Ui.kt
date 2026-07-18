@@ -244,8 +244,8 @@ fun ConfettiOverlay(tick: Int) {
                         id = counter[0],
                         emoji = fx[G.rand(fx.size)],
                         xFrac = G.rand(100) / 100f,
-                        durMs = (1400 + Math.random() * 1400).toInt(),
-                        delayMs = (Math.random() * 400).toLong()
+                        durMs = (1400 + G.randF() * 1400).toInt(),
+                        delayMs = (G.randF() * 400).toLong()
                     )
                 )
             }

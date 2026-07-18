@@ -1,10 +1,13 @@
 package app.maqsadah.count_and_play.twa
 
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -20,20 +23,29 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -89,17 +101,40 @@ fun CountPlayApp(c: GameController, speaker: Speaker) {
 /* ---------- header ---------- */
 
 @Composable
-private fun IconCircleButton(icon: String, vmin: Float, onClick: () -> Unit) {
-    val fs = clampSp(20f, 4.5f, 32f, vmin)
-    val d = with(LocalDensity.current) { fs.toDp() * 1.9f }
+private fun IconCircleButton(
+    icon: String,
+    label: String,
+    vmin: Float,
+    onClick: () -> Unit
+) {
+    // Size the touch target directly (56dp floor, up to 84dp on big screens)
+    // rather than deriving it from font size, so it stays comfortably tappable
+    // for a small child on every screen size. The icon scales with the button.
+    val d = clampDp(56f, 13f, 84f, vmin)
+    val iconFs = with(LocalDensity.current) { (d * 0.5f).toSp() }
+    val haptic = LocalHapticFeedback.current
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val scale by animateFloatAsState(if (pressed) 0.88f else 1f, label = "iconBtnPress")
+
     Box(
         Modifier
             .size(d)
-            .background(Color(0xB3FFFFFF), CircleShape)
-            .clickable { onClick() },
+            .graphicsLayer { scaleX = scale; scaleY = scale }
+            .clip(CircleShape)
+            .background(Palette.ChromeBtnBg, CircleShape)
+            .border(2.dp, Palette.ChromeBtnBorder, CircleShape)
+            .clickable(interactionSource = interaction, indication = ripple()) {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onClick()
+            }
+            .semantics {
+                contentDescription = label
+                role = Role.Button
+            },
         contentAlignment = Alignment.Center
     ) {
-        Text(icon, fontSize = fs)
+        Text(icon, fontSize = iconFs)
     }
 }
 
@@ -108,11 +143,11 @@ private fun Header(c: GameController, speaker: Speaker, vmin: Float) {
     Row(
         Modifier
             .fillMaxWidth()
-            .heightIn(min = 50.dp)
+            .heightIn(min = 64.dp)
             .padding(horizontal = 14.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        IconCircleButton("🏠", vmin) { c.showMenu() }
+        IconCircleButton("🏠", "Home", vmin) { c.showMenu() }
         val stars = if (c.mode == Mode.QUIZ) "⭐".repeat(minOf(c.correctCount, 10)) else ""
         Text(
             stars,
@@ -121,7 +156,11 @@ private fun Header(c: GameController, speaker: Speaker, vmin: Float) {
             fontSize = clampSp(16f, 3.5f, 26f, vmin),
             letterSpacing = 2.sp
         )
-        IconCircleButton(if (speaker.soundOn) "🔊" else "🔇", vmin) { speaker.toggle() }
+        IconCircleButton(
+            icon = if (speaker.soundOn) "🔊" else "🔇",
+            label = if (speaker.soundOn) "Mute sound" else "Turn sound on",
+            vmin = vmin
+        ) { speaker.toggle() }
     }
 }
 

@@ -33,7 +33,15 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            // R8 code shrinking + resource shrinking. Safe here: no reflection,
+            // serialization, or JNI — only framework APIs (TextToSpeech) and Compose,
+            // both of which ship their own keep rules.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
             val ks = signingConfigs.getByName("release")
             if (ks.storeFile?.exists() == true) {
                 signingConfig = ks
@@ -62,4 +70,6 @@ dependencies {
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.material3:material3")
+
+    testImplementation("junit:junit:4.13.2")
 }

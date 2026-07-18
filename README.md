@@ -38,6 +38,23 @@ The keystore itself is **never** committed (see `.gitignore`). If it is ever los
 
 Local builds work too: open the repo in Android Studio, or run `gradle :app:assembleDebug`. Without the keystore, release builds are unsigned.
 
+Release builds are **minified** (R8 code + resource shrinking). The first minified build should be smoke-tested from the closed-testing track before promoting to production.
+
+**Gradle wrapper:** this repo does not yet commit a wrapper. Generate it once so everyone builds with the same Gradle version:
+
+```
+gradle wrapper --gradle-version 8.10.2
+git add gradlew gradlew.bat gradle/wrapper && git commit -m "Add Gradle wrapper"
+```
+
+After that, use `./gradlew` (or `gradlew.bat`) instead of a system `gradle`.
+
+**Tests:** pure game logic is unit-tested (`app/src/test/…/GameLogicTest.kt`). Run them with:
+
+```
+gradle :app:testDebugUnitTest
+```
+
 ## Releasing an update
 
 1. Edit the code; bump `versionCode` (and `versionName`) in `app/build.gradle.kts`.
