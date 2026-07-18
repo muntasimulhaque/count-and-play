@@ -124,4 +124,49 @@ class ScreenshotTest {
         rule.setContent { CountPlayApp(c, speaker) }
         capture("04_learn_sub")
     }
+
+    /**
+     * Regression: the reported "8 + 8" case that showed only 6 balls per box on a
+     * Vivo Y90. Both boxes must render all 8 objects (no clipped bottom row) and at
+     * an identical size.
+     */
+    @Test
+    fun e_add8plus8() {
+        val c = controller()
+        c.mode = Mode.LEARN
+        c.screen = Screen.GAME
+        c.equation = listOf(EqPart("8 + 8 = ", EqPart.NORMAL), EqPart("?", EqPart.Q))
+        c.capA = 8
+        c.capB = 8
+        c.plateBVisible = true
+        var id = 1
+        repeat(8) { c.plateA.add(item(id++, "⚽", 'A')) }
+        repeat(8) { c.plateB.add(item(id++, "⚽", 'B')) }
+        c.prompt = "Tap to put them together!"
+        c.showMerge = true
+        rule.setContent { CountPlayApp(c, speaker) }
+        capture("05_add_8plus8")
+    }
+
+    /**
+     * Regression: the reported "1 + 14" case where the single star was huge and the
+     * fourteen were small. Every star must now be the same size in both boxes.
+     */
+    @Test
+    fun f_add1plus14() {
+        val c = controller()
+        c.mode = Mode.LEARN
+        c.screen = Screen.GAME
+        c.equation = listOf(EqPart("1 + 14 = ", EqPart.NORMAL), EqPart("?", EqPart.Q))
+        c.capA = 1
+        c.capB = 14
+        c.plateBVisible = true
+        var id = 1
+        repeat(1) { c.plateA.add(item(id++, "⭐", 'A')) }
+        repeat(14) { c.plateB.add(item(id++, "⭐", 'B')) }
+        c.prompt = "Tap to put them together!"
+        c.showMerge = true
+        rule.setContent { CountPlayApp(c, speaker) }
+        capture("06_add_1plus14")
+    }
 }

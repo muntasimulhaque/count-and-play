@@ -10,12 +10,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -57,17 +58,36 @@ fun clampSp(minV: Float, vminPct: Float, maxV: Float, vmin: Float): TextUnit =
 fun clampDp(minV: Float, vminPct: Float, maxV: Float, vmin: Float): Dp =
     max(minV, min(maxV, vminPct / 100f * vmin)).dp
 
-/* ---------- auto-fit item sizing ----------
- * The counting objects should be as BIG as possible while still fitting inside
- * their box — even at the worst case of 20 objects. Instead of bucketing by count
- * (which made 14 items tiny), we measure the box and find the largest emoji size
- * whose grid of [count] items fits the available width AND height. This is
- * emoji-agnostic: mango, car or ball all render at the same size for the same box.
+/* ---------- item sizing ----------
+ * Counting objects render at ONE fixed size across the whole app — a star in a
+ * "1" box is exactly as big as each star in a "14" box, and objects never change
+ * size from one problem to the next. The size is computed once (in Stage) as the
+ * largest emoji that fits the worst case — [G.MAX_N] objects in a main plate — and
+ * handed to every zone; each zone only shrinks BELOW it as a non-clipping safety
+ * net if its own box genuinely can't hold that many at that size (e.g. a crowded
+ * take-away area). Size depends only on the box + count, never the emoji, so
+ * mango, car or ball all render identically.
+ *
+ * The layout is a DETERMINISTIC grid, not a free-flowing FlowRow: we compute the
+ * column count and fixed cell size ourselves and place items in exactly that many
+ * columns. This guarantees what we measured is what we render, so rows can never
+ * overflow the (clipped) box and silently drop objects — the "8+8 shows only 6"
+ * bug came from FlowRow wrapping into more rows than the fit estimate assumed.
  */
-private const val CELL_W_RATIO = 1.20f   // horizontal footprint per glyph (over-estimated → FlowRow always fits ≥ perRow)
-private const val CELL_H_RATIO = 1.45f   // vertical footprint incl. count-bubble / pulse headroom
-private const val ITEM_MIN_SP = 15f
+// Cell footprint per glyph, as a multiple of font size. Kept safely LARGER than a
+// real emoji's advance width / line height so the glyph always sits inside its
+// cell and never spills past the box edge to be clipped away.
+private const val CELL_W_RATIO = 1.30f
+private const val CELL_H_RATIO = 1.55f
+private const val ITEM_MIN_SP = 12f
 private const val ITEM_MAX_SP = 92f
+
+/** Columns that fit across [availWidthPx] for a glyph of [fontSp] with [gapPx] spacing. */
+fun gridCols(fontSp: TextUnit, availWidthPx: Float, gapPx: Float, density: Density): Int {
+    val fontPx = with(density) { fontSp.toPx() }
+    val cellW = fontPx * CELL_W_RATIO
+    return max(1, floor((availWidthPx + gapPx) / (cellW + gapPx)).toInt())
+}
 
 /**
  * Largest emoji font (sp) so that [count] square-ish items fit inside a box of
@@ -234,38 +254,54 @@ fun ItemView(item: Item, fontSize: TextUnit, onTap: ((Item) -> Unit)? = null) {
     }
 }
 
-/* ---------- a flowing group of items, centered ---------- */
-
-@OptIn(ExperimentalLayoutApi::class)
+/* ---------- a deterministic, centered grid of fixed-size cells ----------
+ * Places [items] in exactly [cols] columns of [cellW] × [cellH] cells. Because we
+ * fix the column count and cell size, the rendered row count equals ceil(n/cols)
+ * exactly — nothing can wrap into an extra, clipped row. Rows fill left-to-right
+ * in list order, so appending an item never reshuffles the ones already placed
+ * (their drop-in animation isn't replayed).
+ */
 @Composable
-fun ItemsFlow(
-    items: List<Item>,
-    fontSize: TextUnit,
+fun <T> CenteredGrid(
+    items: List<T>,
+    cols: Int,
+    cellW: Dp,
+    cellH: Dp,
     gap: Dp,
-    onTap: ((Item) -> Unit)? = null
+    keyOf: (Int, T) -> Any,
+    cell: @Composable (T) -> Unit
 ) {
-    FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(gap, Alignment.CenterHorizontally),
-        verticalArrangement = Arrangement.spacedBy(gap, Alignment.CenterVertically)
+    Column(
+        verticalArrangement = Arrangement.spacedBy(gap, Alignment.CenterVertically),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        items.forEach { itm ->
-            key(itm.id) {
-                ItemView(itm, fontSize, onTap)
+        items.chunked(max(1, cols)).forEachIndexed { r, rowItems ->
+            Row(horizontalArrangement = Arrangement.spacedBy(gap, Alignment.CenterHorizontally)) {
+                rowItems.forEachIndexed { ci, itm ->
+                    key(keyOf(r * cols + ci, itm)) {
+                        Box(Modifier.size(cellW, cellH), contentAlignment = Alignment.Center) {
+                            cell(itm)
+                        }
+                    }
+                }
             }
         }
     }
 }
 
-/* ---------- a group of items that auto-sizes to fill its box ----------
- * [capacity] is the number of items this box will ultimately hold this round.
- * We size for that (not the current count) so the objects don't wobble in size
- * as they drop in one by one, and so they never overflow the box.
+/* ---------- a group of items sized to the app-wide fixed object size ----------
+ * [capacity] is how many items this box will ultimately hold this round; we plan
+ * the grid for that (not the current count) so objects don't resize as they drop
+ * in one by one. [fixedFontSp] is the single app-wide object size computed in
+ * Stage. This box renders at that size, only shrinking below it if [capacity]
+ * genuinely will not fit here at that size (a non-clipping safety net).
  */
 @Composable
 fun AutoItemsFlow(
     items: List<Item>,
     capacity: Int,
     gap: Dp,
+    fixedFontSp: TextUnit,
     modifier: Modifier = Modifier,
     onTap: ((Item) -> Unit)? = null
 ) {
@@ -278,8 +314,20 @@ fun AutoItemsFlow(
         val hPx = with(density) { maxHeight.toPx() }
         val gapPx = with(density) { gap.toPx() }
         val n = max(capacity, items.size)
-        val fs = fitItemFontSp(wPx, hPx, n, gapPx, density)
-        ItemsFlow(items, fs, gap, onTap)
+        // Fixed size everywhere; only shrink if this exact box can't fit n at it.
+        val ownFit = fitItemFontSp(wPx, hPx, n, gapPx, density)
+        val fs = if (fixedFontSp.value <= ownFit.value) fixedFontSp else ownFit
+        val cols = min(n, gridCols(fs, wPx, gapPx, density))
+        val cellW = with(density) { (fs.toPx() * CELL_W_RATIO).toDp() }
+        val cellH = with(density) { (fs.toPx() * CELL_H_RATIO).toDp() }
+        CenteredGrid(
+            items = items,
+            cols = cols,
+            cellW = cellW,
+            cellH = cellH,
+            gap = gap,
+            keyOf = { _, itm -> itm.id }
+        ) { itm -> ItemView(itm, fs, onTap) }
     }
 }
 

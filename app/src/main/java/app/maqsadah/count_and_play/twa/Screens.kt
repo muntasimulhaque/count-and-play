@@ -55,8 +55,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.runtime.key
 import kotlin.math.max
@@ -193,48 +191,51 @@ private fun EquationLine(parts: List<EqPart>, vmin: Float) {
 
 /* ---------- stage ---------- */
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun SlotsFlow(c: GameController, gap: Dp) {
+private fun SlotsFlow(c: GameController, gap: Dp, fixedFs: TextUnit) {
     BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         val density = LocalDensity.current
         val wPx = with(density) { maxWidth.toPx() }
         val hPx = with(density) { maxHeight.toPx() }
         val gapPx = with(density) { gap.toPx() }
         val n = max(c.capGone, c.slots.size)
-        val fs = fitItemFontSp(wPx, hPx, n, gapPx, density)
+        // Same fixed object size as everywhere else; only shrink if this box can't
+        // hold n at that size. Deterministic column count = no clipped rows.
+        val ownFit = fitItemFontSp(wPx, hPx, n, gapPx, density)
+        val fs = if (fixedFs.value <= ownFit.value) fixedFs else ownFit
+        val cols = minOf(n, gridCols(fs, wPx, gapPx, density))
         val slotSize = with(density) { fs.toDp() * 1.2f }
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(gap, Alignment.CenterHorizontally),
-            verticalArrangement = Arrangement.spacedBy(gap, Alignment.CenterVertically)
-        ) {
-            c.slots.forEachIndexed { i, s ->
-                key(i) {
-                    Box(
-                        Modifier
-                            .size(slotSize)
-                            .background(Color(0x80FFFFFF), CircleShape)
-                            .drawBehind {
-                                drawCircle(
-                                    color = Palette.SlotBorder,
-                                    style = Stroke(
-                                        width = 3.dp.toPx(),
-                                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 8f), 0f)
-                                    )
-                                )
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        s?.let { ItemView(it, fs) }
-                    }
-                }
+        CenteredGrid(
+            items = c.slots.toList(),
+            cols = cols,
+            cellW = slotSize,
+            cellH = slotSize,
+            gap = gap,
+            keyOf = { i, _ -> i }
+        ) { s ->
+            Box(
+                Modifier
+                    .size(slotSize)
+                    .background(Color(0x80FFFFFF), CircleShape)
+                    .drawBehind {
+                        drawCircle(
+                            color = Palette.SlotBorder,
+                            style = Stroke(
+                                width = 3.dp.toPx(),
+                                pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 8f), 0f)
+                            )
+                        )
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                s?.let { ItemView(it, fs) }
             }
         }
     }
 }
 
 @Composable
-private fun GoneZoneContent(c: GameController, vmin: Float, gap: Dp) {
+private fun GoneZoneContent(c: GameController, vmin: Float, gap: Dp, fixedFs: TextUnit) {
     Column(
         Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -249,9 +250,9 @@ private fun GoneZoneContent(c: GameController, vmin: Float, gap: Dp) {
         )
         Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
             if (c.slots.isNotEmpty()) {
-                SlotsFlow(c, gap)
+                SlotsFlow(c, gap, fixedFs)
             } else {
-                AutoItemsFlow(c.goneItems, c.capGone, gap)
+                AutoItemsFlow(c.goneItems, c.capGone, gap, fixedFs)
             }
         }
     }
@@ -262,42 +263,70 @@ private fun Stage(c: GameController, vmin: Float, modifier: Modifier) {
     val cfg = LocalConfiguration.current
     val portrait = cfg.screenHeightDp > cfg.screenWidthDp
     val gap = (1.6f / 100f * vmin).dp
+    val density = LocalDensity.current
 
-    if (portrait) {
-        Column(
-            modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 6.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            ZoneBox(Modifier.weight(1f).fillMaxWidth(), Palette.PlateABorder) {
-                AutoItemsFlow(c.plateA, c.capA, gap, onTap = { c.onFruitTap(it) })
-            }
-            if (c.plateBVisible) {
-                ZoneBox(Modifier.weight(1f).fillMaxWidth(), Palette.PlateBBorder) {
-                    AutoItemsFlow(c.plateB, c.capB, gap)
-                }
-            }
-            if (c.goneVisible) {
-                ZoneBox(Modifier.weight(0.43f).fillMaxWidth(), Palette.GoneBorder, Palette.GoneBg) {
-                    GoneZoneContent(c, vmin, gap)
-                }
-            }
+    BoxWithConstraints(modifier) {
+        val stageW = maxWidth
+        val stageH = maxHeight
+        // ONE fixed object size for the whole app: the largest emoji that fits the
+        // worst case — MAX_N objects in a main plate. Two equal plates stacked
+        // (learn addition) is the tightest a main plate is ever shown at, so we
+        // size for that geometry and reuse the single value in every zone and every
+        // problem. Mirrors the exact layout constants below so measured == rendered.
+        val padH = 10.dp; val padV = 6.dp; val zonePad = 8.dp; val zoneGap = 8.dp
+        val plateInnerW: Dp
+        val plateInnerH: Dp
+        if (portrait) {
+            plateInnerW = stageW - padH * 2 - zonePad * 2
+            plateInnerH = (stageH - padV * 2 - zoneGap) / 2f - zonePad * 2
+        } else {
+            plateInnerW = (stageW - padH * 2 - zoneGap) / 2f - zonePad * 2
+            plateInnerH = stageH - padV * 2 - zonePad * 2
         }
-    } else {
-        Row(
-            modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            ZoneBox(Modifier.weight(1f).fillMaxHeight(), Palette.PlateABorder) {
-                AutoItemsFlow(c.plateA, c.capA, gap, onTap = { c.onFruitTap(it) })
-            }
-            if (c.plateBVisible) {
-                ZoneBox(Modifier.weight(1f).fillMaxHeight(), Palette.PlateBBorder) {
-                    AutoItemsFlow(c.plateB, c.capB, gap)
+        val fixedFs = fitItemFontSp(
+            with(density) { plateInnerW.toPx() },
+            with(density) { plateInnerH.toPx() },
+            G.MAX_N,
+            with(density) { gap.toPx() },
+            density
+        )
+
+        if (portrait) {
+            Column(
+                Modifier.fillMaxSize().padding(horizontal = 10.dp, vertical = 6.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                ZoneBox(Modifier.weight(1f).fillMaxWidth(), Palette.PlateABorder) {
+                    AutoItemsFlow(c.plateA, c.capA, gap, fixedFs, onTap = { c.onFruitTap(it) })
+                }
+                if (c.plateBVisible) {
+                    ZoneBox(Modifier.weight(1f).fillMaxWidth(), Palette.PlateBBorder) {
+                        AutoItemsFlow(c.plateB, c.capB, gap, fixedFs)
+                    }
+                }
+                if (c.goneVisible) {
+                    ZoneBox(Modifier.weight(0.43f).fillMaxWidth(), Palette.GoneBorder, Palette.GoneBg) {
+                        GoneZoneContent(c, vmin, gap, fixedFs)
+                    }
                 }
             }
-            if (c.goneVisible) {
-                ZoneBox(Modifier.weight(0.43f).fillMaxHeight(), Palette.GoneBorder, Palette.GoneBg) {
-                    GoneZoneContent(c, vmin, gap)
+        } else {
+            Row(
+                Modifier.fillMaxSize().padding(horizontal = 10.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                ZoneBox(Modifier.weight(1f).fillMaxHeight(), Palette.PlateABorder) {
+                    AutoItemsFlow(c.plateA, c.capA, gap, fixedFs, onTap = { c.onFruitTap(it) })
+                }
+                if (c.plateBVisible) {
+                    ZoneBox(Modifier.weight(1f).fillMaxHeight(), Palette.PlateBBorder) {
+                        AutoItemsFlow(c.plateB, c.capB, gap, fixedFs)
+                    }
+                }
+                if (c.goneVisible) {
+                    ZoneBox(Modifier.weight(0.43f).fillMaxHeight(), Palette.GoneBorder, Palette.GoneBg) {
+                        GoneZoneContent(c, vmin, gap, fixedFs)
+                    }
                 }
             }
         }
