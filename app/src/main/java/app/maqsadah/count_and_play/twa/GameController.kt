@@ -243,18 +243,20 @@ class GameController(private val speaker: Speaker, private val scope: CoroutineS
         if (lop == "+") launchSeq { actAdd() } else launchSeq { actSub() }
     }
 
-    /* ----- addition: two colored groups join into one ----- */
+    /* ----- addition: two same-object groups join into one ----- */
     private suspend fun actAdd() {
         busy = true
         clearStage()
         val a = la
         val b = lb
-        val iA = G.rand(G.ITEMS.size)
-        val iB = (iA + 1 + G.rand(G.ITEMS.size - 1)) % G.ITEMS.size   // always different
-        val emA = G.ITEMS[iA]
-        val emB = G.ITEMS[iB]
-        val nameA = G.NAMES[emA] ?: "things"
-        val nameB = G.NAMES[emB] ?: "things"
+        // Both groups are the SAME object (e.g. 13 stars + 7 stars) so kids add
+        // like with like — clearer to grasp than mixing two different things.
+        // The two groups stay visually distinct via their colored zones + merge.
+        val em = G.ITEMS[G.rand(G.ITEMS.size)]
+        val emA = em
+        val emB = em
+        val nameA = G.NAMES[em] ?: "things"
+        val nameB = G.NAMES[em] ?: "things"
 
         equation = listOf(part("$a + "), ghostPart("$b"), part(" = "), qPart("?"))
         plateBVisible = true
