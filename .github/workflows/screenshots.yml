@@ -54,16 +54,17 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none
           script: |
             ./gradlew :app:connectedDebugAndroidTest
-            # The debug build is debuggable, so `run-as` can read the app's
-            # internal files dir where the test wrote the PNGs. `exec-out` keeps
-            # the binary intact (no PTY newline translation). This avoids the
-            # Android 14 block on adb-pulling /sdcard/Android/data.
-            PKG=app.maqsadah.count_and_play.twa
+            # AGP copies the test's additional output off-device (before it
+            # uninstalls the app) into app/build/outputs/.../additional output.
+            echo "All PNGs under app/build/outputs (diagnostic):"
+            find app/build/outputs -type f -name '*.png' -print
             mkdir -p store-shots
-            for f in 01_menu 02_learn_add 03_quiz 04_learn_sub; do
-              adb exec-out run-as "$PKG" cat "files/screenshots/$f.png" > "store-shots/$f.png"
-            done
+            find app/build/outputs -type f -name '*.png' -path '*additional*output*' \
+              -exec cp {} store-shots/ \;
+            echo "Collected:"
             ls -la store-shots
+            # Fail loudly if nothing was captured, rather than a false green.
+            test "$(ls store-shots/*.png 2>/dev/null | wc -l)" -ge 1
 
       - name: Upload screenshots
         if: always()

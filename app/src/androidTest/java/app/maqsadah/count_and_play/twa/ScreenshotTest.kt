@@ -36,6 +36,19 @@ class ScreenshotTest {
 
     private fun controller() = GameController(speaker, MainScope())
 
+    /**
+     * Where to write the PNGs. AGP passes `additionalTestOutputDir` and copies
+     * whatever we write there into `app/build/outputs/connected_android_test_
+     * additional_output/…` BEFORE it uninstalls the app — so CI just reads them
+     * off the build output, with no adb pull / root / scoped-storage games.
+     * Falls back to the app's files dir when run outside that AGP flow.
+     */
+    private val outDir: File by lazy {
+        val extra = InstrumentationRegistry.getArguments().getString("additionalTestOutputDir")
+        (if (extra != null) File(extra) else File(context.filesDir, "screenshots"))
+            .apply { mkdirs() }
+    }
+
     /** A settled item: drop-in animation already done, no count bubble. */
     private fun item(id: Int, emoji: String, group: Char, ghost: Boolean = false) =
         Item(id, emoji, group).apply {
@@ -46,11 +59,7 @@ class ScreenshotTest {
     private fun capture(name: String) {
         rule.waitForIdle()
         val bmp: Bitmap = rule.onRoot().captureToImage().asAndroidBitmap()
-        // Internal files dir (/data/data/<pkg>/files/screenshots). CI pulls these
-        // with `run-as` — reliable on Android 14, where /sdcard/Android/data is
-        // blocked to adb. targetContext is the app under test, so run-as matches.
-        val dir = File(context.filesDir, "screenshots").apply { mkdirs() }
-        FileOutputStream(File(dir, "$name.png")).use {
+        FileOutputStream(File(outDir, "$name.png")).use {
             bmp.compress(Bitmap.CompressFormat.PNG, 100, it)
         }
     }
