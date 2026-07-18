@@ -53,14 +53,16 @@ jobs:
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none
           script: |
-            # google_apis images allow root, which lets adb read the app's
-            # external files dir where the test writes the PNGs.
-            adb root
-            adb wait-for-device
             ./gradlew :app:connectedDebugAndroidTest
+            # The debug build is debuggable, so `run-as` can read the app's
+            # internal files dir where the test wrote the PNGs. `exec-out` keeps
+            # the binary intact (no PTY newline translation). This avoids the
+            # Android 14 block on adb-pulling /sdcard/Android/data.
+            PKG=app.maqsadah.count_and_play.twa
             mkdir -p store-shots
-            adb pull /sdcard/Android/data/app.maqsadah.count_and_play.twa/files/screenshots/. store-shots/ \
-              || adb pull /storage/emulated/0/Android/data/app.maqsadah.count_and_play.twa/files/screenshots/. store-shots/
+            for f in 01_menu 02_learn_add 03_quiz 04_learn_sub; do
+              adb exec-out run-as "$PKG" cat "files/screenshots/$f.png" > "store-shots/$f.png"
+            done
             ls -la store-shots
 
       - name: Upload screenshots

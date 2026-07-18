@@ -46,7 +46,10 @@ class ScreenshotTest {
     private fun capture(name: String) {
         rule.waitForIdle()
         val bmp: Bitmap = rule.onRoot().captureToImage().asAndroidBitmap()
-        val dir = File(context.getExternalFilesDir(null), "screenshots").apply { mkdirs() }
+        // Internal files dir (/data/data/<pkg>/files/screenshots). CI pulls these
+        // with `run-as` — reliable on Android 14, where /sdcard/Android/data is
+        // blocked to adb. targetContext is the app under test, so run-as matches.
+        val dir = File(context.filesDir, "screenshots").apply { mkdirs() }
         FileOutputStream(File(dir, "$name.png")).use {
             bmp.compress(Bitmap.CompressFormat.PNG, 100, it)
         }
