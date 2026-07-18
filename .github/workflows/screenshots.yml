@@ -59,8 +59,7 @@ jobs:
             echo "All PNGs under app/build/outputs (diagnostic):"
             find app/build/outputs -type f -name '*.png' -print
             mkdir -p store-shots
-            find app/build/outputs -type f -name '*.png' -path '*additional*output*' \
-              -exec cp {} store-shots/ \;
+            find app/build/outputs/connected_android_test_additional_output -type f -name '*.png' -exec cp {} store-shots/ ';'
             echo "Collected:"
             ls -la store-shots
             # Fail loudly if nothing was captured, rather than a false green.
