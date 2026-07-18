@@ -40,19 +40,12 @@ Local builds work too: open the repo in Android Studio, or run `gradle :app:asse
 
 Release builds are **minified** (R8 code + resource shrinking). The first minified build should be smoke-tested from the closed-testing track before promoting to production.
 
-**Gradle wrapper:** this repo does not yet commit a wrapper. Generate it once so everyone builds with the same Gradle version:
-
-```
-gradle wrapper --gradle-version 8.10.2
-git add gradlew gradlew.bat gradle/wrapper && git commit -m "Add Gradle wrapper"
-```
-
-After that, use `./gradlew` (or `gradlew.bat`) instead of a system `gradle`.
+**Gradle wrapper:** this repo pins Gradle 8.10.2 via the committed wrapper. Always build with it — `./gradlew` (macOS/Linux) or `gradlew.bat` (Windows) — so local and CI use the same version. CI validates the wrapper jar against Gradle's known-good checksums on every run.
 
 **Tests:** pure game logic is unit-tested (`app/src/test/…/GameLogicTest.kt`). Run them with:
 
 ```
-gradle :app:testDebugUnitTest
+./gradlew :app:testDebugUnitTest
 ```
 
 ## Releasing an update

@@ -13,8 +13,8 @@ android {
         applicationId = "app.maqsadah.count_and_play.twa"
         minSdk = 23
         targetSdk = 35
-        versionCode = 2
-        versionName = "2.0.0"
+        versionCode = 3
+        versionName = "2.1"
     }
 
     signingConfigs {
