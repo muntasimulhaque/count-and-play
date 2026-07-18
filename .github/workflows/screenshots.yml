@@ -1,0 +1,72 @@
+name: Capture store screenshots
+
+# Renders REAL Play Store screenshots from the app's Compose UI on an Android
+# emulator, so the store listing always matches the shipped build (the old
+# screenshots were PIL-drawn approximations). Runs on GitHub's servers.
+#
+# Trigger manually, or automatically when the UI or the capture test changes.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "app/src/main/**"
+      - "app/src/androidTest/**"
+      - ".github/workflows/screenshots.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  screenshots:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      # Hardware acceleration for the emulator on the GitHub runner.
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Run screenshot capture on emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_2
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none
+          script: |
+            # google_apis images allow root, which lets adb read the app's
+            # external files dir where the test writes the PNGs.
+            adb root
+            adb wait-for-device
+            ./gradlew :app:connectedDebugAndroidTest
+            mkdir -p store-shots
+            adb pull /sdcard/Android/data/app.maqsadah.count_and_play.twa/files/screenshots/. store-shots/ \
+              || adb pull /storage/emulated/0/Android/data/app.maqsadah.count_and_play.twa/files/screenshots/. store-shots/
+            ls -la store-shots
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: store-screenshots
+          path: store-shots/**
+          if-no-files-found: warn

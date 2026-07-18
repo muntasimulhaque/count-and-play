@@ -15,6 +15,9 @@ android {
         targetSdk = 35
         versionCode = 5
         versionName = "2.3"
+
+        // Instrumented tests (the emulator screenshot capture) use AndroidX's runner.
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     signingConfigs {
@@ -72,4 +75,12 @@ dependencies {
     implementation("androidx.compose.material3:material3")
 
     testImplementation("junit:junit:4.13.2")
+
+    // Instrumented (emulator) screenshot capture — real Compose rendering.
+    androidTestImplementation(composeBom)
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    androidTestImplementation("androidx.test:runner:1.6.2")
+    // Provides the empty ComponentActivity that createComposeRule() hosts content in.
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
 }
