@@ -1,4 +1,4 @@
-package app.maqsadah.count_and_play.twa
+package app.maqsadah.count_and_play
 
 import android.app.Application
 import androidx.compose.runtime.getValue

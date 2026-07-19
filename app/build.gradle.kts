@@ -5,11 +5,13 @@ plugins {
 }
 
 android {
-    namespace = "app.maqsadah.count_and_play.twa"
+    namespace = "app.maqsadah.count_and_play"
     compileSdk = 35
 
     defaultConfig {
         // Must never change: this is the published Play Store package ID.
+        // (The ".twa" suffix survives only here, in the immutable applicationId;
+        // the code namespace above no longer carries it.)
         applicationId = "app.maqsadah.count_and_play.twa"
         minSdk = 23
         targetSdk = 35
