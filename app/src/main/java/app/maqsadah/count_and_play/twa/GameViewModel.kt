@@ -1,10 +1,15 @@
 package app.maqsadah.count_and_play.twa
 
+import android.app.Application
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import kotlinx.coroutines.CoroutineScope
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -38,8 +43,13 @@ data class Problem(val op: String, val a: Int, val b: Int, val answer: Int)
 /**
  * All game state + sequencing. A direct port of the original JS game logic;
  * JS async/await + session guards become coroutines + job cancellation.
+ *
+ * Lives in a [ViewModel]: state and running sequences survive config changes,
+ * coroutines run on [viewModelScope] (cancelled automatically when the
+ * ViewModel is cleared), and the [Speaker] is built from the Application
+ * context — never an Activity — and released in [onCleared].
  */
-class GameController(private val speaker: Speaker, private val scope: CoroutineScope) {
+class GameViewModel(val speaker: Speaker) : ViewModel() {
 
     var screen by mutableStateOf(Screen.START)
     var mode by mutableStateOf<Mode?>(null)
@@ -127,7 +137,7 @@ class GameController(private val speaker: Speaker, private val scope: CoroutineS
         item.bubble = num
         item.bubbleTick++
         val tick = item.bubbleTick
-        scope.launch {
+        viewModelScope.launch {
             delay(1400)
             if (item.bubbleTick == tick) item.bubble = null
         }
@@ -168,12 +178,12 @@ class GameController(private val speaker: Speaker, private val scope: CoroutineS
     }
 
     private fun sayAsync(text: String) {
-        scope.launch { speaker.speak(text) }
+        viewModelScope.launch { speaker.speak(text) }
     }
 
     private fun launchSeq(block: suspend () -> Unit) {
         job?.cancel()
-        job = scope.launch { block() }
+        job = viewModelScope.launch { block() }
     }
 
     /* ============================================================
@@ -596,5 +606,25 @@ class GameController(private val speaker: Speaker, private val scope: CoroutineS
         screen = Screen.GAME
         round = 0
         launchSeq { playRound() }
+    }
+
+    /* ---------- lifecycle ---------- */
+
+    override fun onCleared() {
+        // viewModelScope (and with it `job`) is cancelled by the framework;
+        // here we only release the TTS engine.
+        speaker.shutdown()
+        super.onCleared()
+    }
+
+    companion object {
+        /**
+         * Builds the ViewModel with a [Speaker] tied to the Application context
+         * (never an Activity), so no Activity reference can leak and the TTS
+         * engine survives config changes. Released in [onCleared].
+         */
+        fun factory(app: Application): ViewModelProvider.Factory = viewModelFactory {
+            initializer { GameViewModel(Speaker(app)) }
+        }
     }
 }

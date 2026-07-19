@@ -60,7 +60,7 @@ import androidx.compose.runtime.key
 import kotlin.math.max
 
 @Composable
-fun CountPlayApp(c: GameController, speaker: Speaker) {
+fun CountPlayApp(c: GameViewModel, speaker: Speaker) {
     val cfg = LocalConfiguration.current
     val vmin = minOf(cfg.screenWidthDp, cfg.screenHeightDp).toFloat()
 
@@ -138,7 +138,7 @@ private fun IconCircleButton(
 }
 
 @Composable
-private fun Header(c: GameController, speaker: Speaker, vmin: Float) {
+private fun Header(c: GameViewModel, speaker: Speaker, vmin: Float) {
     Row(
         Modifier
             .fillMaxWidth()
@@ -192,7 +192,7 @@ private fun EquationLine(parts: List<EqPart>, vmin: Float) {
 /* ---------- stage ---------- */
 
 @Composable
-private fun SlotsFlow(c: GameController, gap: Dp, fixedFs: TextUnit) {
+private fun SlotsFlow(c: GameViewModel, gap: Dp, fixedFs: TextUnit) {
     BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         val density = LocalDensity.current
         val wPx = with(density) { maxWidth.toPx() }
@@ -235,7 +235,7 @@ private fun SlotsFlow(c: GameController, gap: Dp, fixedFs: TextUnit) {
 }
 
 @Composable
-private fun GoneZoneContent(c: GameController, vmin: Float, gap: Dp, fixedFs: TextUnit) {
+private fun GoneZoneContent(c: GameViewModel, vmin: Float, gap: Dp, fixedFs: TextUnit) {
     Column(
         Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -259,7 +259,7 @@ private fun GoneZoneContent(c: GameController, vmin: Float, gap: Dp, fixedFs: Te
 }
 
 @Composable
-private fun Stage(c: GameController, vmin: Float, modifier: Modifier) {
+private fun Stage(c: GameViewModel, vmin: Float, modifier: Modifier) {
     val cfg = LocalConfiguration.current
     val portrait = cfg.screenHeightDp > cfg.screenWidthDp
     val gap = (1.6f / 100f * vmin).dp
@@ -336,7 +336,7 @@ private fun Stage(c: GameController, vmin: Float, modifier: Modifier) {
 /* ---------- picker (learn mode) ---------- */
 
 @Composable
-private fun Picker(c: GameController, vmin: Float, modifier: Modifier) {
+private fun Picker(c: GameViewModel, vmin: Float, modifier: Modifier) {
     BoxWithConstraints(
         modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 6.dp),
         contentAlignment = Alignment.Center
@@ -437,7 +437,7 @@ private fun PromptLine(prompt: String, vmin: Float) {
 }
 
 @Composable
-private fun AnswerButton(c: GameController, idx: Int, vmin: Float) {
+private fun AnswerButton(c: GameViewModel, idx: Int, vmin: Float) {
     val size = clampDp(78f, 19f, 132f, vmin)
     val fs = clampSp(32f, 9f, 64f, vmin)
     val isCorrect = c.ansCorrectIdx == idx
@@ -480,7 +480,7 @@ private fun AnswerButton(c: GameController, idx: Int, vmin: Float) {
 }
 
 @Composable
-private fun BottomBar(c: GameController, vmin: Float) {
+private fun BottomBar(c: GameViewModel, vmin: Float) {
     val minH = clampDp(96f, 22f, 160f, vmin)
     val actionFs = clampSp(22f, 5.5f, 40f, vmin)
     Row(

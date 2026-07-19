@@ -3,21 +3,19 @@ package app.maqsadah.count_and_play.twa
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import androidx.lifecycle.lifecycleScope
 
 class MainActivity : ComponentActivity() {
 
-    private var speaker: Speaker? = null
+    // The ViewModel owns the game state/sequencing (viewModelScope) and the
+    // Speaker (built from the Application context, released in onCleared).
+    private val vm: GameViewModel by viewModels { GameViewModel.factory(application) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        val sp = Speaker(this)
-        speaker = sp
-        val controller = GameController(sp, lifecycleScope)
 
         // Full-screen, like the original app
         WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -27,12 +25,7 @@ class MainActivity : ComponentActivity() {
         insets.hide(WindowInsetsCompat.Type.systemBars())
 
         setContent {
-            CountPlayApp(controller, sp)
+            CountPlayApp(vm, vm.speaker)
         }
-    }
-
-    override fun onDestroy() {
-        speaker?.shutdown()
-        super.onDestroy()
     }
 }

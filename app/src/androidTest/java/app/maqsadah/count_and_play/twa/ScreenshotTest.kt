@@ -7,7 +7,6 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import kotlinx.coroutines.MainScope
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -19,7 +18,7 @@ import java.io.FileOutputStream
  * emulator (so emoji, fonts, spacing and the auto-fit sizing are exactly what a
  * user sees — unlike the old PIL-rendered approximations).
  *
- * Each scene is staged by setting the [GameController]'s public state directly
+ * Each scene is staged by setting the [GameViewModel]'s public state directly
  * instead of driving the UI, so captures are deterministic and never flaky. The
  * PNGs land in the app's external files dir; CI pulls them with `adb pull`.
  *
@@ -34,7 +33,7 @@ class ScreenshotTest {
     private val context = InstrumentationRegistry.getInstrumentation().targetContext
     private val speaker = Speaker(context)
 
-    private fun controller() = GameController(speaker, MainScope())
+    private fun controller() = GameViewModel(speaker)
 
     /**
      * Where to write the PNGs. AGP passes `additionalTestOutputDir` and copies
