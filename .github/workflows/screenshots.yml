@@ -20,6 +20,17 @@ permissions:
 jobs:
   screenshots:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Play Store form factors: phone (16:9-ish), 7" and 10" tablets.
+        include:
+          - name: phone
+            profile: pixel_2        # 1080x1920 (1.78:1) — Play-safe
+          - name: tablet7
+            profile: Nexus 7        # 1200x1920, 7-inch
+          - name: tablet10
+            profile: pixel_c        # 2560x1800, 10-inch
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -49,7 +60,7 @@ jobs:
           api-level: 34
           target: google_apis
           arch: x86_64
-          profile: pixel_2
+          profile: ${{ matrix.profile }}
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none
           script: |
@@ -60,6 +71,10 @@ jobs:
             find app/build/outputs -type f -name '*.png' -print
             mkdir -p store-shots
             find app/build/outputs/connected_android_test_additional_output -type f -name '*.png' -exec cp {} store-shots/ ';'
+            # Prefix every PNG with the form factor so per-leg artifacts never collide.
+            for f in store-shots/*.png; do
+              mv "$f" "store-shots/${{ matrix.name }}_$(basename "$f")"
+            done
             echo "Collected:"
             ls -la store-shots
             # Fail loudly if nothing was captured, rather than a false green.
@@ -69,6 +84,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: store-screenshots
+          name: store-screenshots-${{ matrix.name }}
           path: store-shots/**
           if-no-files-found: warn
