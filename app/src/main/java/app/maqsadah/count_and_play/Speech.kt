@@ -129,8 +129,10 @@ class Speaker(context: Context) {
         }
     }
 
-    /** Sets Slow (true) or Normal (false) speech rate; persists the choice. */
-    fun setSlowRate(slow: Boolean) {
+    /** Sets Slow (true) or Normal (false) speech rate; persists the choice.
+     *  (Named applySlowRate, not setSlowRate: the property setter would clash
+     *  with it on the JVM signature setSlowRate(Z)V.) */
+    fun applySlowRate(slow: Boolean) {
         slowRate = slow
         prefs.edit().putBoolean(G.KEY_SLOW, slow).apply()
         try {

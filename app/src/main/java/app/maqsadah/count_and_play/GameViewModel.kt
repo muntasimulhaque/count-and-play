@@ -303,7 +303,7 @@ class GameViewModel(private val app: Application, val speaker: Speaker) : ViewMo
     }
 
     fun setSlowRate(slow: Boolean) {
-        speaker.setSlowRate(slow)
+        speaker.applySlowRate(slow)
         sayAsync(if (slow) "Slow voice." else "Normal voice.")
     }
 
