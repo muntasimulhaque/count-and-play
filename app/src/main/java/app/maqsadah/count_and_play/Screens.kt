@@ -3,9 +3,11 @@ package app.maqsadah.count_and_play
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -19,9 +21,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
@@ -32,11 +37,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalConfiguration
@@ -55,9 +57,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.layout.systemBarsPadding
-import androidx.compose.runtime.key
-import kotlin.math.max
 
 @Composable
 fun CountPlayApp(c: GameViewModel, speaker: Speaker) {
@@ -89,9 +88,17 @@ fun CountPlayApp(c: GameViewModel, speaker: Speaker) {
 
         when (c.screen) {
             Screen.START -> StartOverlay(vmin) { c.onPlay() }
-            Screen.MENU -> MenuOverlay(vmin, onLearn = { c.enterLearn() }, onQuiz = { c.enterQuiz() })
+            Screen.MENU -> MenuOverlay(
+                vmin,
+                onGuided = { c.enterGuided() },
+                onFree = { c.enterFree() },
+                onQuiz = { c.enterQuiz() }
+            )
             else -> {}
         }
+
+        if (c.settingsVisible) SettingsOverlay(c, speaker, vmin)
+        if (c.levelUpVisible) LevelUpOverlay(c, vmin)
 
         ConfettiOverlay(c.confettiTick)
     }
@@ -99,11 +106,13 @@ fun CountPlayApp(c: GameViewModel, speaker: Speaker) {
 
 /* ---------- header ---------- */
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun IconCircleButton(
     icon: String,
     label: String,
     vmin: Float,
+    onLongClick: (() -> Unit)? = null,
     onClick: () -> Unit
 ) {
     // Size the touch target directly (56dp floor, up to 84dp on big screens)
@@ -123,10 +132,20 @@ private fun IconCircleButton(
             .clip(CircleShape)
             .background(Palette.ChromeBtnBg, CircleShape)
             .border(2.dp, Palette.ChromeBtnBorder, CircleShape)
-            .clickable(interactionSource = interaction, indication = ripple()) {
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                onClick()
-            }
+            .combinedClickable(
+                interactionSource = interaction,
+                indication = ripple(),
+                onLongClick = onLongClick?.let { lc ->
+                    {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        lc()
+                    }
+                },
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onClick()
+                }
+            )
             .semantics {
                 contentDescription = label
                 role = Role.Button
@@ -147,18 +166,35 @@ private fun Header(c: GameViewModel, speaker: Speaker, vmin: Float) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         IconCircleButton("🏠", "Home", vmin) { c.showMenu() }
-        val stars = if (c.mode == Mode.QUIZ) "⭐".repeat(minOf(c.correctCount, 10)) else ""
+        val center = when (c.mode) {
+            // Guided: level badge + star dots showing progress to the next level.
+            Mode.GUIDED -> {
+                val dots = if (c.starsInLevel <= G.STARS_PER_LEVEL) {
+                    "⭐".repeat(c.starsInLevel)
+                } else {
+                    "⭐×${c.starsInLevel}"   // at the top level stars just accumulate
+                }
+                "🎓 ${c.level}  $dots"
+            }
+            // Quiz: session stars, as before.
+            Mode.QUIZ -> "⭐".repeat(minOf(c.correctCount, 10))
+            else -> ""
+        }
         Text(
-            stars,
+            center,
             Modifier.weight(1f),
             textAlign = TextAlign.Center,
             fontSize = clampSp(16f, 3.5f, 26f, vmin),
+            fontWeight = FontWeight.Bold,
+            color = Palette.TextBlue,
             letterSpacing = 2.sp
         )
+        // Short press: mute toggle (as before). Long press (~2 s): Grown-ups settings.
         IconCircleButton(
             icon = if (speaker.soundOn) "🔊" else "🔇",
             label = if (speaker.soundOn) "Mute sound" else "Turn sound on",
-            vmin = vmin
+            vmin = vmin,
+            onLongClick = { c.openSettings() }
         ) { speaker.toggle() }
     }
 }
@@ -192,49 +228,6 @@ private fun EquationLine(parts: List<EqPart>, vmin: Float) {
 /* ---------- stage ---------- */
 
 @Composable
-private fun SlotsFlow(c: GameViewModel, gap: Dp, fixedFs: TextUnit) {
-    BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        val density = LocalDensity.current
-        val wPx = with(density) { maxWidth.toPx() }
-        val hPx = with(density) { maxHeight.toPx() }
-        val gapPx = with(density) { gap.toPx() }
-        val n = max(c.capGone, c.slots.size)
-        // Same fixed object size as everywhere else; only shrink if this box can't
-        // hold n at that size. Deterministic column count = no clipped rows.
-        val ownFit = fitItemFontSp(wPx, hPx, n, gapPx, density)
-        val fs = if (fixedFs.value <= ownFit.value) fixedFs else ownFit
-        val cols = minOf(n, gridCols(fs, wPx, gapPx, density))
-        val slotSize = with(density) { fs.toDp() * 1.2f }
-        CenteredGrid(
-            items = c.slots.toList(),
-            cols = cols,
-            cellW = slotSize,
-            cellH = slotSize,
-            gap = gap,
-            keyOf = { i, _ -> i }
-        ) { s ->
-            Box(
-                Modifier
-                    .size(slotSize)
-                    .background(Color(0x80FFFFFF), CircleShape)
-                    .drawBehind {
-                        drawCircle(
-                            color = Palette.SlotBorder,
-                            style = Stroke(
-                                width = 3.dp.toPx(),
-                                pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 8f), 0f)
-                            )
-                        )
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                s?.let { ItemView(it, fs) }
-            }
-        }
-    }
-}
-
-@Composable
 private fun GoneZoneContent(c: GameViewModel, vmin: Float, gap: Dp, fixedFs: TextUnit) {
     Column(
         Modifier.fillMaxSize(),
@@ -249,11 +242,7 @@ private fun GoneZoneContent(c: GameViewModel, vmin: Float, gap: Dp, fixedFs: Tex
             textAlign = TextAlign.Center
         )
         Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-            if (c.slots.isNotEmpty()) {
-                SlotsFlow(c, gap, fixedFs)
-            } else {
-                AutoItemsFlow(c.goneItems, c.capGone, gap, fixedFs)
-            }
+            AutoItemsFlow(c.goneItems, c.capGone, gap, fixedFs)
         }
     }
 }
@@ -269,10 +258,11 @@ private fun Stage(c: GameViewModel, vmin: Float, modifier: Modifier) {
         val stageW = maxWidth
         val stageH = maxHeight
         // ONE fixed object size for the whole app: the largest emoji that fits the
-        // worst case — MAX_N objects in a main plate. Two equal plates stacked
-        // (learn addition) is the tightest a main plate is ever shown at, so we
-        // size for that geometry and reuse the single value in every zone and every
-        // problem. Mirrors the exact layout constants below so measured == rendered.
+        // worst case — MAX_N objects in a main plate, laid out in rows of five.
+        // Two equal plates stacked (addition) is the tightest a main plate is ever
+        // shown at, so we size for that geometry and reuse the single value in
+        // every zone and every problem. Mirrors the exact layout constants below
+        // so measured == rendered.
         val padH = 10.dp; val padV = 6.dp; val zonePad = 8.dp; val zoneGap = 8.dp
         val plateInnerW: Dp
         val plateInnerH: Dp
@@ -283,13 +273,13 @@ private fun Stage(c: GameViewModel, vmin: Float, modifier: Modifier) {
             plateInnerW = (stageW - padH * 2 - zoneGap) / 2f - zonePad * 2
             plateInnerH = stageH - padV * 2 - zonePad * 2
         }
-        val fixedFs = fitItemFontSp(
+        val fixedFs = fitGrid(
             with(density) { plateInnerW.toPx() },
             with(density) { plateInnerH.toPx() },
             G.MAX_N,
             with(density) { gap.toPx() },
             density
-        )
+        ).first
 
         if (portrait) {
             Column(
@@ -297,11 +287,11 @@ private fun Stage(c: GameViewModel, vmin: Float, modifier: Modifier) {
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 ZoneBox(Modifier.weight(1f).fillMaxWidth(), Palette.PlateABorder) {
-                    AutoItemsFlow(c.plateA, c.capA, gap, fixedFs, onTap = { c.onFruitTap(it) })
+                    AutoItemsFlow(c.plateA, c.capA, gap, fixedFs, onTap = { c.onItemTap(it) })
                 }
                 if (c.plateBVisible) {
                     ZoneBox(Modifier.weight(1f).fillMaxWidth(), Palette.PlateBBorder) {
-                        AutoItemsFlow(c.plateB, c.capB, gap, fixedFs)
+                        AutoItemsFlow(c.plateB, c.capB, gap, fixedFs, onTap = { c.onItemTap(it) })
                     }
                 }
                 if (c.goneVisible) {
@@ -316,11 +306,11 @@ private fun Stage(c: GameViewModel, vmin: Float, modifier: Modifier) {
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 ZoneBox(Modifier.weight(1f).fillMaxHeight(), Palette.PlateABorder) {
-                    AutoItemsFlow(c.plateA, c.capA, gap, fixedFs, onTap = { c.onFruitTap(it) })
+                    AutoItemsFlow(c.plateA, c.capA, gap, fixedFs, onTap = { c.onItemTap(it) })
                 }
                 if (c.plateBVisible) {
                     ZoneBox(Modifier.weight(1f).fillMaxHeight(), Palette.PlateBBorder) {
-                        AutoItemsFlow(c.plateB, c.capB, gap, fixedFs)
+                        AutoItemsFlow(c.plateB, c.capB, gap, fixedFs, onTap = { c.onItemTap(it) })
                     }
                 }
                 if (c.goneVisible) {
@@ -333,7 +323,7 @@ private fun Stage(c: GameViewModel, vmin: Float, modifier: Modifier) {
     }
 }
 
-/* ---------- picker (learn mode) ---------- */
+/* ---------- picker (free play) ---------- */
 
 @Composable
 private fun Picker(c: GameViewModel, vmin: Float, modifier: Modifier) {
@@ -552,23 +542,150 @@ private fun StartOverlay(vmin: Float, onPlay: () -> Unit) {
     }
 }
 
+/** One huge icon-dominant menu button with a small caption (3-year-olds can't read). */
 @Composable
-private fun MenuOverlay(vmin: Float, onLearn: () -> Unit, onQuiz: () -> Unit) {
-    val bigFs = clampSp(22f, 6f, 42f, vmin)
-    val subFs = clampSp(13f, 3f, 19f, vmin)
+private fun MenuButton(
+    icon: String,
+    caption: String,
+    bg: Color,
+    shadow: Color,
+    vmin: Float,
+    onClick: () -> Unit
+) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        ChunkyButton(
+            icon, bg, shadow,
+            clampSp(38f, 11f, 72f, vmin),
+            shape = RoundedCornerShape(60.dp),
+            modifier = Modifier.widthIn(min = 180.dp)
+        ) { onClick() }
+        Text(
+            caption,
+            fontSize = clampSp(13f, 3f, 19f, vmin),
+            fontWeight = FontWeight.Bold,
+            color = Color(0xE6FFFFFF)
+        )
+    }
+}
+
+@Composable
+private fun MenuOverlay(
+    vmin: Float,
+    onGuided: () -> Unit,
+    onFree: () -> Unit,
+    onQuiz: () -> Unit
+) {
     OverlayScaffold {
         OverlayTitle(vmin)
+        MenuButton("▶", "Play", Palette.Yellow, Palette.YellowShadow, vmin, onGuided)
+        MenuButton("🧺", "Free play", Palette.Green, Palette.GreenShadow, vmin, onFree)
+        MenuButton("⭐", "Quiz", Palette.Blue, Palette.BlueShadow, vmin, onQuiz)
+    }
+}
+
+/* ---------- grown-ups settings (long-press the sound button) ---------- */
+
+@Composable
+private fun SettingsOverlay(c: GameViewModel, speaker: Speaker, vmin: Float) {
+    val titleFs = clampSp(22f, 6f, 38f, vmin)
+    val rowFs = clampSp(14f, 3.5f, 22f, vmin)
+    OverlayScaffold {
+        Text(
+            "Grown-ups 🔧",
+            fontSize = titleFs,
+            fontWeight = FontWeight.Bold,
+            color = Color.White
+        )
+        // Voice picker: installed English TTS voices (list can fill in a beat late
+        // while the engine initialises, so it lives in a scrollable box).
+        Column(
+            Modifier
+                .heightIn(max = 220.dp)
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            ChunkyButton(
+                "📱 Default voice",
+                if (speaker.voiceName == null) Palette.Green else Color.White,
+                if (speaker.voiceName == null) Palette.GreenShadow else Palette.BtnShadow,
+                rowFs,
+                textColor = if (speaker.voiceName == null) Color.White else Palette.TextBlue
+            ) { c.previewVoice(null) }
+            speaker.voices.forEach { v ->
+                val selected = speaker.voiceName == v.name
+                ChunkyButton(
+                    "🗣 ${v.label}",
+                    if (selected) Palette.Green else Color.White,
+                    if (selected) Palette.GreenShadow else Palette.BtnShadow,
+                    rowFs,
+                    textColor = if (selected) Color.White else Palette.TextBlue
+                ) { c.previewVoice(v.name) }
+            }
+        }
+        // Speech rate
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            ChunkyButton(
+                "🐢 Slow",
+                if (speaker.slowRate) Palette.Green else Color.White,
+                if (speaker.slowRate) Palette.GreenShadow else Palette.BtnShadow,
+                rowFs,
+                textColor = if (speaker.slowRate) Color.White else Palette.TextBlue
+            ) { c.setSlowRate(true) }
+            ChunkyButton(
+                "🚶 Normal",
+                if (!speaker.slowRate) Palette.Green else Color.White,
+                if (!speaker.slowRate) Palette.GreenShadow else Palette.BtnShadow,
+                rowFs,
+                textColor = if (!speaker.slowRate) Color.White else Palette.TextBlue
+            ) { c.setSlowRate(false) }
+        }
         ChunkyButton(
-            "🧺 Learn", Palette.Green, Palette.GreenShadow, bigFs,
-            shape = RoundedCornerShape(60.dp),
-            modifier = Modifier.widthIn(min = 220.dp)
-        ) { onLearn() }
-        Text("pick numbers, watch and do", fontSize = subFs, color = Color(0xE6FFFFFF))
+            "🗑 Reset progress", Palette.OrangeBtn, Palette.OrangeBtnShadow, rowFs
+        ) { c.resetProgress() }
         ChunkyButton(
-            "⭐ Quiz", Palette.Blue, Palette.BlueShadow, bigFs,
-            shape = RoundedCornerShape(60.dp),
-            modifier = Modifier.widthIn(min = 220.dp)
-        ) { onQuiz() }
-        Text("watch, count, answer", fontSize = subFs, color = Color(0xE6FFFFFF))
+            "✔ Done", Palette.Blue, Palette.BlueShadow, titleFs,
+            shape = RoundedCornerShape(60.dp)
+        ) { c.closeSettings() }
+    }
+}
+
+/* ---------- level-up celebration ---------- */
+
+@Composable
+private fun LevelUpOverlay(c: GameViewModel, vmin: Float) {
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(Color(0x55FFFFFF))
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) { /* swallow touches while celebrating (auto-hides) */ }
+            .systemBarsPadding(),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            Modifier
+                .background(Palette.PromptChip, RoundedCornerShape(28.dp))
+                .padding(horizontal = 28.dp, vertical = 20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text("🎉 🎓 🎉", fontSize = clampSp(40f, 11f, 80f, vmin), textAlign = TextAlign.Center)
+            Text(
+                "Level ${c.level}!",
+                fontSize = clampSp(30f, 8f, 56f, vmin),
+                fontWeight = FontWeight.Bold,
+                color = Palette.PromptPop,
+                textAlign = TextAlign.Center
+            )
+            Text(
+                "Now counting up to ${c.levelCap()}!",
+                fontSize = clampSp(18f, 5f, 32f, vmin),
+                fontWeight = FontWeight.Bold,
+                color = Palette.TextBlue,
+                textAlign = TextAlign.Center
+            )
+        }
     }
 }

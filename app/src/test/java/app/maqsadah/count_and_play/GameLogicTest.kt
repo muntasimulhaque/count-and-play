@@ -65,26 +65,51 @@ class GameLogicTest {
         }
     }
 
-    /* ---------- quizProblem() invariants ---------- */
+    /* ---------- guidedProblem() invariants ---------- */
 
     @Test
-    fun quizProblem_isConsistentAndInRange() {
+    fun guidedProblem_isConsistentAndInRange() {
         for (round in 0 until 20) {
-            for (correct in 0..10) {
+            for (cap in G.LEVEL_CAPS) {
                 repeat(reps / 20) {
-                    val p = G.quizProblem(round, correct)
+                    val p = G.guidedProblem(round, cap)
                     // op alternates strictly by round parity
                     assertEquals(if (round % 2 == 0) "+" else "−", p.op)
-                    assertTrue(p.a >= 1)
-                    assertTrue(p.b >= 1)
+                    assertTrue("a >= 1", p.a >= 1)
+                    assertTrue("b >= 1", p.b >= 1)
                     val expected = if (p.op == "+") p.a + p.b else p.a - p.b
                     assertEquals(expected, p.answer)
                     assertTrue("answer must be >= 0", p.answer >= 0)
-                    val cap = if (correct >= 5) 10 else 5
                     assertTrue("answer within level cap", p.answer <= cap)
+                    if (p.op == "+") {
+                        assertTrue("sum within cap", p.a + p.b <= cap)
+                    } else {
+                        assertTrue("start within cap", p.a <= cap)
+                        assertTrue("never take away more than there is", p.b <= p.a)
+                    }
                 }
             }
         }
+    }
+
+    @Test
+    fun guidedProblem_levelOneNeverHasZeroAnswer() {
+        // L1 (within 3): subtraction always leaves at least one.
+        repeat(reps) {
+            val p = G.guidedProblem(1, G.LEVEL_CAPS[0])   // odd round = subtraction
+            assertEquals("−", p.op)
+            assertTrue(p.answer >= 1)
+        }
+    }
+
+    @Test
+    fun guidedProblem_zeroAnswerPossibleFromLevelTwo() {
+        // L2+ (within 5): "all gone" results must actually occur sometimes.
+        var sawZero = false
+        repeat(reps) {
+            if (G.guidedProblem(1, G.LEVEL_CAPS[1]).answer == 0) sawZero = true
+        }
+        assertTrue("expected some zero-answer subtraction at L2", sawZero)
     }
 
     /* ---------- diceProblem() invariants ---------- */
@@ -107,13 +132,15 @@ class GameLogicTest {
 
     @Test
     fun answerOptions_areThreeDistinctIncludingCorrect() {
-        for (correct in 0..10) {
-            repeat(reps / 11) {
-                val opts = G.answerOptions(correct, 10)
-                assertEquals(3, opts.size)
-                assertEquals("no duplicate options", 3, opts.toSet().size)
-                assertTrue("correct answer present", opts.contains(correct))
-                assertTrue("all options in range", opts.all { it in 0..10 })
+        for (maxN in listOf(3, 10)) {
+            for (correct in 0..maxN) {
+                repeat(reps / 11) {
+                    val opts = G.answerOptions(correct, maxN)
+                    assertEquals(3, opts.size)
+                    assertEquals("no duplicate options", 3, opts.toSet().size)
+                    assertTrue("correct answer present", opts.contains(correct))
+                    assertTrue("all options in range", opts.all { it in 0..maxN })
+                }
             }
         }
     }

@@ -46,7 +46,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlin.math.ceil
-import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
 
@@ -64,15 +63,17 @@ fun clampDp(minV: Float, vminPct: Float, maxV: Float, vmin: Float): Dp =
  * size from one problem to the next. The size is computed once (in Stage) as the
  * largest emoji that fits the worst case — [G.MAX_N] objects in a main plate — and
  * handed to every zone; each zone only shrinks BELOW it as a non-clipping safety
- * net if its own box genuinely can't hold that many at that size (e.g. a crowded
- * take-away area). Size depends only on the box + count, never the emoji, so
- * mango, car or ball all render identically.
+ * net if its own box genuinely can't hold that many at that size.
  *
- * The layout is a DETERMINISTIC grid, not a free-flowing FlowRow: we compute the
- * column count and fixed cell size ourselves and place items in exactly that many
- * columns. This guarantees what we measured is what we render, so rows can never
- * overflow the (clipped) box and silently drop objects — the "8+8 shows only 6"
- * bug came from FlowRow wrapping into more rows than the fit estimate assumed.
+ * v3: objects are laid out in ROWS OF FIVE (a ten-frame), so kids see 7 as
+ * "5 and 2 more". The column count is 5 (or fewer only when a zone physically
+ * cannot fit 5 columns even at the minimum item size). The layout is a
+ * DETERMINISTIC grid: we compute the column count and fixed cell size ourselves
+ * and place items in exactly that many columns, so the rendered row count equals
+ * ceil(n/cols) exactly — nothing can wrap into an extra, clipped row (the
+ * "8+8 shows only 6" bug came from FlowRow doing exactly that). Rows fill
+ * left-to-right in list order, so appending an item never reshuffles the ones
+ * already placed, and ghost holes keep their original slot.
  */
 // Cell footprint per glyph, as a multiple of font size. Kept safely LARGER than a
 // real emoji's advance width / line height so the glyph always sits inside its
@@ -82,38 +83,42 @@ private const val CELL_H_RATIO = 1.55f
 private const val ITEM_MIN_SP = 12f
 private const val ITEM_MAX_SP = 92f
 
-/** Columns that fit across [availWidthPx] for a glyph of [fontSp] with [gapPx] spacing. */
-fun gridCols(fontSp: TextUnit, availWidthPx: Float, gapPx: Float, density: Density): Int {
-    val fontPx = with(density) { fontSp.toPx() }
-    val cellW = fontPx * CELL_W_RATIO
-    return max(1, floor((availWidthPx + gapPx) / (cellW + gapPx)).toInt())
-}
+/** Ten-frame layout: always rows of five (unless a zone physically can't fit 5). */
+const val GRID_COLS = 5
 
 /**
- * Largest emoji font (sp) so that [count] square-ish items fit inside a box of
- * [availWidthPx] × [availHeightPx] with [gapPx] spacing, laid out like FlowRow.
- * Returns [ITEM_MIN_SP] as a floor if even that will not fit.
+ * Largest emoji font so that [count] items fit inside a box of
+ * [availWidthPx] × [availHeightPx] with [gapPx] spacing, laid out in rows of
+ * [maxCols]. Returns the font and the column count actually used — the column
+ * count drops below [maxCols] only if even [ITEM_MIN_SP] can't fit that many
+ * columns/rows in the box.
  */
-fun fitItemFontSp(
+fun fitGrid(
     availWidthPx: Float,
     availHeightPx: Float,
     count: Int,
     gapPx: Float,
-    density: Density
-): TextUnit {
-    if (count <= 0 || availWidthPx <= 0f || availHeightPx <= 0f) return ITEM_MAX_SP.sp
-    var f = ITEM_MAX_SP
-    while (f > ITEM_MIN_SP) {
+    density: Density,
+    maxCols: Int = GRID_COLS
+): Pair<TextUnit, Int> {
+    if (count <= 0 || availWidthPx <= 0f || availHeightPx <= 0f) return ITEM_MAX_SP.sp to 1
+    var cols = min(count, maxCols)
+    while (true) {
+        val rows = ceil(count.toFloat() / cols).toInt()
+        var f = ITEM_MAX_SP
+        while (f > ITEM_MIN_SP) {
+            val fontPx = with(density) { f.sp.toPx() }
+            val needW = cols * fontPx * CELL_W_RATIO + (cols - 1) * gapPx
+            val needH = rows * fontPx * CELL_H_RATIO + (rows - 1) * gapPx
+            if (needW <= availWidthPx && needH <= availHeightPx) break
+            f -= 1f
+        }
         val fontPx = with(density) { f.sp.toPx() }
-        val cellW = fontPx * CELL_W_RATIO
-        val cellH = fontPx * CELL_H_RATIO
-        val perRow = max(1, floor((availWidthPx + gapPx) / (cellW + gapPx)).toInt())
-        val rows = ceil(count.toFloat() / perRow).toInt()
-        val neededH = rows * cellH + (rows - 1) * gapPx
-        if (cellW <= availWidthPx && neededH <= availHeightPx) break
-        f -= 1f
+        val fits = cols * fontPx * CELL_W_RATIO + (cols - 1) * gapPx <= availWidthPx &&
+            rows * fontPx * CELL_H_RATIO + (rows - 1) * gapPx <= availHeightPx
+        if (fits || cols == 1) return f.sp to cols
+        cols--
     }
-    return f.sp
 }
 
 /* ---------- chunky 3D-shadow button (the app's signature look) ---------- */
@@ -190,7 +195,7 @@ fun ZoneBox(
     )
 }
 
-/* ---------- one emoji item with drop-in / pulse / ghost / count bubble ---------- */
+/* ---------- one emoji item with drop-in / pulse / ghost / count marks ---------- */
 
 @Composable
 fun ItemView(item: Item, fontSize: TextUnit, onTap: ((Item) -> Unit)? = null) {
@@ -224,10 +229,11 @@ fun ItemView(item: Item, fontSize: TextUnit, onTap: ((Item) -> Unit)? = null) {
                 .graphicsLayer {
                     val t = drop.value
                     translationY = (1f - t) * (-50).dp.toPx()
-                    val s = pulse.value * (if (item.ghost) 0.85f else 1f) * (0.3f + 0.7f * t)
+                    val s = pulse.value * (0.3f + 0.7f * t)
                     scaleX = s
                     scaleY = s
-                    alpha = (if (item.ghost) 0.35f else 1f) * min(1f, t / 0.7f)
+                    // Ghost holes keep their slot, just faded to a shadow.
+                    alpha = (if (item.ghost) 0.25f else 1f) * min(1f, t / 0.7f)
                 }
                 .then(
                     if (onTap != null) {
@@ -235,6 +241,7 @@ fun ItemView(item: Item, fontSize: TextUnit, onTap: ((Item) -> Unit)? = null) {
                     } else Modifier
                 )
         )
+        // Transient count bubble (auto-counted quiz watch / recount together).
         item.bubble?.let { b ->
             Box(
                 Modifier
@@ -251,6 +258,23 @@ fun ItemView(item: Item, fontSize: TextUnit, onTap: ((Item) -> Unit)? = null) {
                 )
             }
         }
+        // Persistent badge from the child's own tap-count (one-to-one correspondence).
+        item.badge?.let { b ->
+            Box(
+                Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(x = bubbleOffset * 0.6f, y = -bubbleOffset * 0.5f)
+                    .background(Palette.Blue, CircleShape)
+                    .padding(horizontal = 6.dp, vertical = 1.dp)
+            ) {
+                Text(
+                    "$b",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = fontSize * 0.45f
+                )
+            }
+        }
     }
 }
 
@@ -259,7 +283,7 @@ fun ItemView(item: Item, fontSize: TextUnit, onTap: ((Item) -> Unit)? = null) {
  * fix the column count and cell size, the rendered row count equals ceil(n/cols)
  * exactly — nothing can wrap into an extra, clipped row. Rows fill left-to-right
  * in list order, so appending an item never reshuffles the ones already placed
- * (their drop-in animation isn't replayed).
+ * (their drop-in animation isn't replayed), and ghost holes keep their slot.
  */
 @Composable
 fun <T> CenteredGrid(
@@ -293,8 +317,9 @@ fun <T> CenteredGrid(
  * [capacity] is how many items this box will ultimately hold this round; we plan
  * the grid for that (not the current count) so objects don't resize as they drop
  * in one by one. [fixedFontSp] is the single app-wide object size computed in
- * Stage. This box renders at that size, only shrinking below it if [capacity]
- * genuinely will not fit here at that size (a non-clipping safety net).
+ * Stage. This box renders at that size in rows of five, only shrinking below it
+ * if [capacity] genuinely will not fit here at that size (a non-clipping safety
+ * net).
  */
 @Composable
 fun AutoItemsFlow(
@@ -315,9 +340,17 @@ fun AutoItemsFlow(
         val gapPx = with(density) { gap.toPx() }
         val n = max(capacity, items.size)
         // Fixed size everywhere; only shrink if this exact box can't fit n at it.
-        val ownFit = fitItemFontSp(wPx, hPx, n, gapPx, density)
-        val fs = if (fixedFontSp.value <= ownFit.value) fixedFontSp else ownFit
-        val cols = min(n, gridCols(fs, wPx, gapPx, density))
+        val (ownFit, ownCols) = fitGrid(wPx, hPx, n, gapPx, density)
+        val useFixed = fixedFontSp.value <= ownFit.value
+        val fs = if (useFixed) fixedFontSp else ownFit
+        // Rows of five; only drop below five columns if the fixed size genuinely
+        // can't fit five across this box (fitGrid already handled the shrink case).
+        val cols = if (useFixed) {
+            val fontPx = with(density) { fs.toPx() }
+            var c = min(n, GRID_COLS)
+            while (c > 1 && c * fontPx * CELL_W_RATIO + (c - 1) * gapPx > wPx) c--
+            c
+        } else ownCols
         val cellW = with(density) { (fs.toPx() * CELL_W_RATIO).toDp() }
         val cellH = with(density) { (fs.toPx() * CELL_H_RATIO).toDp() }
         CenteredGrid(

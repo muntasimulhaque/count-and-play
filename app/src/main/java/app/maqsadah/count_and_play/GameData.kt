@@ -22,6 +22,17 @@ object G {
     )
     const val MAX_N = 20
 
+    /** Guided levels: number caps per level (L1 within 3 … L4 within 20). */
+    val LEVEL_CAPS = listOf(3, 5, 10, 20)
+    const val STARS_PER_LEVEL = 5
+
+    /** SharedPreferences file + keys (progress in GameViewModel, voice in Speaker). */
+    const val PREFS = "count_and_play"
+    const val KEY_LEVEL = "level"
+    const val KEY_STARS = "stars"
+    const val KEY_VOICE = "voice"
+    const val KEY_SLOW = "slow_rate"
+
     fun rand(n: Int): Int = (0 until n).random()
     fun randF(): Double = kotlin.random.Random.nextDouble()
     fun word(n: Int): String = NUM_WORDS[n]
@@ -39,17 +50,21 @@ object G {
 
     /* ---------- pure problem generation (extracted so it can be unit-tested) ---------- */
 
-    /** Quiz problem for the given [round] (alternates +/−) and skill level ([correctCount]). */
-    fun quizProblem(round: Int, correctCount: Int): Problem {
-        val max = if (correctCount >= 5) 10 else 5    // level up after 5 stars
+    /**
+     * Guided/quiz problem for the given [round] (alternates +/− by round parity),
+     * with operands bounded by the current level cap [max].
+     * Subtraction may yield 0 once the cap is past level 1 ([max] > 3).
+     */
+    fun guidedProblem(round: Int, max: Int): Problem {
         val isAdd = round % 2 == 0                    // alternate + and −
         return if (isAdd) {
-            val total = 2 + rand(max - 1)
+            val total = 2 + rand(max - 1)             // 2..max
             val a = 1 + rand(total - 1)
             Problem("+", a, total - a, total)
         } else {
-            val n = 2 + rand(max - 1)
-            val k = 1 + rand(n - 1)
+            val n = 2 + rand(max - 1)                 // 2..max
+            val hi = if (max > LEVEL_CAPS[0]) n else n - 1   // answer 0 allowed at L2+
+            val k = 1 + rand(hi)
             Problem("−", n, k, n - k)
         }
     }

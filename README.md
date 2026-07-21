@@ -7,13 +7,17 @@ A native Android app that teaches a young child addition and subtraction visuall
 
 ## The app
 
-Two modes:
+Three ways to play, all built around **tap-to-count**: the app never counts for the child — the child taps each object, hears its number spoken, and a little badge stays on every counted object (one-to-one correspondence). Objects are laid out in **rows of five** (ten-frame style), so 7 looks like "5 and 2 more".
 
-**Learn mode** — you or your child pick the numbers (up to 20) and the operation, and the app acts it out. Addition shows two differently-colored fruit groups counted aloud, then merged into one basket with "counting on" (five... six, seven, eight). Subtraction shows the full group counted, then the child taps exactly the right number of fruits into empty take-away slots; the taken group fades but stays visible, and the remainder is counted.
+**▶ Play (guided levels)** — the app opens here. Four levels by number range (within 3, 5, 10, then 20); addition and subtraction alternate automatically. Addition: count one group, count the other, tap the 🧺 basket to put them together, then count them all. Subtraction: count the group, tap objects to take them away (each becomes a faded "ghost hole" that keeps its spot), then count what's left. Five stars level up with confetti and a celebration; progress is saved.
 
-**Quiz mode** — every problem is acted out visually first, then the child picks from three big number buttons. Wrong answers never fail; the app recounts everything slowly with each fruit highlighted.
+**🧺 Free play** — the classic picker: you or your child pick the numbers (up to 20) and the operation, and the same tap-to-count acting plays out.
 
-Design constraints honored throughout: no human or animal figures (fruits, stars, balloons, balls, cars only), voice narration for every action (Android's built-in text-to-speech), huge touch targets, no ads, no data collection, no network access at all, no fail states.
+**⭐ Quiz** — every problem is acted out visually first, then the child picks from three big number buttons — or tap-counts the objects first. Wrong answers never fail; the app recounts everything slowly with each object highlighted. Quiz difficulty follows the current level.
+
+**Grown-ups settings** (long-press the sound button): pick any of the device's installed English voices, switch the speech rate between Slow and Normal, or reset progress. If the child goes quiet for a few seconds, the app gently pulses the objects and repeats the hint.
+
+Design constraints honored throughout: no human or animal figures (fruits, stars, balloons, balls, cars only), no music ever — voice narration only (Android's built-in text-to-speech), huge touch targets, no ads, no data collection, no network access at all, no fail states.
 
 ## Tech
 
