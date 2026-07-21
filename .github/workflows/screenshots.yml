@@ -72,9 +72,9 @@ jobs:
             mkdir -p store-shots
             find app/build/outputs/connected_android_test_additional_output -type f -name '*.png' -exec cp {} store-shots/ ';'
             # Prefix every PNG with the form factor so per-leg artifacts never collide.
-            for f in store-shots/*.png; do
-              mv "$f" "store-shots/${{ matrix.name }}_$(basename "$f")"
-            done
+            # (Single line: the emulator-runner feeds the script to sh, which chokes
+            # on multi-line compound commands.)
+            for f in store-shots/*.png; do mv "$f" "store-shots/${{ matrix.name }}_$(basename "$f")"; done
             echo "Collected:"
             ls -la store-shots
             # Fail loudly if nothing was captured, rather than a false green.
