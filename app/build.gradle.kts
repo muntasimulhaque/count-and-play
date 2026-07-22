@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "app.maqsadah.count_and_play"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         // Must never change: this is the published Play Store package ID.
@@ -14,9 +14,9 @@ android {
         // the code namespace above no longer carries it.)
         applicationId = "app.maqsadah.count_and_play.twa"
         minSdk = 23
-        targetSdk = 35
-        versionCode = 8
-        versionName = "3.0"
+        targetSdk = 36
+        versionCode = 9
+        versionName = "3.1"
 
         // Instrumented tests (the emulator screenshot capture) use AndroidX's runner.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
