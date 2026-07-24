@@ -197,7 +197,7 @@ private fun Header(c: GameViewModel, speaker: Speaker, vmin: Float) {
             letterSpacing = 2.sp
         )
         // Grown-ups settings (tap). Kept next to mute, away from the big play area.
-        IconCircleButton("⚙", c.L.settingsLabel(), vmin) { c.openSettings() }
+        IconCircleButton("⚙️", c.L.settingsLabel(), vmin) { c.openSettings() }
         // Speaker button: mute toggle only.
         IconCircleButton(
             icon = if (speaker.soundOn) "🔊" else "🔇",
@@ -576,6 +576,29 @@ private fun MenuButton(
     }
 }
 
+/** A secondary circular icon button with a small caption (the settings gear). */
+@Composable
+private fun MenuIconButton(
+    icon: String,
+    caption: String,
+    vmin: Float,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Column(
+        modifier,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        IconCircleButton(icon, caption, vmin, onClick = onClick)
+        Text(
+            caption,
+            fontSize = clampSp(13f, 3f, 19f, vmin),
+            fontWeight = FontWeight.Bold,
+            color = Color(0xE6FFFFFF)
+        )
+    }
+}
+
 @Composable
 private fun MenuOverlay(
     c: GameViewModel,
@@ -585,12 +608,26 @@ private fun MenuOverlay(
     onQuiz: () -> Unit
 ) {
     OverlayScaffold {
-        OverlayTitle(c, vmin)
-        MenuButton("▶", c.L.menuPlay(), Palette.Yellow, Palette.YellowShadow, vmin, onGuided)
-        MenuButton("🧺", c.L.menuFree(), Palette.Green, Palette.GreenShadow, vmin, onFree)
-        MenuButton("⭐", c.L.menuQuiz(), Palette.Blue, Palette.BlueShadow, vmin, onQuiz)
-        // Grown-ups settings — a small gear, tap to open (language, voice, rate, reset).
-        IconCircleButton("⚙", c.L.settingsLabel(), vmin) { c.openSettings() }
+        Box(Modifier.fillMaxSize()) {
+            // The three big play buttons (and the title) are the stars of the menu —
+            // keep them centered as a group in the main space.
+            Column(
+                Modifier.align(Alignment.Center),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
+                OverlayTitle(c, vmin)
+                MenuButton("▶", c.L.menuPlay(), Palette.Yellow, Palette.YellowShadow, vmin, onGuided)
+                MenuButton("🧺", c.L.menuFree(), Palette.Green, Palette.GreenShadow, vmin, onFree)
+                MenuButton("⭐", c.L.menuQuiz(), Palette.Blue, Palette.BlueShadow, vmin, onQuiz)
+            }
+            // Grown-ups settings — a labeled gear pinned to the bottom so it doesn't
+            // compete with the play buttons (language, voice, rate, reset).
+            MenuIconButton(
+                "⚙️", c.L.settingsLabel(), vmin,
+                Modifier.align(Alignment.BottomCenter)
+            ) { c.openSettings() }
+        }
     }
 }
 
