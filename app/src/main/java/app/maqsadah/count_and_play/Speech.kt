@@ -50,6 +50,11 @@ class Speaker(context: Context) {
     private var tts: TextToSpeech? = null
     private val pending = ConcurrentHashMap<String, CancellableContinuation<Unit>>()
 
+    /** False while the app is in the background — speak() becomes a silent no-op
+     *  so narration never leaks out after the child switches away. Toggled by
+     *  [pause]/[resume] from the Activity lifecycle; game state is untouched. */
+    private var foreground = true
+
     private fun currentRate() = if (slowRate) 0.7f else 0.9f
 
     init {
@@ -71,6 +76,10 @@ class Speaker(context: Context) {
                     t.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                         override fun onStart(utteranceId: String?) {}
                         override fun onDone(utteranceId: String?) = finish(utteranceId)
+                        // tts.stop() (pause/mute) ends the utterance without onDone —
+                        // resume the suspended speak() right away instead of waiting
+                        // out the length-based safety timeout.
+                        override fun onStop(utteranceId: String?, interrupted: Boolean) = finish(utteranceId)
                         @Deprecated("Deprecated in Java")
                         override fun onError(utteranceId: String?) = finish(utteranceId)
                         override fun onError(utteranceId: String?, errorCode: Int) = finish(utteranceId)
@@ -159,6 +168,19 @@ class Speaker(context: Context) {
         tts?.stop()
     }
 
+    /** App left the screen: kill the in-flight utterance and silence any further
+     *  narration. The engine stays alive and game state is untouched, so [resume]
+     *  on return picks the round back up exactly where it stopped. */
+    fun pause() {
+        foreground = false
+        tts?.stop()
+    }
+
+    /** App returned to the screen: allow narration again. */
+    fun resume() {
+        foreground = true
+    }
+
     fun shutdown() {
         tts?.shutdown()
         tts = null
@@ -167,7 +189,7 @@ class Speaker(context: Context) {
     /** Speaks [text] and suspends until done (or a length-based timeout). */
     suspend fun speak(text: String) {
         val t = tts
-        if (!soundOn || !ready || t == null) {
+        if (!soundOn || !foreground || !ready || t == null) {
             delay(350)
             return
         }
