@@ -32,7 +32,9 @@ import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -86,19 +88,24 @@ fun CountPlayApp(c: GameViewModel, speaker: Speaker) {
             }
         }
 
-        when (c.screen) {
-            Screen.START -> StartOverlay(vmin) { c.onPlay() }
-            Screen.MENU -> MenuOverlay(
-                vmin,
-                onGuided = { c.enterGuided() },
-                onFree = { c.enterFree() },
-                onQuiz = { c.enterQuiz() }
-            )
-            else -> {}
-        }
+        if (!c.langSet) {
+            // First launch: a grown-up picks the language before the child plays.
+            LanguagePickerOverlay(vmin) { c.setLanguage(it) }
+        } else {
+            when (c.screen) {
+                Screen.START -> StartOverlay(c, vmin) { c.onPlay() }
+                Screen.MENU -> MenuOverlay(
+                    c, vmin,
+                    onGuided = { c.enterGuided() },
+                    onFree = { c.enterFree() },
+                    onQuiz = { c.enterQuiz() }
+                )
+                else -> {}
+            }
 
-        if (c.settingsVisible) SettingsOverlay(c, speaker, vmin)
-        if (c.levelUpVisible) LevelUpOverlay(c, vmin)
+            if (c.settingsVisible) SettingsOverlay(c, speaker, vmin)
+            if (c.levelUpVisible) LevelUpOverlay(c, vmin)
+        }
 
         ConfettiOverlay(c.confettiTick)
     }
@@ -172,9 +179,9 @@ private fun Header(c: GameViewModel, speaker: Speaker, vmin: Float) {
                 val dots = if (c.starsInLevel <= G.STARS_PER_LEVEL) {
                     "⭐".repeat(c.starsInLevel)
                 } else {
-                    "⭐×${c.starsInLevel}"   // at the top level stars just accumulate
+                    "⭐×${c.L.digits(c.starsInLevel)}"   // at the top level stars just accumulate
                 }
-                "🎓 ${c.level}  $dots"
+                "🎓 ${c.L.digits(c.level)}  $dots"
             }
             // Quiz: session stars, as before.
             Mode.QUIZ -> "⭐".repeat(minOf(c.correctCount, 10))
@@ -189,12 +196,13 @@ private fun Header(c: GameViewModel, speaker: Speaker, vmin: Float) {
             color = Palette.TextBlue,
             letterSpacing = 2.sp
         )
-        // Short press: mute toggle (as before). Long press (~2 s): Grown-ups settings.
+        // Grown-ups settings (tap). Kept next to mute, away from the big play area.
+        IconCircleButton("⚙", c.L.settingsLabel(), vmin) { c.openSettings() }
+        // Speaker button: mute toggle only.
         IconCircleButton(
             icon = if (speaker.soundOn) "🔊" else "🔇",
-            label = if (speaker.soundOn) "Mute sound" else "Turn sound on",
-            vmin = vmin,
-            onLongClick = { c.openSettings() }
+            label = if (speaker.soundOn) c.L.muteLabel() else c.L.unmuteLabel(),
+            vmin = vmin
         ) { speaker.toggle() }
     }
 }
@@ -242,7 +250,7 @@ private fun GoneZoneContent(c: GameViewModel, vmin: Float, gap: Dp, fixedFs: Tex
             textAlign = TextAlign.Center
         )
         Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-            AutoItemsFlow(c.goneItems, c.capGone, gap, fixedFs)
+            AutoItemsFlow(c.goneItems, c.capGone, gap, fixedFs, digits = { c.L.digits(it) })
         }
     }
 }
@@ -287,11 +295,11 @@ private fun Stage(c: GameViewModel, vmin: Float, modifier: Modifier) {
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 ZoneBox(Modifier.weight(1f).fillMaxWidth(), Palette.PlateABorder) {
-                    AutoItemsFlow(c.plateA, c.capA, gap, fixedFs, onTap = { c.onItemTap(it) })
+                    AutoItemsFlow(c.plateA, c.capA, gap, fixedFs, onTap = { c.onItemTap(it) }, digits = { c.L.digits(it) })
                 }
                 if (c.plateBVisible) {
                     ZoneBox(Modifier.weight(1f).fillMaxWidth(), Palette.PlateBBorder) {
-                        AutoItemsFlow(c.plateB, c.capB, gap, fixedFs, onTap = { c.onItemTap(it) })
+                        AutoItemsFlow(c.plateB, c.capB, gap, fixedFs, onTap = { c.onItemTap(it) }, digits = { c.L.digits(it) })
                     }
                 }
                 if (c.goneVisible) {
@@ -306,11 +314,11 @@ private fun Stage(c: GameViewModel, vmin: Float, modifier: Modifier) {
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 ZoneBox(Modifier.weight(1f).fillMaxHeight(), Palette.PlateABorder) {
-                    AutoItemsFlow(c.plateA, c.capA, gap, fixedFs, onTap = { c.onItemTap(it) })
+                    AutoItemsFlow(c.plateA, c.capA, gap, fixedFs, onTap = { c.onItemTap(it) }, digits = { c.L.digits(it) })
                 }
                 if (c.plateBVisible) {
                     ZoneBox(Modifier.weight(1f).fillMaxHeight(), Palette.PlateBBorder) {
-                        AutoItemsFlow(c.plateB, c.capB, gap, fixedFs, onTap = { c.onItemTap(it) })
+                        AutoItemsFlow(c.plateB, c.capB, gap, fixedFs, onTap = { c.onItemTap(it) }, digits = { c.L.digits(it) })
                     }
                 }
                 if (c.goneVisible) {
@@ -355,7 +363,7 @@ private fun Picker(c: GameViewModel, vmin: Float, modifier: Modifier) {
                             for (col in 0 until 5) {
                                 val num = row * 5 + col + 1
                                 ChunkyButton(
-                                    text = "$num",
+                                    text = c.L.digits(num),
                                     bg = Color.White,
                                     shadow = Palette.BtnShadow,
                                     fontSize = numFs,
@@ -392,7 +400,7 @@ private fun Picker(c: GameViewModel, vmin: Float, modifier: Modifier) {
             }
             if (c.diceVisible) {
                 ChunkyButton(
-                    "🎲 Surprise me!", Palette.Purple, Palette.PurpleShadow,
+                    c.L.surprise(), Palette.Purple, Palette.PurpleShadow,
                     clampSp(18f, 4f, 30f, vmin),
                     shape = RoundedCornerShape(40.dp)
                 ) { c.diceRoll() }
@@ -456,7 +464,7 @@ private fun AnswerButton(c: GameViewModel, idx: Int, vmin: Float) {
             .alpha(if (dim) 0.4f else 1f)
     ) {
         ChunkyButton(
-            text = "${c.answers.getOrNull(idx) ?: ""}",
+            text = c.answers.getOrNull(idx)?.let { c.L.digits(it) } ?: "",
             bg = bg,
             shadow = if (isCorrect) Palette.GreenShadow else Palette.BtnShadow,
             fontSize = fs,
@@ -485,13 +493,13 @@ private fun BottomBar(c: GameViewModel, vmin: Float) {
             for (i in 0..2) AnswerButton(c, i, vmin)
         }
         if (c.showMerge) {
-            ChunkyButton("🧺 Put together!", Palette.Green, Palette.GreenShadow, actionFs) { c.onMerge() }
+            ChunkyButton(c.L.putTogetherBtn(), Palette.Green, Palette.GreenShadow, actionFs) { c.onMerge() }
         }
         if (c.showAgain) {
-            ChunkyButton("🔁 Again", Palette.Blue, Palette.BlueShadow, actionFs) { c.onAgain() }
+            ChunkyButton(c.L.againBtn(), Palette.Blue, Palette.BlueShadow, actionFs) { c.onAgain() }
         }
         if (c.showNew) {
-            ChunkyButton("🎲 New numbers", Palette.Purple, Palette.PurpleShadow, actionFs) { c.onNew() }
+            ChunkyButton(c.L.newNumbersBtn(), Palette.Purple, Palette.PurpleShadow, actionFs) { c.onNew() }
         }
     }
 }
@@ -518,10 +526,10 @@ private fun OverlayScaffold(content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun OverlayTitle(vmin: Float) {
+private fun OverlayTitle(c: GameViewModel, vmin: Float) {
     Text("🍎 🍊 🥭", fontSize = clampSp(38f, 10f, 76f, vmin), textAlign = TextAlign.Center)
     Text(
-        "Count & Play",
+        c.L.appTitle(),
         fontSize = clampSp(32f, 9f, 66f, vmin),
         fontWeight = FontWeight.Bold,
         color = Color.White,
@@ -530,12 +538,12 @@ private fun OverlayTitle(vmin: Float) {
 }
 
 @Composable
-private fun StartOverlay(vmin: Float, onPlay: () -> Unit) {
+private fun StartOverlay(c: GameViewModel, vmin: Float, onPlay: () -> Unit) {
     val bigFs = clampSp(22f, 6f, 42f, vmin)
     OverlayScaffold {
-        OverlayTitle(vmin)
+        OverlayTitle(c, vmin)
         ChunkyButton(
-            "▶ Play", Palette.Yellow, Palette.YellowShadow, bigFs,
+            c.L.playBtn(), Palette.Yellow, Palette.YellowShadow, bigFs,
             shape = RoundedCornerShape(60.dp),
             modifier = Modifier.widthIn(min = 200.dp)
         ) { onPlay() }
@@ -570,43 +578,95 @@ private fun MenuButton(
 
 @Composable
 private fun MenuOverlay(
+    c: GameViewModel,
     vmin: Float,
     onGuided: () -> Unit,
     onFree: () -> Unit,
     onQuiz: () -> Unit
 ) {
     OverlayScaffold {
-        OverlayTitle(vmin)
-        MenuButton("▶", "Play", Palette.Yellow, Palette.YellowShadow, vmin, onGuided)
-        MenuButton("🧺", "Free play", Palette.Green, Palette.GreenShadow, vmin, onFree)
-        MenuButton("⭐", "Quiz", Palette.Blue, Palette.BlueShadow, vmin, onQuiz)
+        OverlayTitle(c, vmin)
+        MenuButton("▶", c.L.menuPlay(), Palette.Yellow, Palette.YellowShadow, vmin, onGuided)
+        MenuButton("🧺", c.L.menuFree(), Palette.Green, Palette.GreenShadow, vmin, onFree)
+        MenuButton("⭐", c.L.menuQuiz(), Palette.Blue, Palette.BlueShadow, vmin, onQuiz)
+        // Grown-ups settings — a small gear, tap to open (language, voice, rate, reset).
+        IconCircleButton("⚙", c.L.settingsLabel(), vmin) { c.openSettings() }
     }
 }
 
-/* ---------- grown-ups settings (long-press the sound button) ---------- */
+/* ---------- first-launch language picker (a grown-up chooses once) ---------- */
+
+@Composable
+private fun LanguagePickerOverlay(vmin: Float, onPick: (Lang) -> Unit) {
+    val titleFs = clampSp(22f, 6f, 40f, vmin)
+    val btnFs = clampSp(20f, 5.5f, 36f, vmin)
+    OverlayScaffold {
+        Text("🌐", fontSize = clampSp(48f, 13f, 96f, vmin), textAlign = TextAlign.Center)
+        // Bilingual title — no language is active yet, so this can't be localized.
+        Text(
+            "Choose language\nভাষা বেছে নিন",
+            fontSize = titleFs,
+            fontWeight = FontWeight.Bold,
+            color = Color.White,
+            textAlign = TextAlign.Center
+        )
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Lang.values().forEach { lang ->
+                ChunkyButton(
+                    lang.nativeName, Color.White, Palette.BtnShadow, btnFs,
+                    textColor = Palette.TextBlue,
+                    shape = RoundedCornerShape(60.dp),
+                    modifier = Modifier.widthIn(min = 220.dp)
+                ) { onPick(lang) }
+            }
+        }
+    }
+}
+
+/* ---------- grown-ups settings (tap the ⚙ gear) ---------- */
 
 @Composable
 private fun SettingsOverlay(c: GameViewModel, speaker: Speaker, vmin: Float) {
     val titleFs = clampSp(22f, 6f, 38f, vmin)
     val rowFs = clampSp(14f, 3.5f, 22f, vmin)
+    // Reset is destructive, so it needs an explicit confirm — a toddler poking at
+    // the (tap-to-open) settings can't wipe progress with a single stray tap.
+    var confirmReset by remember { mutableStateOf(false) }
+
     OverlayScaffold {
         Text(
-            "Grown-ups 🔧",
+            c.L.settingsTitle(),
             fontSize = titleFs,
             fontWeight = FontWeight.Bold,
             color = Color.White
         )
-        // Voice picker: installed English TTS voices (list can fill in a beat late
-        // while the engine initialises, so it lives in a scrollable box).
+        // Language — shown in each language's own script so a grown-up finds theirs.
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Lang.values().forEach { lang ->
+                val selected = c.lang == lang
+                ChunkyButton(
+                    lang.nativeName,
+                    if (selected) Palette.Green else Color.White,
+                    if (selected) Palette.GreenShadow else Palette.BtnShadow,
+                    rowFs,
+                    textColor = if (selected) Color.White else Palette.TextBlue
+                ) { c.setLanguage(lang) }
+            }
+        }
+        // Voice picker: voices for the current language (the list can fill in a beat
+        // late while the engine initialises, so it lives in a scrollable box).
         Column(
             Modifier
-                .heightIn(max = 220.dp)
+                .heightIn(max = 200.dp)
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             ChunkyButton(
-                "📱 Default voice",
+                c.L.defaultVoice(),
                 if (speaker.voiceName == null) Palette.Green else Color.White,
                 if (speaker.voiceName == null) Palette.GreenShadow else Palette.BtnShadow,
                 rowFs,
@@ -623,17 +683,25 @@ private fun SettingsOverlay(c: GameViewModel, speaker: Speaker, vmin: Float) {
                 ) { c.previewVoice(v.name) }
             }
         }
+        if (!speaker.voiceAvailable) {
+            Text(
+                c.L.noVoiceNote(),
+                fontSize = rowFs,
+                color = Color.White,
+                textAlign = TextAlign.Center
+            )
+        }
         // Speech rate
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             ChunkyButton(
-                "🐢 Slow",
+                c.L.slow(),
                 if (speaker.slowRate) Palette.Green else Color.White,
                 if (speaker.slowRate) Palette.GreenShadow else Palette.BtnShadow,
                 rowFs,
                 textColor = if (speaker.slowRate) Color.White else Palette.TextBlue
             ) { c.setSlowRate(true) }
             ChunkyButton(
-                "🚶 Normal",
+                c.L.normal(),
                 if (!speaker.slowRate) Palette.Green else Color.White,
                 if (!speaker.slowRate) Palette.GreenShadow else Palette.BtnShadow,
                 rowFs,
@@ -641,12 +709,53 @@ private fun SettingsOverlay(c: GameViewModel, speaker: Speaker, vmin: Float) {
             ) { c.setSlowRate(false) }
         }
         ChunkyButton(
-            "🗑 Reset progress", Palette.OrangeBtn, Palette.OrangeBtnShadow, rowFs
-        ) { c.resetProgress() }
+            c.L.resetProgress(), Palette.OrangeBtn, Palette.OrangeBtnShadow, rowFs
+        ) { confirmReset = true }
         ChunkyButton(
-            "✔ Done", Palette.Blue, Palette.BlueShadow, titleFs,
+            c.L.done(), Palette.Blue, Palette.BlueShadow, titleFs,
             shape = RoundedCornerShape(60.dp)
         ) { c.closeSettings() }
+    }
+
+    if (confirmReset) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(Color(0xCC000000))
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) { /* swallow touches behind the confirm dialog */ }
+                .systemBarsPadding(),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                Modifier
+                    .background(Palette.PromptChip, RoundedCornerShape(24.dp))
+                    .padding(horizontal = 24.dp, vertical = 20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    c.L.areYouSure(),
+                    fontSize = titleFs,
+                    fontWeight = FontWeight.Bold,
+                    color = Palette.PromptPop,
+                    textAlign = TextAlign.Center
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    ChunkyButton(
+                        c.L.yes(), Palette.OrangeBtn, Palette.OrangeBtnShadow, rowFs
+                    ) {
+                        c.resetProgress()
+                        confirmReset = false
+                    }
+                    ChunkyButton(
+                        c.L.no(), Palette.Blue, Palette.BlueShadow, rowFs
+                    ) { confirmReset = false }
+                }
+            }
+        }
     }
 }
 
@@ -673,14 +782,14 @@ private fun LevelUpOverlay(c: GameViewModel, vmin: Float) {
         ) {
             Text("🎉 🎓 🎉", fontSize = clampSp(40f, 11f, 80f, vmin), textAlign = TextAlign.Center)
             Text(
-                "Level ${c.level}!",
+                c.L.levelTitle(c.level),
                 fontSize = clampSp(30f, 8f, 56f, vmin),
                 fontWeight = FontWeight.Bold,
                 color = Palette.PromptPop,
                 textAlign = TextAlign.Center
             )
             Text(
-                "Now counting up to ${c.levelCap()}!",
+                c.L.nowCountingTo(c.levelCap()),
                 fontSize = clampSp(18f, 5f, 32f, vmin),
                 fontWeight = FontWeight.Bold,
                 color = Palette.TextBlue,

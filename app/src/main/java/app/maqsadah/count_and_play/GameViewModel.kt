@@ -83,9 +83,43 @@ data class Problem(val op: String, val a: Int, val b: Int, val answer: Int)
  * coroutines run on [viewModelScope], and the [Speaker] is built from the
  * Application context — never an Activity — and released in [onCleared].
  */
-class GameViewModel(private val app: Application, val speaker: Speaker) : ViewModel() {
+class GameViewModel(
+    private val app: Application,
+    val speaker: Speaker,
+    initialLang: Lang,
+    initialLangSet: Boolean
+) : ViewModel() {
 
     private val prefs = app.getSharedPreferences(G.PREFS, Context.MODE_PRIVATE)
+
+    /* ---------- language ---------- */
+
+    /** Active UI + narration language; persisted. Drives [L] and the TTS locale. */
+    var lang by mutableStateOf(initialLang)
+        private set
+
+    /** The active language's string pack. Reading [lang] (via [L]) makes Compose
+     *  recompose every c.L.…() label live when the language changes. */
+    val L: LangPack
+        get() = lang.pack
+
+    /** false until a language has been chosen — gates the first-launch picker. */
+    var langSet by mutableStateOf(initialLangSet)
+        private set
+
+    /** Switches the app language (grown-ups settings or first-launch picker). */
+    fun setLanguage(newLang: Lang) {
+        lang = newLang
+        langSet = true
+        prefs.edit()
+            .putString(G.KEY_LANG, newLang.name)
+            .putBoolean(G.KEY_LANG_SET, true)
+            .apply()
+        speaker.setLanguage(newLang)
+        // A round in progress holds already-built (old-language) prompt/equation
+        // text; drop back to the menu so everything rebuilds in the new language.
+        if (screen == Screen.GAME) showMenu()
+    }
 
     var screen by mutableStateOf(Screen.START)
     var mode by mutableStateOf<Mode?>(null)
@@ -170,9 +204,9 @@ class GameViewModel(private val app: Application, val speaker: Speaker) : ViewMo
 
     private fun eqFull(a: Int, op: String, b: Int, result: Int?) {
         equation = if (result == null) {
-            listOf(part("$a $op $b = "), qPart("?"))
+            listOf(part("${L.digits(a)} $op ${L.digits(b)} = "), qPart("?"))
         } else {
-            listOf(part("$a $op $b = $result"))
+            listOf(part("${L.digits(a)} $op ${L.digits(b)} = ${L.digits(result)}"))
         }
     }
 
@@ -192,7 +226,7 @@ class GameViewModel(private val app: Application, val speaker: Speaker) : ViewMo
     private suspend fun countItem(item: Item, num: Int) {
         item.pulseTick++
         showBubble(item, num)
-        speaker.speak(G.word(num))
+        speaker.speak(L.word(num))
         delay(100)
     }
 
@@ -282,7 +316,7 @@ class GameViewModel(private val app: Application, val speaker: Speaker) : ViewMo
             saveProgress()
             levelUpVisible = true
             confettiBurst()
-            sayAsync("Level up! Now counting up to ${G.word(levelCap())}!")
+            sayAsync(L.levelUp(levelCap()))
             viewModelScope.launch {
                 delay(3600)
                 levelUpVisible = false
@@ -299,12 +333,12 @@ class GameViewModel(private val app: Application, val speaker: Speaker) : ViewMo
 
     fun previewVoice(name: String?) {
         speaker.selectVoice(name)
-        sayAsync("Hello! Let's count!")
+        sayAsync(L.voicePreview())
     }
 
     fun setSlowRate(slow: Boolean) {
         speaker.applySlowRate(slow)
-        sayAsync(if (slow) "Slow voice." else "Normal voice.")
+        sayAsync(if (slow) L.slowVoice() else L.normalVoice())
     }
 
     /* ============================================================
@@ -333,7 +367,7 @@ class GameViewModel(private val app: Application, val speaker: Speaker) : ViewMo
         val done = phase != Phase.ANSWER && n >= tapTarget
         if (done) busy = true      // block further taps during the transition
         launchSeq {
-            speaker.speak(G.word(n))
+            speaker.speak(L.word(n))
             if (done) onPhaseComplete()
         }
     }
@@ -351,7 +385,7 @@ class GameViewModel(private val app: Application, val speaker: Speaker) : ViewMo
         val done = n >= tapTarget
         if (done) busy = true
         launchSeq {
-            speaker.speak(G.word(n))
+            speaker.speak(L.word(n))
             if (done) {
                 stopIdleHint()
                 delay(350)
@@ -360,12 +394,12 @@ class GameViewModel(private val app: Application, val speaker: Speaker) : ViewMo
                     // everything is gone — nothing left to count
                     finishRound()
                 } else {
-                    prompt = "How many are left?"
-                    speaker.speak("How many are left? Count them!")
+                    prompt = L.howManyLeftPrompt()
+                    speaker.speak(L.howManyLeftCount())
                     remaining.forEach { it.badge = null; it.tappable = true }
                     tapCount = 0
                     tapTarget = remaining.size
-                    enterPhase(Phase.COUNT_LEFT, "Count the $itemName!")
+                    enterPhase(Phase.COUNT_LEFT, L.countTheItems(itemName))
                     busy = false
                 }
             }
@@ -379,36 +413,36 @@ class GameViewModel(private val app: Application, val speaker: Speaker) : ViewMo
         when (phase) {
             Phase.COUNT_A -> if (lop == "+") {
                 // group A counted — bring on group B, counted from 1 again
-                speaker.speak("${G.word(la)} ${G.plural(itemName, la)}!")
+                speaker.speak(L.countExclaim(la, itemName))
                 val em = plateA.firstOrNull()?.emoji ?: G.ITEMS[0]
                 repeat(lb) {
                     plateB.add(newItem(em, 'B'))
                     delay(110)
                 }
-                prompt = "Tap and count!"
-                speaker.speak("And ${G.word(lb)} more! Tap and count!")
+                prompt = L.tapAndCountPrompt()
+                speaker.speak(L.andMore(lb))
                 plateB.forEach { it.tappable = true }
                 tapCount = 0
                 tapTarget = lb
-                enterPhase(Phase.COUNT_B, "Tap the $itemName!")
+                enterPhase(Phase.COUNT_B, L.tapTheItems(itemName))
                 busy = false
             } else {
                 // counted them all — now take b away
                 delay(300)
-                prompt = "Take away ${G.word(lb)}!"
-                speaker.speak("Now take away ${G.word(lb)}! Tap ${G.word(lb)} ${G.plural(itemName, lb)}!")
+                prompt = L.takeAwayPrompt(lb)
+                speaker.speak(L.takeAwaySpeak(lb, itemName))
                 plateA.forEach { if (!it.ghost) it.tappable = true }
                 tapCount = 0
                 tapTarget = lb
-                enterPhase(Phase.TAKE_AWAY, "Take away ${G.word(lb)} $itemName!")
+                enterPhase(Phase.TAKE_AWAY, L.takeAwayHint(lb, itemName))
                 busy = false
             }
             Phase.COUNT_B -> {
                 delay(250)
-                prompt = "Put them together!"
-                speaker.speak("${G.word(la)} and ${G.word(lb)}. Tap the basket — put them together!")
+                prompt = L.putTogetherPrompt()
+                speaker.speak(L.putTogetherSpeak(la, lb))
                 showMerge = true
-                enterPhase(Phase.MERGE, "Tap the basket!")
+                enterPhase(Phase.MERGE, L.tapTheBasket())
                 busy = false
             }
             Phase.COUNT_ALL, Phase.COUNT_LEFT -> finishRound()
@@ -441,9 +475,9 @@ class GameViewModel(private val app: Application, val speaker: Speaker) : ViewMo
         plateA.forEach { it.badge = null; it.tappable = true }
         tapCount = 0
         tapTarget = sum
-        prompt = "Count them all!"
-        speaker.speak("All together now! Count them all!")
-        enterPhase(Phase.COUNT_ALL, "Count the $itemName!")
+        prompt = L.countAllPrompt()
+        speaker.speak(L.countAllSpeak())
+        enterPhase(Phase.COUNT_ALL, L.countTheItems(itemName))
         busy = false
     }
 
@@ -454,13 +488,13 @@ class GameViewModel(private val app: Application, val speaker: Speaker) : ViewMo
         eqFull(la, lop, lb, result)
         confettiBurst()
         if (lop == "+") {
-            prompt = "${G.word(la)} plus ${G.word(lb)} makes ${G.word(result)}!"
+            prompt = L.plusResult(la, lb, result)
             speaker.speak(prompt)
         } else if (result == 0) {
-            prompt = "Zero! All gone!"
-            speaker.speak("Zero! All gone! ${G.word(la)} take away ${G.word(lb)} leaves zero!")
+            prompt = L.zeroPrompt()
+            speaker.speak(L.minusZeroSpeak(la, lb))
         } else {
-            prompt = "${G.word(la)} take away ${G.word(lb)} leaves ${G.word(result)}!"
+            prompt = L.minusResult(la, lb, result)
             speaker.speak(prompt)
         }
         awardStar()
@@ -495,9 +529,9 @@ class GameViewModel(private val app: Application, val speaker: Speaker) : ViewMo
         lb = p.b
         lop = p.op
         val em = G.ITEMS[G.rand(G.ITEMS.size)]
-        itemName = G.NAMES[em] ?: "things"
+        itemName = L.itemName(em)
 
-        equation = listOf(part("${p.a} ${p.op} ${p.b} = "), qPart("?"))
+        equation = listOf(part("${L.digits(p.a)} ${p.op} ${L.digits(p.b)} = "), qPart("?"))
         capA = p.a
         if (p.op == "+") {
             capB = p.b
@@ -510,12 +544,12 @@ class GameViewModel(private val app: Application, val speaker: Speaker) : ViewMo
             delay(110)
         }
 
-        prompt = "Tap and count!"
-        speaker.speak("Tap and count the $itemName!")
+        prompt = L.tapAndCountPrompt()
+        speaker.speak(L.tapAndCountItem(itemName))
         plateA.forEach { it.tappable = true }
         tapCount = 0
         tapTarget = p.a
-        enterPhase(Phase.COUNT_A, "Tap the $itemName!")
+        enterPhase(Phase.COUNT_A, L.tapTheItems(itemName))
         busy = false
     }
 
@@ -532,30 +566,30 @@ class GameViewModel(private val app: Application, val speaker: Speaker) : ViewMo
         opRowVisible = false
         gridVisible = true
         gridEnabledMax = G.MAX_N
-        pickerTitle = "Pick a number!"
+        pickerTitle = L.pickNumber()
         equation = listOf(ghostPart("?"))
-        sayAsync("Pick a number!")
+        sayAsync(L.pickNumber())
     }
 
     fun onPickFirst(n: Int) {
         la = n
-        sayAsync(G.word(n))
-        equation = listOf(part("$n"))
+        sayAsync(L.word(n))
+        equation = listOf(part(L.digits(n)))
         gridVisible = false
         diceVisible = false
         opRowVisible = true
         plusEnabled = n < G.MAX_N     // 20 + anything exceeds the cap
         minusEnabled = n >= 1
-        pickerTitle = "Plus or take away?"
+        pickerTitle = L.plusOrMinus()
     }
 
     fun onPickOp(op: String) {
         lop = op
-        sayAsync(if (op == "+") "plus" else "take away")
-        equation = listOf(part("$la $op "), ghostPart("?"))
+        sayAsync(if (op == "+") L.plusWord() else L.minusWord())
+        equation = listOf(part("${L.digits(la)} $op "), ghostPart("?"))
         opRowVisible = false
         gridVisible = true
-        pickerTitle = "Pick another number!"
+        pickerTitle = L.pickAnother()
         gridEnabledMax = if (op == "+") G.MAX_N - la else la
         pickingSecond = true
     }
@@ -567,7 +601,7 @@ class GameViewModel(private val app: Application, val speaker: Speaker) : ViewMo
 
     fun onPickSecond(n: Int) {
         lb = n
-        sayAsync(G.word(n))
+        sayAsync(L.word(n))
         startActing()
     }
 
@@ -620,7 +654,7 @@ class GameViewModel(private val app: Application, val speaker: Speaker) : ViewMo
         val p = G.guidedProblem(round, levelCap())
         current = p
         val emoji = G.ITEMS[G.rand(G.ITEMS.size)]
-        itemName = G.NAMES[emoji] ?: "things"
+        itemName = L.itemName(emoji)
         capA = if (p.op == "+") p.a + p.b else p.a
         capGone = p.b
 
@@ -628,38 +662,38 @@ class GameViewModel(private val app: Application, val speaker: Speaker) : ViewMo
 
         if (p.op == "+") {
             eqFull(p.a, "+", p.b, null)
-            prompt = "Watch the $itemName!"
-            speaker.speak("${G.word(p.a)} ${G.plural(itemName, p.a)}")
+            prompt = L.watchTheItems(itemName)
+            speaker.speak(L.countPhrase(p.a, itemName))
             for (i in 1..p.a) {
                 val itm = newItem(emoji, 'A')
                 plateA.add(itm)
                 countItem(itm, i)
             }
             delay(500)
-            prompt = "${p.b} more!"
-            speaker.speak("${G.word(p.b)} more ${G.plural(itemName, p.b)} coming!")
+            prompt = L.morePrompt(p.b)
+            speaker.speak(L.moreComing(p.b, itemName))
             for (j in p.a + 1..p.a + p.b) {
                 val itm = newItem(emoji, 'A')
                 plateA.add(itm)
                 countItem(itm, j)
             }
             delay(400)
-            prompt = "How many altogether?"
-            speaker.speak("How many $itemName altogether?")
+            prompt = L.howManyAltogetherPrompt()
+            speaker.speak(L.howManyAltogether(itemName))
         } else {
             eqFull(p.a, "−", p.b, null)
-            prompt = "Watch the $itemName!"
-            speaker.speak("${G.word(p.a)} ${G.plural(itemName, p.a)}")
+            prompt = L.watchTheItems(itemName)
+            speaker.speak(L.countPhrase(p.a, itemName))
             for (m in 1..p.a) {
                 val itm = newItem(emoji, 'A')
                 plateA.add(itm)
                 countItem(itm, m)
             }
             delay(600)
-            goneLabel = "went away"
+            goneLabel = L.wentAway()
             goneVisible = true
-            prompt = "${p.b} go away!"
-            speaker.speak("${G.word(p.b)} ${if (p.b == 1) "goes" else "go"} away!")
+            prompt = L.goAwayPrompt(p.b)
+            speaker.speak(L.goAway(p.b))
             repeat(p.b) { g ->
                 if (plateA.isNotEmpty()) {
                     plateA.removeAt(plateA.size - 1)
@@ -668,36 +702,36 @@ class GameViewModel(private val app: Application, val speaker: Speaker) : ViewMo
                     ghostItm.dropped = true
                     goneItems.add(ghostItm)
                 }
-                speaker.speak(G.word(g + 1))
+                speaker.speak(L.word(g + 1))
                 delay(150)
             }
             delay(400)
-            prompt = "How many are left?"
-            speaker.speak("How many $itemName are left?")
+            prompt = L.howManyLeftPrompt()
+            speaker.speak(L.howManyLeft(itemName))
         }
 
         showAnswers(p.answer, levelCap())
         // the child may tap-count the objects (with voice) before answering
         plateA.forEach { it.tappable = true }
         tapCount = 0
-        enterPhase(Phase.ANSWER, "Tap the $itemName, then pick the answer!")
+        enterPhase(Phase.ANSWER, L.tapThenAnswer(itemName))
         busy = false
     }
 
     private suspend fun recountTogether() {
         val p = current ?: return
-        prompt = "Let's count together!"
-        speaker.speak("Let's count together!")
+        prompt = L.countTogether()
+        speaker.speak(L.countTogether())
         val items = plateA.toList()
         for ((i, itm) in items.withIndex()) {
             countItem(itm, i + 1)
         }
         if (p.op == "+") {
-            prompt = "How many altogether?"
-            speaker.speak("${G.word(items.size)}! How many altogether?")
+            prompt = L.howManyAltogetherPrompt()
+            speaker.speak(L.recountAltogether(items.size))
         } else {
-            prompt = "How many are left?"
-            speaker.speak("${G.word(items.size)}! How many are left?")
+            prompt = L.howManyLeftPrompt()
+            speaker.speak(L.recountLeft(items.size))
         }
     }
 
@@ -717,22 +751,21 @@ class GameViewModel(private val app: Application, val speaker: Speaker) : ViewMo
             confettiBurst()
             correctCount++
             awardStar()
-            val praise = listOf("Yes! ", "Great job! ", "Well done! ", "Hooray! ")[G.rand(4)]
-            speaker.speak(praise + G.word(p.answer) + "!")
+            speaker.speak(L.praiseAnswer(p.answer))
             delay(900)
             round++
             playRound()
         } else {
             ansWrongIdx = idx
             ansWrongTick++
-            speaker.speak("Hmm, let's try counting!")
+            speaker.speak(L.tryCounting())
             ansWrongIdx = -1
             // clear the child's own badges; the recount re-counts everything,
             // then the child may tap-count and answer again
             plateA.forEach { it.badge = null; it.tappable = true }
             tapCount = 0
             recountTogether()
-            enterPhase(Phase.ANSWER, "Tap the $itemName, then pick the answer!")
+            enterPhase(Phase.ANSWER, L.tapThenAnswer(itemName))
             busy = false
         }
     }
@@ -806,7 +839,13 @@ class GameViewModel(private val app: Application, val speaker: Speaker) : ViewMo
          * engine survives config changes. Released in [onCleared].
          */
         fun factory(app: Application): ViewModelProvider.Factory = viewModelFactory {
-            initializer { GameViewModel(app, Speaker(app)) }
+            initializer {
+                val prefs = app.getSharedPreferences(G.PREFS, Context.MODE_PRIVATE)
+                val langName = prefs.getString(G.KEY_LANG, Lang.EN.name) ?: Lang.EN.name
+                val lang = Lang.values().firstOrNull { it.name == langName } ?: Lang.EN
+                val langSet = prefs.getBoolean(G.KEY_LANG_SET, false)
+                GameViewModel(app, Speaker(app, lang), lang, langSet)
+            }
         }
     }
 }

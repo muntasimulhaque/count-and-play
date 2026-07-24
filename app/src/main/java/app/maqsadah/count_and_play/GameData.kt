@@ -32,6 +32,8 @@ object G {
     const val KEY_STARS = "stars"
     const val KEY_VOICE = "voice"
     const val KEY_SLOW = "slow_rate"
+    const val KEY_LANG = "lang"            // Lang.name, e.g. "EN" / "BN"
+    const val KEY_LANG_SET = "lang_set"    // true once a language has been chosen
 
     fun rand(n: Int): Int = (0 until n).random()
     fun randF(): Double = kotlin.random.Random.nextDouble()

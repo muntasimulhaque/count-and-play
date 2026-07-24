@@ -36,7 +36,7 @@ class ScreenshotTest {
     private val speaker = Speaker(context)
 
     private fun controller() =
-        GameViewModel(context.applicationContext as Application, speaker)
+        GameViewModel(context.applicationContext as Application, speaker, Lang.EN, true)
 
     /**
      * Where to write the PNGs. AGP passes `additionalTestOutputDir` and copies

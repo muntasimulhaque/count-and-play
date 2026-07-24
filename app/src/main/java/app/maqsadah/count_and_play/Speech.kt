@@ -27,7 +27,7 @@ data class TtsVoice(val name: String, val label: String)
  * voices and a Slow/Normal speech rate; both persist in SharedPreferences and
  * are applied on init. All Voice APIs are guarded — some engines throw.
  */
-class Speaker(context: Context) {
+class Speaker(context: Context, lang: Lang = Lang.EN) {
 
     var soundOn by mutableStateOf(true)
         private set
@@ -35,12 +35,35 @@ class Speaker(context: Context) {
     private val appContext = context.applicationContext
     private val prefs = appContext.getSharedPreferences(G.PREFS, Context.MODE_PRIVATE)
 
-    /** Installed English voices (filled once the TTS engine is ready). */
+    /** Voices for the CURRENT language (filled once the TTS engine is ready). */
     val voices = mutableStateListOf<TtsVoice>()
 
-    /** Persisted voice choice (null = engine default). */
-    var voiceName by mutableStateOf(prefs.getString(G.KEY_VOICE, null))
+    /** TTS locale + ISO language code in use — drives [loadVoices] filtering. */
+    private var locale: Locale = lang.locale
+    private var langCode: String = lang.locale.language
+
+    /** false when the device has no TTS data for [locale] (fell back to the default). */
+    var voiceAvailable by mutableStateOf(true)
         private set
+
+    /** Per-language prefs key for the chosen voice (a Bengali voice ≠ an English one). */
+    private fun voiceKey(code: String) = "${G.KEY_VOICE}_$code"
+
+    /** Persisted voice choice for the current language (null = engine default). */
+    var voiceName by mutableStateOf(readStoredVoice())
+        private set
+
+    private fun readStoredVoice(): String? {
+        // One-time migration: the pre-multi-language build stored a single (English)
+        // voice under KEY_VOICE. Move it to the per-language key so it isn't lost.
+        if (langCode == "en" && !prefs.contains(voiceKey("en")) && prefs.contains(G.KEY_VOICE)) {
+            prefs.edit()
+                .putString(voiceKey("en"), prefs.getString(G.KEY_VOICE, null))
+                .remove(G.KEY_VOICE)
+                .apply()
+        }
+        return prefs.getString(voiceKey(langCode), null)
+    }
 
     /** Persisted rate choice: Slow (0.7) vs Normal (0.9). */
     var slowRate by mutableStateOf(prefs.getBoolean(G.KEY_SLOW, false))
@@ -61,18 +84,9 @@ class Speaker(context: Context) {
         tts = TextToSpeech(appContext) { status ->
             if (status == TextToSpeech.SUCCESS) {
                 val t = tts ?: return@TextToSpeech
-                // Prefer en-US; if that voice data is missing, fall back to the
-                // device's default locale so narration still works out of the box
-                // (the numbers/words are English, but any voice is better than silence).
-                var lang = t.setLanguage(Locale.US)
-                if (lang == TextToSpeech.LANG_MISSING_DATA || lang == TextToSpeech.LANG_NOT_SUPPORTED) {
-                    lang = t.setLanguage(Locale.getDefault())
-                }
-                if (lang != TextToSpeech.LANG_MISSING_DATA && lang != TextToSpeech.LANG_NOT_SUPPORTED) {
+                if (applyLanguage(t)) {
                     t.setSpeechRate(currentRate())
                     t.setPitch(1.15f)
-                    applyStoredVoice(t)
-                    loadVoices(t)
                     t.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                         override fun onStart(utteranceId: String?) {}
                         override fun onDone(utteranceId: String?) = finish(utteranceId)
@@ -90,6 +104,37 @@ class Speaker(context: Context) {
         }
     }
 
+    /**
+     * Sets the engine to [locale], preferring it and falling back to the device
+     * default if that language's voice data is missing (any voice beats silence).
+     * Updates [voiceAvailable], reloads the voice list and re-applies the stored
+     * voice for the language. Returns true if some language was usable.
+     */
+    private fun applyLanguage(t: TextToSpeech): Boolean {
+        var result = t.setLanguage(locale)
+        if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+            result = t.setLanguage(Locale.getDefault())
+            voiceAvailable = false
+        } else {
+            voiceAvailable = true
+        }
+        val ok = result != TextToSpeech.LANG_MISSING_DATA && result != TextToSpeech.LANG_NOT_SUPPORTED
+        if (ok) {
+            applyStoredVoice(t)
+            loadVoices(t)
+        }
+        return ok
+    }
+
+    /** Switches narration to [newLang]: engine locale, voice list and stored voice. */
+    fun setLanguage(newLang: Lang) {
+        locale = newLang.locale
+        langCode = newLang.locale.language
+        voiceName = prefs.getString(voiceKey(langCode), null)
+        val t = tts ?: return
+        applyLanguage(t)
+    }
+
     /** Applies the persisted voice (if any) to [t]. Guarded: Voice APIs throw on some engines. */
     private fun applyStoredVoice(t: TextToSpeech) {
         val name = voiceName ?: return
@@ -101,14 +146,16 @@ class Speaker(context: Context) {
         }
     }
 
-    /** Lists installed local English voices with friendly, numbered labels. */
+    /** Lists the current language's voices with friendly, numbered labels. */
     private fun loadVoices(t: TextToSpeech) {
         try {
-            val english = t.voices
-                ?.filter { it.locale.language == Locale.ENGLISH.language && !it.isNetworkConnectionRequired }
-                ?: emptyList()
+            val forLang = t.voices?.filter { it.locale.language == langCode } ?: emptyList()
+            // Prefer offline voices; only fall back to network voices if the language
+            // has no offline voice installed (common for e.g. Bengali on Google TTS).
+            val offline = forLang.filter { !it.isNetworkConnectionRequired }
+            val usable = if (offline.isNotEmpty()) offline else forLang
             val list = mutableListOf<TtsVoice>()
-            english.groupBy { it.locale.displayName }.toSortedMap().forEach { (locName, vs) ->
+            usable.groupBy { it.locale.displayName }.toSortedMap().forEach { (locName, vs) ->
                 vs.sortedBy { it.name }.forEachIndexed { i, v ->
                     val label = if (vs.size == 1) locName else "$locName ${i + 1}"
                     list.add(TtsVoice(v.name, label))
@@ -121,10 +168,10 @@ class Speaker(context: Context) {
         }
     }
 
-    /** Selects (or clears, with null) the narration voice; persists the choice. */
+    /** Selects (or clears, with null) the narration voice; persists it per language. */
     fun selectVoice(name: String?) {
         voiceName = name
-        prefs.edit().putString(G.KEY_VOICE, name).apply()
+        prefs.edit().putString(voiceKey(langCode), name).apply()
         val t = tts ?: return
         try {
             if (name == null) {

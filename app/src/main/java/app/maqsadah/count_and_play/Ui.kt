@@ -198,7 +198,12 @@ fun ZoneBox(
 /* ---------- one emoji item with drop-in / pulse / ghost / count marks ---------- */
 
 @Composable
-fun ItemView(item: Item, fontSize: TextUnit, onTap: ((Item) -> Unit)? = null) {
+fun ItemView(
+    item: Item,
+    fontSize: TextUnit,
+    onTap: ((Item) -> Unit)? = null,
+    digits: (Int) -> String = { it.toString() }
+) {
     val drop = remember { Animatable(if (item.dropped) 1f else 0f) }
     LaunchedEffect(Unit) {
         if (!item.dropped) {
@@ -251,7 +256,7 @@ fun ItemView(item: Item, fontSize: TextUnit, onTap: ((Item) -> Unit)? = null) {
                     .padding(horizontal = 7.dp, vertical = 2.dp)
             ) {
                 Text(
-                    "$b",
+                    digits(b),
                     color = Color.White,
                     fontWeight = FontWeight.Bold,
                     fontSize = fontSize * 0.5f
@@ -268,7 +273,7 @@ fun ItemView(item: Item, fontSize: TextUnit, onTap: ((Item) -> Unit)? = null) {
                     .padding(horizontal = 6.dp, vertical = 1.dp)
             ) {
                 Text(
-                    "$b",
+                    digits(b),
                     color = Color.White,
                     fontWeight = FontWeight.Bold,
                     fontSize = fontSize * 0.45f
@@ -328,7 +333,8 @@ fun AutoItemsFlow(
     gap: Dp,
     fixedFontSp: TextUnit,
     modifier: Modifier = Modifier,
-    onTap: ((Item) -> Unit)? = null
+    onTap: ((Item) -> Unit)? = null,
+    digits: (Int) -> String = { it.toString() }
 ) {
     BoxWithConstraints(
         modifier.fillMaxSize(),
@@ -360,7 +366,7 @@ fun AutoItemsFlow(
             cellH = cellH,
             gap = gap,
             keyOf = { _, itm -> itm.id }
-        ) { itm -> ItemView(itm, fs, onTap) }
+        ) { itm -> ItemView(itm, fs, onTap, digits) }
     }
 }
 

@@ -35,6 +35,11 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      - name: Run unit tests
+        # Pure-JVM game-logic + language-pack tests (no device needed). Gates the
+        # build so a regression in the generators or a broken string pack fails CI.
+        run: ./gradlew :app:testReleaseUnitTest
+
       - name: Decode signing keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
