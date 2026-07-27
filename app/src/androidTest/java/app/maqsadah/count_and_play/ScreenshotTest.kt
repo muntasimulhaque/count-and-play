@@ -1,6 +1,7 @@
 package app.maqsadah.count_and_play
 
 import android.graphics.Bitmap
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.graphics.asAndroidBitmap
@@ -49,8 +50,29 @@ class ScreenshotTest {
         File(path).apply { mkdirs() }
     }
 
+    /**
+     * The rule permits exactly one `setContent` per test, so the content is
+     * mounted once and every scene is a state change pushed into it — which is
+     * also the faster way round, and only possible because the whole screen is
+     * a function of one immutable state.
+     */
+    private val scene = mutableStateOf(GameUiState())
+
     @Test
     fun captureStoreScreenshots() {
+        compose.setContent {
+            CountPlayTheme(dark = false) {
+                GameScreen(
+                    state = scene.value,
+                    onLanguage = {}, onShape = {}, onTapToken = {}, onTapZone = {},
+                    onDone = {}, onNext = {}, onPlayAgain = {},
+                    onOpenSettings = {}, onCloseSettings = {},
+                    onSetSound = {}, onSetSlow = {}, onSetLanguage = {},
+                    onAskReset = {}, onConfirmReset = {},
+                )
+            }
+        }
+
         shoot("01_choose") { base(Screen.SHAPE) }
 
         shoot("02_counting") {
@@ -166,18 +188,7 @@ class ScreenshotTest {
     }
 
     private fun shoot(name: String, state: () -> GameUiState) {
-        compose.setContent {
-            CountPlayTheme(dark = false) {
-                GameScreen(
-                    state = state(),
-                    onLanguage = {}, onShape = {}, onTapToken = {}, onTapZone = {},
-                    onDone = {}, onNext = {}, onPlayAgain = {},
-                    onOpenSettings = {}, onCloseSettings = {},
-                    onSetSound = {}, onSetSlow = {}, onSetLanguage = {},
-                    onAskReset = {}, onConfirmReset = {},
-                )
-            }
-        }
+        compose.runOnUiThread { scene.value = state() }
         compose.waitForIdle()
         val bitmap = compose.onRoot().captureToImage().asAndroidBitmap()
         File(outDir, "$name.png").outputStream().use {
