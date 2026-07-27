@@ -102,7 +102,21 @@ python tools/make_sounds.py             # regenerate sound assets (deterministic
 ```
 
 An Android SDK and the Android Studio JBR are installed on the owner's machine,
-so builds and the emulator run locally — CI is a check, not the only path.
+so unit tests and release builds run locally in seconds.
+
+**Instrumented tests do not currently run locally.** The installed emulator
+images are API 35 and 37, and Compose 1.7's test library calls
+`InputManager.getInstance()`, which Android 15 removed:
+
+```
+NoSuchMethodException: android.hardware.input.InputManager.getInstance
+```
+
+CI runs API 34 and is unaffected. Until an API 34 system image is installed (the
+lower-risk fix) or the Compose BOM is bumped, **any UI change must be verified
+from the CI screenshot artifacts, not locally.** Do not assume a UI change is
+correct because it compiles — v4.0 shipped a layout bug to a submitted release
+that way, and the rendered screenshots caught it minutes later.
 
 ## Releasing
 
