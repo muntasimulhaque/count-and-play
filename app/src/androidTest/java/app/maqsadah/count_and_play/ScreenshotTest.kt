@@ -100,9 +100,11 @@ class ScreenshotTest {
             base(Screen.PLAY, lesson)
         }
 
-        // Take-away: what left is still somewhere, and the gaps read as a shortfall.
+        // Take-away, after the removal has settled: what left is still there and
+        // countable, and the remainder has compacted left so the trailing empty
+        // cells read as "two fewer than five".
         shoot("07_taking_away") {
-            val lesson = play(Task.Separate(5, 2, ShapeKind.BALL), taps = 5, takeOut = 2)
+            val lesson = play(Task.Separate(5, 2, ShapeKind.BALL), taps = 5, takeOut = 2, then = true)
             base(Screen.PLAY, lesson)
         }
 
@@ -128,6 +130,8 @@ class ScreenshotTest {
         taps: Int = 0,
         moveToBowl: Int = 0,
         takeOut: Int = 0,
+        /** Sends Done at the end, so the step settles rather than freezing mid-move. */
+        then: Boolean = false,
     ): LessonState {
         var state = Lesson.begin(task, Progress()).state
         repeat(taps) {
@@ -144,6 +148,7 @@ class ScreenshotTest {
             state.tokens.inZone(Zone.BOWL).firstOrNull()
                 ?.let { state = Lesson.onEvent(state, Event.TapToken(it.id)).state }
         }
+        if (then) state = Lesson.onEvent(state, Event.Done).state
         return state
     }
 

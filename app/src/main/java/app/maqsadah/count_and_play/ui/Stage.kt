@@ -60,6 +60,7 @@ fun Stage(
             is Task.WhichIsMore -> Row(
                 Modifier.weight(1f),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 TrayFor(Zone.DISH_A, task.left, state, fx, copy, Modifier.weight(1f), onTapToken, onTapZone)
                 TrayFor(Zone.DISH_B, task.right, state, fx, copy, Modifier.weight(1f), onTapToken, onTapZone)
@@ -84,6 +85,7 @@ fun Stage(
                     Row(
                         Modifier.weight(1f),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         TrayFor(Zone.DISH_A, task.a, state, fx, copy, Modifier.weight(1f), onTapToken, onTapZone)
                         TrayFor(Zone.DISH_B, task.b, state, fx, copy, Modifier.weight(1f), onTapToken, onTapZone)
@@ -96,6 +98,7 @@ fun Stage(
             is Task.Separate -> Row(
                 Modifier.weight(1f),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 TrayFor(Zone.BOWL, FRAME_COLS, state, fx, copy, Modifier.weight(1.4f), onTapToken, onTapZone, empties = true)
                 // What left is still somewhere, whole and countable.
@@ -107,6 +110,7 @@ fun Stage(
             Row(
                 Modifier.weight(0.9f).fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 AnswerFrame(state, fx, copy, Modifier.weight(1f), onTapToken)
                 TrayFor(Zone.RESERVE, RESERVE_SIZE, state, fx, copy, Modifier.weight(1f), onTapToken, onTapZone)
@@ -168,24 +172,6 @@ private fun AnswerFrame(
             label = "answer",
             showEmptySlots = true,
             onTapToken = onTapToken,
-        )
-    }
-}
-
-@Composable
-private fun CardinalBadge(text: String, modifier: Modifier = Modifier) {
-    val palette = LocalPalette.current
-    Box(
-        modifier
-            .background(palette.trayLiner, RoundedCornerShape(50))
-            .border(3.dp, palette.ink, RoundedCornerShape(50))
-            .padding(horizontal = 16.dp, vertical = 4.dp),
-    ) {
-        androidx.compose.material3.Text(
-            text = text,
-            color = palette.ink,
-            fontSize = 34.sp,
-            fontWeight = FontWeight.Bold,
         )
     }
 }
