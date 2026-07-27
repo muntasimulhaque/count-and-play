@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="bg_sky">#AEE7FF</color>
-    <color name="bg_mint">#D4F5D4</color>
-    <color name="theme_blue">#7EC8E3</color>
-    <color name="ic_launcher_background">#AEE7FF</color>
+    <!-- The tabletop, so the very first frame is already the app's world
+         rather than a blue flash the Compose surface then replaces. -->
+    <color name="tabletop">#EFE3CC</color>
+    <color name="tray">#C9A26B</color>
+    <color name="tray_rim">#9A7743</color>
+    <color name="ic_launcher_background">#EFE3CC</color>
 </resources>

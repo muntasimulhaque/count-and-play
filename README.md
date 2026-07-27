@@ -1,68 +1,96 @@
 # Count & Play
 
-A native Android app that teaches a young child addition and subtraction visually. Numbers up to 20, everything narrated aloud, nothing ever vanishes — taken-away items move to a visible "went away" area and stay countable.
+A native Android app that helps a very young child *see* what addition and
+subtraction are. Built by a father for his 3-year-old son; on Google Play so
+other families can use it too.
 
 - **Play Store package:** `app.maqsadah.count_and_play.twa` (closed testing)
 - **License:** MIT
 
-## The app
+## What it is
 
-Three ways to play, all built around **tap-to-count**: the app never counts for the child — the child taps each object, hears its number spoken, and a little badge stays on every counted object (one-to-one correspondence). Objects are laid out in **rows of five** (ten-frame style), so 7 looks like "5 and 2 more".
+Everything is **tap-to-count**: the app never counts for the child. He taps each
+object, hears its number, and a numbered chip stays on it — one tap, one object,
+one number. Objects sit in a **five-frame**, so three apples read as "three, and
+two empty".
 
-**▶ Play (guided levels)** — the app opens here. Four levels by number range (within 3, 5, 10, then 20); addition and subtraction alternate automatically. Addition: count one group, count the other, tap the 🧺 basket to put them together, then count them all. Subtraction: count the group, tap objects to take them away (each becomes a faded "ghost hole" that keeps its spot), then count what's left. Five stars level up with confetti and a celebration; progress is saved.
+There are no modes and no menu. A ladder decides what comes next and the child
+just plays. Six things it teaches, in the order a child grows into them:
 
-**🧺 Free play** — the classic picker: you or your child pick the numbers (up to 20) and the operation, and the same tap-to-count acting plays out.
+| | |
+|---|---|
+| **Counting** | Tap each object once; the last number names the whole set. |
+| **Make a number** | *"Put three apples in the bowl."* The child **produces** a quantity — and where he stops is the single most informative thing the app can know. |
+| **More and fewer** | Two trays; which has more? Including trials where fewer objects are spread over more space. |
+| **Hidden adding** | Objects go under a leaf, one more slides in. *How many now?* Answered by building a set, so no numerals or words are needed. |
+| **Putting together** | Two dishes pour into one bowl. The child predicts first, then counts — and the parts stay visibly inside the whole. |
+| **Taking away** | The same picture, reversed: the bowl pours into a dish. What left is still there, whole and countable. |
 
-**⭐ Quiz** — every problem is acted out visually first, then the child picks from three big number buttons — or tap-counts the objects first. Wrong answers never fail; the app recounts everything slowly with each object highlighted. Quiz difficulty follows the current level.
+Addition and subtraction use the **same furniture in opposite directions**, and
+every join or separation is **poured back** at the end. That reversal is the
+point: if the join can be undone, the whole genuinely *contains* the parts
+rather than replacing them.
 
-**Grown-ups settings** (long-press the sound button): pick any of the device's installed English voices, switch the speech rate between Slow and Normal, or reset progress. If the child goes quiet for a few seconds, the app gently pulses the objects and repeats the hint.
+Numbers stay small on purpose. Arithmetic never exceeds **five**, counting
+practice never exceeds ten. A 3-year-old can see three at a glance and track
+one or two moving objects; twenty objects is not harder counting, it is a
+different and much worse task.
 
-Design constraints honored throughout: no human or animal figures (fruits, stars, balloons, balls, cars only), no music ever — voice narration only (Android's built-in text-to-speech), huge touch targets, no ads, no data collection, no network access at all, no fail states.
+**Nothing advances by itself.** There is no autoplay, no timer, no score, no
+stars, and no fail state. A wrong answer is met with the plain fact — *"We made
+five"* — and then an easier one. The app never says "wrong".
+
+Design constraints honoured throughout: **no music**, and **no depiction of any
+animate being** — no people, animals, faces, or mascots anywhere, including the
+icon. Warmth comes from material, weight, motion and voice instead. No ads, no
+data collection, no network access, zero permissions.
 
 ## Tech
 
-Native Kotlin + Jetpack Compose. Fully offline — the manifest requests **zero permissions**. Version 2.0.0 is a ground-up native rewrite of the original web/PWA version (v1 shipped as a Trusted Web Activity; the `.twa` suffix in the package ID is a leftover from that era and can never change, since Play permanently ties an app to its first package ID).
+Kotlin + Jetpack Compose. The counting objects are ten shapes **drawn as vector
+paths in code**, not emoji, so they are identical on every device and can never
+drift into depicting a creature. The six sound effects are synthesized by
+`tools/make_sounds.py` and are deliberately inharmonic; only the success chime
+has a pitch, and it can never play twice in quick succession.
 
-The original web version still lives at https://count-and-play.netlify.app and its source is preserved in this repo's git history (tag `web-final`).
+```
+core/     pure Kotlin, zero Android imports — the rules
+copy/     what the words are, in English and বাংলা
+host/     ViewModel, script runner, all timing
+speech/   TTS      sound/  SoundPool      data/  prefs + migration
+ui/       Compose
+```
+
+The organising principle: **the rules are pure data and functions; Android is a
+player of those rules, not a participant.** The domain emits a script of beats —
+say this, play that, show this, wait — and the host performs it, so `delay()`
+exists in exactly one small file. That is why the entire game is playable in
+plain JVM tests, and why the store screenshots are rendered from state directly
+rather than by driving a live emulator.
+
+See [CLAUDE.md](CLAUDE.md) for the working rules and the pedagogy this rests on.
 
 ## Building
 
-Every push to `main` triggers GitHub Actions (`.github/workflows/build.yml`), which builds a **signed release AAB and APK** on GitHub's servers. Download them from the workflow run's artifacts.
-
-Signing uses four repository secrets (Settings → Secrets and variables → Actions):
-
-| Secret | Value |
-|---|---|
-| `KEYSTORE_BASE64` | the release keystore, base64-encoded |
-| `KEYSTORE_PASSWORD` | keystore password |
-| `KEY_ALIAS` | key alias |
-| `KEY_PASSWORD` | key password |
-
-The keystore itself is **never** committed (see `.gitignore`). If it is ever lost, the app can never be updated again — keep offline backups.
-
-Local builds work too: open the repo in Android Studio, or run `gradle :app:assembleDebug`. Without the keystore, release builds are unsigned.
-
-Release builds are **minified** (R8 code + resource shrinking). The first minified build should be smoke-tested from the closed-testing track before promoting to production.
-
-**Gradle wrapper:** this repo pins Gradle 8.10.2 via the committed wrapper. Always build with it — `./gradlew` (macOS/Linux) or `gradlew.bat` (Windows) — so local and CI use the same version. CI validates the wrapper jar against Gradle's known-good checksums on every run.
-
-**Tests:** pure game logic is unit-tested (`app/src/test/…/GameLogicTest.kt`). Run them with:
-
 ```
-./gradlew :app:testDebugUnitTest
+./gradlew :app:testReleaseUnitTest      # the rules
+./gradlew :app:assembleRelease          # R8 release (~1 MB)
+python tools/make_sounds.py             # regenerate sound assets (deterministic)
 ```
+
+Every push to `main` triggers GitHub Actions, which runs the unit tests and then
+builds a **signed release AAB and APK**. Signing uses four repository secrets:
+`KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`. The
+keystore is never committed — if it is lost, the app can never be updated again.
+
+A second workflow renders the Play Store screenshots on phone, 7" and 10"
+emulators from `ScreenshotTest`.
 
 ## Releasing an update
 
-1. Edit the code; bump `versionCode` (and `versionName`) in `app/build.gradle.kts`.
+1. Bump `versionCode` (+1) and `versionName` (+0.1) in `app/build.gradle.kts`.
 2. Commit and push to `main`.
-3. When the Actions run finishes, download the `count-and-play-aab` artifact.
-4. Play Console → Testing (or Production) → Create new release → upload the AAB.
+3. Take the signed AAB from the `builds` branch once CI is green.
+4. Play Console → Testing → Closed testing → alpha → Create new release.
 
-## Project layout
-
-| Path | What it is |
-|---|---|
-| `app/` | The Android app (Kotlin + Compose) |
-| `.github/workflows/build.yml` | CI: builds the signed AAB/APK on every push |
-| `play-store/` | Play Store listing assets + submission guide |
+Only capture new store screenshots when the UI actually changed.

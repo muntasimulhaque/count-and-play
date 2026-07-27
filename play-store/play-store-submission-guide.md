@@ -83,7 +83,14 @@ Made by a parent, for parents who want to sit with their child and teach — not
 
 ## Version updates later
 
-The app content lives on the website — most changes (new fruits, new modes, fixes) deploy to Netlify instantly and appear in the installed app with no Play Store update at all. You only need a new .aab when the icon, name, or package settings change. That's the quiet superpower of this architecture.
+**This app is fully native and fully offline.** Every change — however small —
+needs a new build, a bumped `versionCode`, and a new release through the Play
+Console. Nothing in the shipped app is loaded from a website.
+
+(This section previously claimed changes could be deployed to Netlify and would
+appear in the installed app without a Play Store update. That was true of the
+original Trusted Web Activity in 2026; it has been false since the native
+rewrite, and acting on it would have shipped nothing to anyone.)
 
 ## One warning worth repeating
 

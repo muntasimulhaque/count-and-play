@@ -1,42 +1,66 @@
 package app.maqsadah.count_and_play
 
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
-import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
+import app.maqsadah.count_and_play.host.GameHost
+import app.maqsadah.count_and_play.host.Screen
+import app.maqsadah.count_and_play.ui.CountPlayTheme
+import app.maqsadah.count_and_play.ui.GameScreen
 
 class MainActivity : ComponentActivity() {
 
-    // The ViewModel owns the game state/sequencing (viewModelScope) and the
-    // Speaker (built from the Application context, released in onCleared).
-    private val vm: GameViewModel by viewModels { GameViewModel.factory(application) }
+    private val host: GameHost by viewModels { GameHost.factory(application) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Full-screen, like the original app
-        WindowCompat.setDecorFitsSystemWindows(window, false)
-        val insets = WindowCompat.getInsetsController(window, window.decorView)
-        insets.systemBarsBehavior =
-            WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-        insets.hide(WindowInsetsCompat.Type.systemBars())
+        // A 3-year-old can look at a set for a long time without touching it,
+        // and the screen going dark mid-thought is its own small failure.
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
-        // Silence narration the moment the app leaves the screen so the TTS
-        // voice never trails on after the child switches away; resume it on
-        // return. Game state lives in the ViewModel, so the round picks back
-        // up exactly where it stopped. (onStop = fully backgrounded.)
         lifecycle.addObserver(object : DefaultLifecycleObserver {
-            override fun onStart(owner: LifecycleOwner) = vm.speaker.resume()
-            override fun onStop(owner: LifecycleOwner) = vm.speaker.pause()
+            // Backgrounding stops the app dead rather than leaving it narrating
+            // and completing rounds unseen, as the old build did.
+            override fun onStop(owner: LifecycleOwner) = host.onEnterBackground()
+            override fun onStart(owner: LifecycleOwner) = host.onReturnToForeground()
         })
 
         setContent {
-            CountPlayApp(vm, vm.speaker)
+            CountPlayTheme {
+                val state = host.ui
+
+                // Back mid-round returns to the start of a session rather than
+                // quitting: a toddler presses Back constantly, and losing the
+                // round to a stray press is indistinguishable from a crash.
+                // Pressing it again from there leaves normally.
+                BackHandler(enabled = state.screen == Screen.PLAY && !state.settingsOpen) {
+                    host.leaveSession()
+                }
+
+                GameScreen(
+                    state = state,
+                    onLanguage = host::chooseLanguage,
+                    onShape = host::chooseShape,
+                    onTapToken = host::tapToken,
+                    onTapZone = host::tapZone,
+                    onDone = host::done,
+                    onNext = host::next,
+                    onPlayAgain = host::playAgain,
+                    onOpenSettings = host::openSettings,
+                    onCloseSettings = host::closeSettings,
+                    onSetSound = host::setSound,
+                    onSetSlow = host::setSlowRate,
+                    onSetLanguage = host::setLanguage,
+                    onAskReset = host::askReset,
+                    onConfirmReset = host::confirmReset,
+                )
+            }
         }
     }
 }
