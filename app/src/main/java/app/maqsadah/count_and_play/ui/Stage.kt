@@ -157,23 +157,21 @@ private fun AnswerFrame(
     onTapToken: (Int) -> Unit,
 ) {
     val palette = LocalPalette.current
-    Box(
-        modifier
-            .background(palette.trayLiner, RoundedCornerShape(22.dp))
-            .border(4.dp, palette.answerFrame, RoundedCornerShape(22.dp)),
-    ) {
-        Tray(
-            tokens = state.tokens.inZone(Zone.ANSWER),
-            capacity = maxOf(state.tokens.inZone(Zone.ANSWER).size, 5),
-            revealed = fx.revealed + state.tokens.inZone(Zone.ANSWER).map { it.id },
-            highlighted = fx.highlighted,
-            copy = copy,
-            modifier = Modifier.fillMaxSize(),
-            label = "answer",
-            showEmptySlots = true,
-            onTapToken = onTapToken,
-        )
-    }
+    // One surface, not a tray nested inside a frame — the two backgrounds used
+    // to stack and render as a band across the middle of the answer box.
+    Tray(
+        tokens = state.tokens.inZone(Zone.ANSWER),
+        capacity = maxOf(state.tokens.inZone(Zone.ANSWER).size, FRAME_COLS),
+        revealed = fx.revealed + state.tokens.inZone(Zone.ANSWER).map { it.id },
+        highlighted = fx.highlighted,
+        copy = copy,
+        modifier = modifier,
+        label = "answer",
+        showEmptySlots = true,
+        surface = palette.trayLiner,
+        rim = palette.answerFrame,
+        onTapToken = onTapToken,
+    )
 }
 
 /** A plain leaf. A cover, not a creature. */

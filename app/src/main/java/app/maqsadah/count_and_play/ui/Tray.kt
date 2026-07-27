@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.maqsadah.count_and_play.copy.Copy
 import app.maqsadah.count_and_play.core.Token
+import app.maqsadah.count_and_play.core.Zone
 import kotlin.math.ceil
 import kotlin.math.min
 
@@ -73,6 +74,8 @@ fun Tray(
     showEmptySlots: Boolean = false,
     /** The collapsed cardinal, shown on this tray's rim once counting ends. */
     cardinal: String? = null,
+    surface: androidx.compose.ui.graphics.Color? = null,
+    rim: androidx.compose.ui.graphics.Color? = null,
     onTapToken: (Int) -> Unit = {},
     onTapEmpty: () -> Unit = {},
 ) {
@@ -113,8 +116,8 @@ fun Tray(
             Modifier
                 .align(Alignment.Center)
                 .size(cell * cols + pad * 2, cell * rows + pad * 2)
-                .background(palette.tray, RoundedCornerShape(22.dp))
-                .border(3.dp, palette.trayRim, RoundedCornerShape(22.dp))
+                .background(surface ?: palette.tray, RoundedCornerShape(22.dp))
+                .border(4.dp, rim ?: palette.trayRim, RoundedCornerShape(22.dp))
                 .semantics { contentDescription = label }
                 .pointerInput(placed, cols) {
                     awaitEachGesture {
@@ -189,6 +192,16 @@ fun Tray(
     }
 }
 
+/** Only once an object has actually moved does its origin become worth showing. */
+private fun seatColor(token: Token, palette: Palette): androidx.compose.ui.graphics.Color? {
+    if (token.zone == token.origin) return null
+    return when (token.origin) {
+        Zone.DISH_A -> palette.partA
+        Zone.DISH_B -> palette.partB
+        else -> null
+    }
+}
+
 @Composable
 private fun TokenView(
     token: Token,
@@ -237,6 +250,21 @@ private fun TokenView(
             val drawn = cellPx * 0.80f * scale
             val left = centre.x - drawn / 2f
             val top = centre.y - drawn / 2f + (1f - entry) * cellPx * 0.9f
+
+            // The seat an object came from, carried with it into the whole.
+            // This is the part-whole relation made visible: after three and two
+            // pour together, the five still shows which three and which two —
+            // which is the entire idea addition rests on, and the thing the old
+            // build erased at the exact moment it mattered.
+            seatColor(token, palette)?.let { seat ->
+                drawCircle(seat, drawn * 0.58f, centre)
+                drawCircle(
+                    palette.ink.copy(alpha = 0.30f),
+                    drawn * 0.58f,
+                    centre,
+                    style = Stroke(width = drawn * 0.035f),
+                )
+            }
 
             translate(left, top) {
                 rotate(tiltFor(token.slot), pivot = Offset(drawn / 2f, drawn / 2f)) {

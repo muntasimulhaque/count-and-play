@@ -36,6 +36,9 @@ data class Palette(
     val answerFrame: Color,
     val leaf: Color,
     val leafStroke: Color,
+    /** The seat an object sits on, coloured by the part it came from. */
+    val partA: Color,
+    val partB: Color,
     val dark: Boolean,
 )
 
@@ -55,6 +58,8 @@ private val Light = Palette(
     answerFrame = Color(0xFF7A5233),
     leaf = Color(0xFF3E8E5A),
     leafStroke = Color(0xFF1E5030),
+    partA = Color(0xFF5B8FD0),
+    partB = Color(0xFFE0A15A),
     dark = false,
 )
 
@@ -74,6 +79,8 @@ private val Dark = Palette(
     answerFrame = Color(0xFFC0996A),
     leaf = Color(0xFF357C4E),
     leafStroke = Color(0xFF143D24),
+    partA = Color(0xFF3E6C9E),
+    partB = Color(0xFFA9763C),
     dark = true,
 )
 
