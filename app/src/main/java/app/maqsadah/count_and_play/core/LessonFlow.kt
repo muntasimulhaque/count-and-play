@@ -22,6 +22,19 @@ internal fun LessonState.inert() = Outcome(this, script { cue(Sfx.HOLLOW) })
 
 private fun Script.then(more: Script) = Script(beats + more.beats)
 
+/**
+ * Whether one-to-one plausibly held over a count of [target].
+ *
+ * A single re-tap used to fail the count outright. A 3-year-old tapping an
+ * apple he has already counted is not a breakdown of one-to-one, it is a
+ * 3-year-old — and the cost was steep: he was silently scored wrong, eased down
+ * a level, and the *next* task was made easier too. The more eagerly he played
+ * the further the app's picture of him drifted from the truth. Measured over
+ * eight sittings, a child who re-tapped every third tap never reached adding at
+ * all. A child drumming on the tray is still caught; an eager one is not.
+ */
+internal fun countedCleanly(retaps: Int, target: Int): Boolean = retaps <= 1 + target / 3
+
 /** Runs once a count has reached its target, carrying the cardinal beats with it. */
 internal fun advance(state: LessonState, step: Step.Counting, lead: Script): Outcome {
     val task = state.task
@@ -32,8 +45,8 @@ internal fun advance(state: LessonState, step: Step.Counting, lead: Script): Out
             result = TaskResult(
                 skill = task.skill,
                 // For a straight count the answer is never "wrong" — the signal
-                // that matters is whether one-to-one held, i.e. no re-taps.
-                correct = state.retaps == 0,
+                // that matters is whether one-to-one plausibly held.
+                correct = countedCleanly(state.retaps, step.target),
                 given = step.target,
                 expected = task.answer,
                 retaps = state.retaps,
@@ -145,6 +158,7 @@ private fun check(state: LessonState, step: Step.Counting, lead: Script): Outcom
             script {
                 if (correct) {
                     cue(Sfx.CHIME)
+                    show(StageChange.Celebrate)
                 } else {
                     // No sad sound, nothing red, no "try again". The two frames
                     // simply sit side by side and the fact is stated.
@@ -192,6 +206,7 @@ private fun doneGiving(state: LessonState): Outcome {
             state = state.copy(step = Step.Finished),
             script = script {
                 cue(Sfx.CHIME)
+                show(StageChange.Celebrate)
                 settle(Line.GaveIt(task.n))
             },
             result = result,
@@ -257,7 +272,12 @@ private fun donePredicting(state: LessonState): Outcome {
                     show(StageChange.Uncover(Zone.BOWL))
                     cue(Sfx.RUSTLE)
                     pause(Pace.BREATH)
-                    if (correct) cue(Sfx.CHIME) else pause(Pace.SETTLE)
+                    if (correct) {
+                        cue(Sfx.CHIME)
+                        show(StageChange.Celebrate)
+                    } else {
+                        pause(Pace.SETTLE)
+                    }
                     if (actual == 0) settle(Line.NothingLeft) else settle(Line.WeMade(actual))
                 },
                 result = TaskResult(Skill.HIDDEN, correct, predicted, actual, state.retaps),

@@ -2,6 +2,7 @@ package app.maqsadah.count_and_play.copy
 
 import app.maqsadah.count_and_play.core.Line
 import app.maqsadah.count_and_play.core.ShapeKind
+import app.maqsadah.count_and_play.core.Skill
 
 /**
  * Bengali, and here Bengali is genuinely better at this than English.
@@ -57,6 +58,12 @@ object CopyBn : Copy {
         Line.CountThem -> "গুনে দেখো।"
         Line.HowMany -> "কয়টা?"
 
+        // নেবো / বের করবো — first person plural, the way a parent offers a
+        // choice rather than issues an instruction. The child is deciding here.
+        Line.PickHowMany -> "কয়টা নেবো?"
+        Line.PickHowManyMore -> "আর কয়টা?"
+        Line.PickHowManyAway -> "কয়টা বের করবো?"
+
         // দাও (give), not রাখো (place) — warm, and exactly the Give-N framing.
         is Line.GiveN -> "বাটিতে ${counted(line.n)} ${noun(line.shape, line.n)} দাও।"
         is Line.GaveIt -> "${counted(line.n)}! পেরেছো।"
@@ -90,6 +97,15 @@ object CopyBn : Copy {
         Line.SessionDone -> "আজ এটুকুই।"
     }
 
+    override fun activityName(skill: Skill): String = when (skill) {
+        Skill.COUNT -> "গুনে দেখি"
+        Skill.GIVE_N -> "বাটিতে দাও"
+        Skill.COMPARE -> "কোনটায় বেশি"
+        Skill.HIDDEN -> "পাতার নিচে"
+        Skill.JOIN -> "একসাথে করি"
+        Skill.SEPARATE -> "বের করি"
+    }
+
     override val ui = object : UiText {
         override val play = "খেলি"
         override val settings = "সেটিংস"
@@ -112,6 +128,9 @@ object CopyBn : Copy {
             "এই ডিভাইসে এই ভাষার স্বর নেই। অ্যাপ ঠিকই চলবে — প্রতিটি সংখ্যা পর্দায় দেখা যাবে।"
         override val sessionOver = "শেষ!"
         override val playAgain = "আবার"
+        override val shelfTitle = "কী খেলবো?"
+        override val freePlay = "খেলার থালা"
+        override val back = "ফিরে যাই"
         override val whatTheyreLearning = "ও যা শিখছে"
         override fun skillLine(skill: String, level: Int) = "$skill · ধাপ ${digits(level)}"
     }

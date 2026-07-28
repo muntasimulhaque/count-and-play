@@ -2,6 +2,7 @@ package app.maqsadah.count_and_play.core
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -60,25 +61,93 @@ class LadderTest {
         }
     }
 
+    /**
+     * Everything is on the shelf from the first minute, and nothing can ever
+     * leave it. The chained version of this was measured by playing the rules:
+     * a perfect child first met adding at task 41 and never met taking-away at
+     * all in eight sittings, and a child who re-tapped watched activities he
+     * had already been shown *disappear* when a demotion recomputed the chain.
+     */
     @Test
-    fun `the ladder opens on counting alone and unlocks in order`() {
-        val fresh = Progress()
-        assertEquals(listOf(Skill.COUNT), Ladder.unlocked(fresh))
+    fun `every activity is available from the very start and never withdrawn`() {
+        assertEquals(Skill.entries.toList(), Ladder.unlocked(Progress()))
 
-        val counts = fresh.at(Skill.COUNT, 2)
-        assertTrue(Ladder.isUnlocked(Skill.GIVE_N, counts))
-        assertTrue(Ladder.isUnlocked(Skill.COMPARE, counts))
-        assertFalse("operations must wait for Give-N", Ladder.isUnlocked(Skill.HIDDEN, counts))
+        for (skill in Skill.entries) {
+            assertTrue("$skill must be there on day one", Ladder.isUnlocked(skill, Progress()))
+        }
 
-        val gives = counts.at(Skill.GIVE_N, 2)
-        assertTrue(Ladder.isUnlocked(Skill.HIDDEN, gives))
-        assertFalse("joining must wait for the hidden set", Ladder.isUnlocked(Skill.JOIN, gives))
+        // Demotion eases the numbers, never the shelf.
+        val struggling = Progress().at(Skill.COUNT, 1).at(Skill.JOIN, 1)
+        assertEquals(Skill.entries.toList(), Ladder.unlocked(struggling))
+    }
 
-        val hides = gives.at(Skill.COUNT, 3).at(Skill.HIDDEN, 2)
-        assertTrue(Ladder.isUnlocked(Skill.JOIN, hides))
-        assertFalse(Ladder.isUnlocked(Skill.SEPARATE, hides))
+    @Test
+    fun `the child's own choice of number is bounded by where he is`() {
+        // He picks; the level decides how far the choice reaches. It can never
+        // put him past the range where a quantity is still visible to him.
+        assertEquals(1..5, Ladder.pickRange(Skill.COUNT, 1))
+        assertEquals(1..MAX_COUNT, Ladder.pickRange(Skill.COUNT, 4))
+        assertEquals(1..3, Ladder.pickRange(Skill.GIVE_N, 1))
 
-        assertTrue(Ladder.isUnlocked(Skill.SEPARATE, hides.at(Skill.JOIN, 2)))
+        // Whatever he picks first, the second choice cannot push a total past
+        // MAX_TOTAL, and cannot ask him to take out more than there are.
+        for (first in Ladder.pickRange(Skill.JOIN, 4)) {
+            val second = Ladder.secondPickRange(Skill.JOIN, first)
+            assertTrue("$first + ${second.last} escapes MAX_TOTAL", first + second.last <= MAX_TOTAL)
+            assertTrue(second.first >= 1)
+        }
+        for (whole in Ladder.pickRange(Skill.SEPARATE, 4)) {
+            assertEquals(1..whole, Ladder.secondPickRange(Skill.SEPARATE, whole))
+        }
+
+        // Comparison and the hidden set are relations the child does not set.
+        assertTrue(Ladder.pickRange(Skill.COMPARE, 1).isEmpty())
+        assertTrue(Ladder.pickRange(Skill.HIDDEN, 1).isEmpty())
+    }
+
+    @Test
+    fun `a task built from the child's own numbers is the task he described`() {
+        val join = Ladder.taskFrom(Skill.JOIN, ShapeKind.STAR, 3, 2) as Task.Join
+        assertEquals(3, join.a)
+        assertEquals(2, join.b)
+        assertEquals(5, join.answer)
+
+        val take = Ladder.taskFrom(Skill.SEPARATE, ShapeKind.STAR, 4, 3) as Task.Separate
+        assertEquals(4, take.whole)
+        assertEquals(3, take.take)
+
+        // The heap he draws from always holds more than he asked for, so
+        // "put three in" never collapses into "put them all in".
+        val give = Ladder.taskFrom(Skill.GIVE_N, ShapeKind.STAR, 3, 0) as Task.GiveMe
+        assertTrue("the heap must offer a real choice", give.pool > give.n)
+    }
+
+    /**
+     * The child now builds the problem himself, so every combination his taps
+     * can produce has to be a real, finishable task — including the awkward
+     * ends of each range, which is exactly where a hand-picked example wouldn't
+     * have looked.
+     */
+    @Test
+    fun `every task the child can build with his own taps plays to the end`() {
+        var built = 0
+        for (skill in listOf(Skill.COUNT, Skill.GIVE_N, Skill.JOIN, Skill.SEPARATE)) {
+            for (level in 1..Advancement.maxLevel(skill)) {
+                for (first in Ladder.pickRange(skill, level)) {
+                    val second = Ladder.secondPickRange(skill, first)
+                    for (n in if (second.isEmpty()) listOf(0) else second.toList()) {
+                        val task = Ladder.taskFrom(skill, ShapeKind.BALL, first, n)
+                        assertTrue("$task exceeds what a 3-year-old can hold", task.answer <= MAX_COUNT)
+
+                        val played = Play.task(task, Progress())
+                        assertEquals("$task never finished", Step.Finished, played.state.step)
+                        assertNotNull("$task recorded nothing", played.results.firstOrNull())
+                        built++
+                    }
+                }
+            }
+        }
+        assertTrue("the picker must actually offer choices", built > 100)
     }
 
     @Test

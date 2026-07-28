@@ -2,6 +2,7 @@ package app.maqsadah.count_and_play.copy
 
 import app.maqsadah.count_and_play.core.Line
 import app.maqsadah.count_and_play.core.ShapeKind
+import app.maqsadah.count_and_play.core.Skill
 
 object CopyEn : Copy {
     override val language = Language.EN
@@ -41,6 +42,10 @@ object CopyEn : Copy {
         Line.CountThem -> "Count them."
         Line.HowMany -> "How many?"
 
+        Line.PickHowMany -> "How many shall we use?"
+        Line.PickHowManyMore -> "And how many more?"
+        Line.PickHowManyAway -> "How many shall we take away?"
+
         is Line.GiveN -> "Put ${countWord(line.n)} ${noun(line.shape, line.n)} in the bowl."
         is Line.GaveIt -> "${cap(line.n)}! You did it."
         Line.LetsCount -> "Let's count them."
@@ -72,6 +77,15 @@ object CopyEn : Copy {
         Line.SessionDone -> "That's all for now."
     }
 
+    override fun activityName(skill: Skill): String = when (skill) {
+        Skill.COUNT -> "Count them"
+        Skill.GIVE_N -> "Put some in"
+        Skill.COMPARE -> "Which has more"
+        Skill.HIDDEN -> "Under the leaf"
+        Skill.JOIN -> "Put together"
+        Skill.SEPARATE -> "Take away"
+    }
+
     private fun cap(n: Int) = countWord(n).replaceFirstChar { it.uppercase() }
 
     override val ui = object : UiText {
@@ -97,6 +111,9 @@ object CopyEn : Copy {
                 "The app still works — every number is shown on screen."
         override val sessionOver = "All done!"
         override val playAgain = "Again"
+        override val shelfTitle = "What shall we play?"
+        override val freePlay = "Free tray"
+        override val back = "Back"
         override val whatTheyreLearning = "What they're working on"
         override fun skillLine(skill: String, level: Int) = "$skill · step $level"
     }

@@ -13,18 +13,24 @@ import app.maqsadah.count_and_play.copy.Language
 import app.maqsadah.count_and_play.copy.copyFor
 import app.maqsadah.count_and_play.core.Beat
 import app.maqsadah.count_and_play.core.Event
+import app.maqsadah.count_and_play.core.FreePlay
+import app.maqsadah.count_and_play.core.Ladder
 import app.maqsadah.count_and_play.core.Lesson
 import app.maqsadah.count_and_play.core.LessonState
+import app.maqsadah.count_and_play.core.Line
 import app.maqsadah.count_and_play.core.Progress
 import app.maqsadah.count_and_play.core.Scheduler
 import app.maqsadah.count_and_play.core.Script
 import app.maqsadah.count_and_play.core.SeededRng
 import app.maqsadah.count_and_play.core.SessionState
 import app.maqsadah.count_and_play.core.ShapeKind
+import app.maqsadah.count_and_play.core.Skill
 import app.maqsadah.count_and_play.core.StageChange
 import app.maqsadah.count_and_play.core.Step
+import app.maqsadah.count_and_play.core.Task
 import app.maqsadah.count_and_play.core.TaskResult
 import app.maqsadah.count_and_play.core.Zone
+import app.maqsadah.count_and_play.core.script
 import app.maqsadah.count_and_play.data.Settings
 import app.maqsadah.count_and_play.data.SettingsStore
 import app.maqsadah.count_and_play.sound.SoundBoard
@@ -107,7 +113,13 @@ class GameHost(application: Application) : AndroidViewModel(application) {
         store.save(settings)
         session = session.copy(shape = shape)
         ui = ui.copy(settings = settings)
-        next()
+        goHome()
+    }
+
+    fun changeShape() {
+        hush()
+        ui = ui.copy(screen = Screen.SHAPE, lesson = null, free = null, pick = null)
+        lesson = null
     }
 
     fun tapToken(id: Int) = handle(Event.TapToken(id))
@@ -116,45 +128,105 @@ class GameHost(application: Application) : AndroidViewModel(application) {
 
     fun done() = handle(Event.Done)
 
-    /** Nothing advances on its own. The child decides when to move on. */
-    fun next() {
-        cancelIdle()
-        if (session.isComplete) return endSession()
+    /** The shelf. Everything is here, always; the suggestion is only a suggestion. */
+    fun goHome() {
+        hush()
+        lesson = null
+        ui = ui.copy(
+            screen = Screen.SHELF,
+            lesson = null,
+            free = null,
+            pick = null,
+            fx = Fx(),
+            suggested = Scheduler.plan(session, rng).skill,
+        )
+    }
 
-        val task = Scheduler.task(session, rng)
+    /** The child chose an activity. Where a number is his to set, he sets it. */
+    fun startSkill(skill: Skill) {
+        hush()
+        lesson = null
+        val level = session.progress.level(skill)
+        val range = Ladder.pickRange(skill, level)
+        ui = ui.copy(skill = skill, lesson = null, free = null)
+        if (range.isEmpty()) {
+            beginTask(Ladder.taskFor(skill, level, session.shape, rng))
+        } else {
+            askPick(PickPrompt(skill, range.toList()))
+        }
+    }
+
+    fun pickNumber(n: Int) {
+        val prompt = ui.pick ?: return
+        if (!prompt.second && Ladder.needsTwoPicks(prompt.skill)) {
+            val range = Ladder.secondPickRange(prompt.skill, n)
+            if (!range.isEmpty()) {
+                return askPick(PickPrompt(prompt.skill, range.toList(), second = true, first = n))
+            }
+        }
+        val first = if (prompt.second) prompt.first else n
+        val second = if (prompt.second) n else 0
+        beginTask(Ladder.taskFrom(prompt.skill, session.shape, first, second))
+    }
+
+    /** Nothing advances on its own. The child decides when to move on — and
+     *  "on" means another go at whatever he chose, not whatever the app picked. */
+    fun next() {
+        val skill = ui.skill ?: return goHome()
+        startSkill(skill)
+    }
+
+    fun startFreePlay() {
+        hush()
+        lesson = null
+        ui = ui.copy(
+            screen = Screen.FREE,
+            free = FreePlay.begin(session.shape),
+            lesson = null,
+            pick = null,
+            skill = null,
+            fx = Fx(),
+        )
+    }
+
+    fun tapFree(id: Int) {
+        val state = ui.free ?: return
+        val (next, script) = FreePlay.onTap(state, id)
+        ui = ui.copy(free = next)
+        play(script)
+    }
+
+    private fun askPick(prompt: PickPrompt) {
+        ui = ui.copy(screen = Screen.PICK, pick = prompt, lesson = null, fx = Fx())
+        play(script { say(promptFor(prompt)) })
+    }
+
+    private fun promptFor(prompt: PickPrompt): Line = when {
+        !prompt.second -> Line.PickHowMany
+        prompt.skill == Skill.SEPARATE -> Line.PickHowManyAway
+        else -> Line.PickHowManyMore
+    }
+
+    private fun beginTask(task: Task) {
         val outcome = Lesson.begin(task, session.progress)
         lesson = outcome.state
         ui = ui.copy(
             screen = Screen.PLAY,
             lesson = outcome.state,
+            pick = null,
+            free = null,
+            skill = task.skill,
             fx = Fx(),
             taskIndex = session.index,
         )
         play(outcome.script)
     }
 
-    /** Leaves the round without losing anything already recorded. */
-    fun leaveSession() {
+    /** Stops whatever is being said, without touching what is on screen. */
+    private fun hush() {
         cancelIdle()
         scriptJob?.cancel()
         tts?.stopNow()
-        lesson = null
-        ui = ui.copy(screen = Screen.SHAPE, lesson = null, fx = Fx())
-    }
-
-    fun playAgain() {
-        session = SessionState(progress = Scheduler.close(session), shape = ui.settings.shape)
-        store.saveProgress(session.progress)
-        ui = ui.copy(screen = Screen.SHAPE, progress = session.progress, taskIndex = 0, lesson = null)
-    }
-
-    private fun endSession() {
-        val progress = Scheduler.close(session)
-        session = session.copy(progress = progress)
-        store.saveProgress(progress)
-        lesson = null
-        ui = ui.copy(screen = Screen.DONE, progress = progress, lesson = null)
-        play(app.maqsadah.count_and_play.core.script { say(app.maqsadah.count_and_play.core.Line.SessionDone) })
     }
 
     // -- The loop -----------------------------------------------------------
@@ -304,8 +376,10 @@ class GameHost(application: Application) : AndroidViewModel(application) {
             progress = Progress(),
             confirmingReset = false,
             settingsOpen = false,
-            screen = Screen.SHAPE,
+            screen = Screen.SHELF,
             lesson = null,
+            free = null,
+            pick = null,
             taskIndex = 0,
         )
     }
@@ -325,9 +399,11 @@ class GameHost(application: Application) : AndroidViewModel(application) {
      *  playing on unseen. State survives; the round picks up where it stopped. */
     fun onEnterBackground() {
         foreground = false
-        cancelIdle()
-        scriptJob?.cancel()
-        tts?.stopNow()
+        hush()
+        // Putting the phone down is what ends a sitting, now that nothing else
+        // does. Advancement can then ask for evidence from more than one of them.
+        session = session.copy(progress = Scheduler.close(session), index = 0)
+        store.saveProgress(session.progress)
     }
 
     fun onReturnToForeground() {

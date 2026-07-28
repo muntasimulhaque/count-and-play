@@ -35,7 +35,9 @@ object Motion {
         is StageChange.Compact -> COMPACT
         is StageChange.Cover, is StageChange.Uncover -> COVER
         StageChange.ShowPrediction -> PREDICTION_IN
-        StageChange.Celebrate -> CELEBRATE
+        // The confetti runs alongside the words. A celebration the game has to
+        // stop and wait for is not a celebration, it is another pause.
+        StageChange.Celebrate -> 0L
         // Silent, spatial, and non-blocking: it says "here" without stopping
         // anything or demanding a response.
         is StageChange.Highlight -> 0L

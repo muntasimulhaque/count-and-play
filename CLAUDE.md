@@ -69,11 +69,15 @@ ladder, the pour-back, zero — is provable without an emulator.
     `MAX_COUNT` (10). These are not stylistic — a 3-year-old's subitizing limit
     is 3 and object-tracking limit is 1–2.
 12. ≤ 400 lines per file, ≤ 40 per function. The point is that no file becomes
-    a god object: the largest today is `GameHost` at 354 lines (v3.5's
+    a god object: the largest today is `GameHost` at 375 lines (v3.5's
     `GameViewModel` was 851 and held the rules, the timing, the speech and the
-    persistence at once), and the median is under 150. Five files sit between
-    250 and 360 — `GameHost`, `LessonFlow`, `ShapeArt`, `Tray`, `GameScreen` —
-    and each is one coherent job. If any of them passes 400, split it.
+    persistence at once), and the median is under 150. Six files sit between
+    250 and 380 — `GameHost`, `GameScreen`, `ShapeArt`, `LessonFlow`, `Tray`,
+    `LessonTest` — and each is one coherent job. If any passes 400, split it.
+13. **Nothing the child has been shown may ever be taken away.** `Ladder`
+    returns every skill, always. Difficulty adapts *inside* an activity; what is
+    on the shelf does not move. v4.1 recomputed availability from current
+    levels, so a demotion silently removed activities a child had already met.
 
 ## Pedagogy this rests on
 
@@ -92,6 +96,26 @@ ladder, the pour-back, zero — is provable without an emulator.
 - The **pour-back** is what turns addition from an event into a relation. Cut it
   and you have a good activity; keep it and you have the app's central idea.
 - Praise the mathematics, not the child: *"Five! Three and two make five."*
+- **The child chooses.** He picks the activity from a shelf of pictures (he
+  cannot read, so a menu of words is a choice offered to his father, not to
+  him), and he picks the number he plays with. The *level* sets how far that
+  choice reaches, never what it is. Choice inside a prepared environment: the
+  ownership is real and the range is not his to break.
+- **A free tray with no question in it.** A heap, a bowl, and the app simply
+  names what he made. It is where a child who wants to play rather than answer
+  goes, and naming a set he assembled himself is the plainest form of the
+  count-to-cardinal lesson everything else works towards.
+
+## What the simulation is for
+
+`ExperienceSimTest` plays the real rules for eight sittings as three different
+children and prints what each actually meets. It is a diagnostic, not an
+assertion, and it exists because design arguments about this app were being won
+by whoever was most confident. It caught the defect that produced v5.0: under
+the v4.1 unlock chain a *perfect* child first met adding at task 41 and never
+met taking-away at all in 56 tasks, and a child who re-tapped — which is what
+3-year-olds do — never left counting to three. Run it before and after any
+change to the ladder, the scheduler or `Advancement`.
 
 ## Build
 

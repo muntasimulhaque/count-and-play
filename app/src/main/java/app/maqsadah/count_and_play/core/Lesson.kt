@@ -144,7 +144,12 @@ object Lesson {
         return Outcome(
             state = state.copy(step = Step.Finished),
             script = script {
-                if (correct) cue(Sfx.CHIME) else pause(Pace.SETTLE)
+                if (correct) {
+                    cue(Sfx.CHIME)
+                    show(StageChange.Celebrate)
+                } else {
+                    pause(Pace.SETTLE)
+                }
                 settle(Line.ThisHasMore(more))
             },
             result = TaskResult(Skill.COMPARE, correct, more, more, state.retaps),

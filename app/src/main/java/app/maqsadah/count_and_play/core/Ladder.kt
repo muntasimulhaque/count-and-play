@@ -10,18 +10,76 @@ package app.maqsadah.count_and_play.core
  */
 object Ladder {
 
-    /** A skill becomes available only once the skills it rests on are solid. */
-    fun isUnlocked(skill: Skill, progress: Progress): Boolean = when (skill) {
-        Skill.COUNT -> true
-        Skill.GIVE_N -> progress.level(Skill.COUNT) >= 2
-        Skill.COMPARE -> progress.level(Skill.COUNT) >= 2
-        Skill.HIDDEN -> progress.level(Skill.GIVE_N) >= 2
-        Skill.JOIN -> progress.level(Skill.COUNT) >= 3 && progress.level(Skill.HIDDEN) >= 2
-        Skill.SEPARATE -> progress.level(Skill.JOIN) >= 2
+    /**
+     * Everything is available from the first minute.
+     *
+     * The chained version of this function (Give-N behind Count 2, Hidden behind
+     * Give-N 2, Join behind Hidden 2, Separate behind Join 2) was measured by
+     * playing the real rules: a child who answered *perfectly* first met adding
+     * at task 41 and never met taking-away at all in eight sittings, and a child
+     * who re-tapped — which is what 3-year-olds do — never left counting to
+     * three. Worse, because availability was recomputed from current levels, a
+     * demotion took away activities he had already been shown.
+     *
+     * Difficulty still adapts, but *inside* an activity. What is on the shelf
+     * does not move, so nothing a child has met can ever disappear.
+     */
+    @Suppress("UNUSED_PARAMETER")
+    fun isUnlocked(skill: Skill, progress: Progress): Boolean = true
+
+    fun unlocked(progress: Progress): List<Skill> = Skill.entries.toList()
+
+    // -- What the child may choose -------------------------------------------
+    // He picks the number; the level decides how far the choice reaches. This is
+    // choice inside a prepared environment: the ownership is real, and it cannot
+    // land him outside the range where he can still see a quantity.
+
+    /** The first (or only) number the child picks for [skill]. */
+    fun pickRange(skill: Skill, level: Int): IntRange = when (skill) {
+        Skill.COUNT -> 1..when (level) {
+            1 -> 5
+            2 -> 6
+            3 -> 8
+            else -> MAX_COUNT
+        }
+        Skill.GIVE_N -> 1..when (level) {
+            1 -> 3
+            2 -> 4
+            else -> MAX_TOTAL
+        }
+        Skill.JOIN -> 1..when (level) {
+            1 -> 2
+            2 -> 3
+            else -> MAX_TOTAL - 1
+        }
+        Skill.SEPARATE -> 2..when (level) {
+            1 -> 3
+            2 -> 4
+            else -> MAX_TOTAL
+        }
+        // Comparison and the hidden set are about a relation the child does not
+        // set, so there is nothing here for him to choose.
+        Skill.COMPARE, Skill.HIDDEN -> IntRange.EMPTY
     }
 
-    fun unlocked(progress: Progress): List<Skill> =
-        Skill.entries.filter { isUnlocked(it, progress) }
+    /** The second number, once [first] is settled. Never lets a total escape [MAX_TOTAL]. */
+    fun secondPickRange(skill: Skill, first: Int): IntRange = when (skill) {
+        Skill.JOIN -> 1..(MAX_TOTAL - first)
+        Skill.SEPARATE -> 1..first
+        else -> IntRange.EMPTY
+    }
+
+    fun needsTwoPicks(skill: Skill): Boolean = skill == Skill.JOIN || skill == Skill.SEPARATE
+
+    /** Builds the task the child just described with his own taps. */
+    fun taskFrom(skill: Skill, shape: ShapeKind, first: Int, second: Int): Task = when (skill) {
+        Skill.COUNT -> Task.CountIt(first, shape)
+        Skill.GIVE_N -> Task.GiveMe(first, (first + 3).coerceAtMost(MAX_COUNT), shape)
+        Skill.JOIN -> Task.Join(first, second, shape)
+        Skill.SEPARATE -> Task.Separate(first, second, shape)
+        Skill.COMPARE, Skill.HIDDEN ->
+            error("$skill is not built from the child's own numbers")
+    }
 
     fun taskFor(skill: Skill, level: Int, shape: ShapeKind, rng: Rng): Task = when (skill) {
         Skill.COUNT -> countIt(level, shape, rng)

@@ -2,6 +2,7 @@ package app.maqsadah.count_and_play.copy
 
 import app.maqsadah.count_and_play.core.Line
 import app.maqsadah.count_and_play.core.ShapeKind
+import app.maqsadah.count_and_play.core.Skill
 
 enum class Language(val tag: String, val nativeName: String) {
     EN("en", "English"),
@@ -30,6 +31,15 @@ interface Copy {
 
     fun speak(line: Line): String
 
+    /**
+     * What an activity is called.
+     *
+     * The child never reads it — the shelf is pictures, because he cannot read
+     * and a word is not a choice to him. It is here for TalkBack and for the
+     * grown-up looking over his shoulder.
+     */
+    fun activityName(skill: Skill): String
+
     val ui: UiText
 }
 
@@ -55,6 +65,9 @@ interface UiText {
     val noVoiceInstalled: String
     val sessionOver: String
     val playAgain: String
+    val shelfTitle: String
+    val freePlay: String
+    val back: String
     val whatTheyreLearning: String
     fun skillLine(skill: String, level: Int): String
 }

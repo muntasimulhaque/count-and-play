@@ -1,6 +1,7 @@
 package app.maqsadah.count_and_play.core
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -109,18 +110,43 @@ class LessonTest {
         assertEquals(listOf(Sfx.HOLLOW), outcome.script.beats.filterIsInstance<Beat.Cue>().map { it.sound })
     }
 
+    /**
+     * A single re-tap used to fail the count outright, and the cost was steep:
+     * the child was silently scored wrong, eased down a level, and the *next*
+     * task was made easier too — so the more eagerly he played, the further the
+     * app's picture of him drifted from the truth. Played over eight sittings, a
+     * child who re-tapped every third tap never reached adding at all.
+     *
+     * Enthusiasm is now tolerated. Drumming still is not.
+     */
     @Test
-    fun `a clean count is correct, a double-counted one is not`() {
+    fun `an eager re-tap still counts, drumming on the tray does not`() {
         val clean = Play.task(Task.CountIt(3, apple))
         assertTrue(clean.results.single().correct)
 
-        var outcome = Lesson.begin(Task.CountIt(3, apple), Progress())
-        outcome = Lesson.onEvent(outcome.state, Event.TapToken(outcome.state.tokens[0].id))
-        outcome = Lesson.onEvent(outcome.state, Event.TapToken(outcome.state.tokens[0].id))
+        assertTrue("one re-tap is a 3-year-old, not a broken count", countOf(3, retaps = 1).correct)
+        assertTrue(countOf(5, retaps = 2).correct)
+
+        assertFalse("a child hitting everything repeatedly is not counting", countOf(3, retaps = 4).correct)
+        assertFalse(countOf(5, retaps = 5).correct)
+    }
+
+    /** Counts a set of [n], hammering the first object [retaps] extra times. */
+    private fun countOf(n: Int, retaps: Int): TaskResult {
+        var outcome = Lesson.begin(Task.CountIt(n, apple), Progress())
+        val first = outcome.state.tokens[0].id
+        var result = outcome.result
+        outcome = Lesson.onEvent(outcome.state, Event.TapToken(first))
+        result = result ?: outcome.result
+        repeat(retaps) {
+            outcome = Lesson.onEvent(outcome.state, Event.TapToken(first))
+            result = result ?: outcome.result
+        }
         while (outcome.state.step != Step.Finished) {
             outcome = Lesson.onEvent(outcome.state, Play.move(outcome.state)!!)
+            result = result ?: outcome.result
         }
-        assertTrue("one-to-one broke, so the count is not sound", !outcome.result!!.correct)
+        return result!!
     }
 
     @Test

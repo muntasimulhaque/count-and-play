@@ -1,9 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- The tabletop, so the very first frame is already the app's world
-         rather than a blue flash the Compose surface then replaces. -->
-    <color name="tabletop">#EFE3CC</color>
-    <color name="tray">#C9A26B</color>
-    <color name="tray_rim">#9A7743</color>
-    <color name="ic_launcher_background">#EFE3CC</color>
+    <!-- The resting ground, so the very first frame is already the app's world
+         rather than a blue flash the Compose surface then replaces. Each
+         activity repaints this from its own colour once one is chosen. -->
+    <color name="tabletop">#FDF2D2</color>
+    <color name="tray">#FFFFFF</color>
+    <color name="tray_rim">#F0B32B</color>
+    <!-- The launcher foreground PNG is opaque and fills its tile, so this is
+         only ever seen at the very edge of a mask. Matched to the blue baked
+         into that artwork so no sliver of another colour can show. -->
+    <color name="ic_launcher_background">#74C7E3</color>
 </resources>

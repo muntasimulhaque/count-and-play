@@ -15,20 +15,41 @@ class ProgressTest {
 
     private fun Progress.nextSession() = copy(session = session + 1)
 
+    /**
+     * Advancement used to also demand that the successes span two *different*
+     * sittings. Played against the real rules, that single clause made it
+     * impossible to leave the first level on the first day — so every child's
+     * first sitting was seven rounds of counting to three, whatever he could
+     * actually do. A home app gets one first impression, and it was spending it
+     * on the easiest thing it had.
+     */
     @Test
-    fun `a streak inside one sitting does not promote`() {
+    fun `a child who can already do it moves up in his first sitting`() {
         val after = Progress().attempt(true, true, true, true)
-        assertEquals("four in a row on one day is not evidence", 1, after.level(Skill.COUNT))
+        assertEquals("four in a row is evidence enough", 2, after.level(Skill.COUNT))
     }
 
     @Test
-    fun `three of four across two sessions promotes`() {
-        val day1 = Progress().attempt(true, true)
-        val day2 = day1.nextSession().attempt(true)
-        assertEquals(1, day2.level(Skill.COUNT))
+    fun `three of four promotes, and it still takes four`() {
+        val three = Progress().attempt(true, false, true)
+        assertEquals("nothing moves before the window is full", 1, three.level(Skill.COUNT))
 
-        val fourth = day2.attempt(true)
-        assertEquals("3 of 4 spanning two days should promote", 2, fourth.level(Skill.COUNT))
+        assertEquals(2, three.attempt(true).level(Skill.COUNT))
+        assertEquals("two of four is not enough", 1, Progress().attempt(true, false, false, true).level(Skill.COUNT))
+    }
+
+    /**
+     * `recent` is cleared on every level change, so counting it made the skill
+     * that had just moved the least-practised one — and the "balanced"
+     * scheduler dealt out runs of five to seven identical activities. `plays`
+     * is never reset, which is the whole reason it exists.
+     */
+    @Test
+    fun `the practice count survives a level change`() {
+        val promoted = Progress().attempt(true, true, true, true)
+        assertEquals(2, promoted.level(Skill.COUNT))
+        assertEquals(0, promoted.skills.getValue(Skill.COUNT).recent.size)
+        assertEquals("four attempts happened, whatever the window says", 4, promoted.skills.getValue(Skill.COUNT).plays)
     }
 
     @Test

@@ -10,10 +10,12 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import app.maqsadah.count_and_play.copy.Language
 import app.maqsadah.count_and_play.core.Event
+import app.maqsadah.count_and_play.core.FreePlay
 import app.maqsadah.count_and_play.core.Lesson
 import app.maqsadah.count_and_play.core.LessonState
 import app.maqsadah.count_and_play.core.Progress
 import app.maqsadah.count_and_play.core.ShapeKind
+import app.maqsadah.count_and_play.core.Skill
 import app.maqsadah.count_and_play.core.Step
 import app.maqsadah.count_and_play.core.Task
 import app.maqsadah.count_and_play.core.Zone
@@ -21,6 +23,7 @@ import app.maqsadah.count_and_play.core.inZone
 import app.maqsadah.count_and_play.data.Settings
 import app.maqsadah.count_and_play.host.Fx
 import app.maqsadah.count_and_play.host.GameUiState
+import app.maqsadah.count_and_play.host.PickPrompt
 import app.maqsadah.count_and_play.host.Screen
 import app.maqsadah.count_and_play.ui.CountPlayTheme
 import app.maqsadah.count_and_play.ui.GameScreen
@@ -64,8 +67,11 @@ class ScreenshotTest {
             CountPlayTheme(dark = false) {
                 GameScreen(
                     state = scene.value,
-                    onLanguage = {}, onShape = {}, onTapToken = {}, onTapZone = {},
-                    onDone = {}, onNext = {}, onPlayAgain = {},
+                    onLanguage = {}, onShape = {}, onChangeShape = {},
+                    onStartSkill = {}, onFreePlay = {}, onPickNumber = {},
+                    onTapFree = {}, onHome = {},
+                    onTapToken = {}, onTapZone = {},
+                    onDone = {}, onNext = {},
                     onOpenSettings = {}, onCloseSettings = {},
                     onSetSound = {}, onSetSlow = {}, onSetLanguage = {},
                     onAskReset = {}, onConfirmReset = {},
@@ -73,54 +79,66 @@ class ScreenshotTest {
             }
         }
 
-        shoot("01_choose") { base(Screen.SHAPE) }
+        // The shelf: everything the app can do, on one screen, from minute one.
+        shoot("01_shelf") { base(Screen.SHELF).copy(suggested = Skill.JOIN) }
 
-        shoot("02_counting") {
-            val lesson = play(Task.CountIt(4, ShapeKind.APPLE), taps = 2)
-            base(Screen.PLAY, lesson)
+        shoot("02_choose") { base(Screen.SHAPE) }
+
+        // The child sets his own number. This is the whole point of the release.
+        shoot("03_how_many") {
+            base(Screen.PICK, skill = Skill.JOIN)
+                .copy(pick = PickPrompt(Skill.JOIN, (1..4).toList()))
         }
 
-        shoot("03_give_n") {
+        shoot("04_counting") {
+            base(Screen.PLAY, play(Task.CountIt(4, ShapeKind.APPLE), taps = 2), Skill.COUNT)
+        }
+
+        shoot("05_give_n") {
             val lesson = play(Task.GiveMe(3, 6, ShapeKind.STAR), moveToBowl = 2)
-            base(Screen.PLAY, lesson)
+            base(Screen.PLAY, lesson, Skill.GIVE_N)
         }
 
-        shoot("04_which_is_more") {
-            base(Screen.PLAY, play(Task.WhichIsMore(5, 3, false, ShapeKind.BEAD)))
+        shoot("06_which_is_more") {
+            base(Screen.PLAY, play(Task.WhichIsMore(5, 3, false, ShapeKind.BEAD)), Skill.COMPARE)
         }
 
         // Addition, before the pour: two parts, each already a number.
-        shoot("05_two_parts") {
-            base(Screen.PLAY, play(Task.Join(3, 2, ShapeKind.CARROT), taps = 3))
+        shoot("07_two_parts") {
+            base(Screen.PLAY, play(Task.Join(3, 2, ShapeKind.CARROT), taps = 3), Skill.JOIN)
         }
 
         // The whole, with the parts still visibly inside it.
-        shoot("06_all_together") {
-            val lesson = joinPoured(Task.Join(3, 2, ShapeKind.CARROT))
-            base(Screen.PLAY, lesson)
+        shoot("08_all_together") {
+            base(Screen.PLAY, joinPoured(Task.Join(3, 2, ShapeKind.CARROT)), Skill.JOIN)
         }
 
         // Take-away, after the removal has settled: what left is still there and
         // countable, and the remainder has compacted left so the trailing empty
         // cells read as "two fewer than five".
-        shoot("07_taking_away") {
+        shoot("09_taking_away") {
             val lesson = play(Task.Separate(5, 2, ShapeKind.BALL), taps = 5, takeOut = 2, then = true)
-            base(Screen.PLAY, lesson)
+            base(Screen.PLAY, lesson, Skill.SEPARATE)
         }
 
-        shoot("08_settings") {
-            base(Screen.PLAY, play(Task.CountIt(3, ShapeKind.TULIP), taps = 3))
+        // The free tray: a heap, a bowl, and no question at all.
+        shoot("10_free_tray") {
+            var free = FreePlay.begin(ShapeKind.BEAD)
+            repeat(3) { free = FreePlay.onTap(free, free.tokens.inZone(Zone.SOURCE).first().id).first }
+            base(Screen.FREE).copy(free = free)
+        }
+
+        shoot("11_settings") {
+            base(Screen.PLAY, play(Task.CountIt(3, ShapeKind.TULIP), taps = 3), Skill.COUNT)
                 .copy(settingsOpen = true)
         }
 
-        shoot("09_bangla") {
+        shoot("12_bangla") {
             val lesson = play(Task.CountIt(4, ShapeKind.MELON), taps = 4)
-            base(Screen.PLAY, lesson).copy(
+            base(Screen.PLAY, lesson, Skill.COUNT).copy(
                 settings = Settings(language = Language.BN, languageChosen = true),
             )
         }
-
-        shoot("10_done") { base(Screen.DONE) }
     }
 
     // -- Fixtures -----------------------------------------------------------
@@ -171,10 +189,16 @@ class ScreenshotTest {
         return state
     }
 
-    private fun base(screen: Screen, lesson: LessonState? = null) = GameUiState(
+    private fun base(
+        screen: Screen,
+        lesson: LessonState? = null,
+        skill: Skill? = null,
+    ) = GameUiState(
         screen = screen,
         settings = Settings(languageChosen = true),
         lesson = lesson,
+        // The activity colours the screen, so a fixture has to say which one.
+        skill = skill,
         // Everything has landed: these are photographs, not animations.
         fx = Fx(
             revealed = lesson?.tokens?.map { it.id }?.toSet().orEmpty(),

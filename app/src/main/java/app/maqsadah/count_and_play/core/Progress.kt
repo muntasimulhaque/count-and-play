@@ -6,6 +6,14 @@ data class Attempt(val correct: Boolean, val session: Int)
 data class SkillRecord(
     val level: Int = 1,
     val recent: List<Attempt> = emptyList(),
+    /**
+     * Every attempt ever made at this skill. Unlike [recent] it is never reset,
+     * which is the whole point: the scheduler suggests whatever has had the
+     * least attention, and [recent] is cleared on every level change — so the
+     * skill that had just moved was always the least-practised one and got
+     * suggested again and again, five and six times in a row.
+     */
+    val plays: Int = 0,
 )
 
 /**
@@ -26,15 +34,20 @@ data class Progress(
 /**
  * The advancement rule, in one place.
  *
- * Three of the last four correct, with the successes spread over at least two
- * *different sessions* — so a lucky streak inside one sitting never promotes.
- * Two consecutive misses steps back down, silently. There is no failure state:
- * stepping down is the app easing, and the child is never told it happened.
+ * Three of the last four correct. Two consecutive misses steps back down,
+ * silently. There is no failure state: stepping down is the app easing, and the
+ * child is never told it happened.
+ *
+ * This used to also require the successes to be spread over two *different*
+ * sittings, to stop a lucky streak promoting. Measured against the real rules,
+ * that rule alone made it impossible to leave the first level on the first day
+ * — so every child's first sitting was seven rounds of counting to three,
+ * whatever he could actually do. A home app gets one first impression.
  */
 object Advancement {
     const val WINDOW = 4
     const val NEEDED = 3
-    const val SESSIONS_REQUIRED = 2
+    const val SESSIONS_REQUIRED = 1
 
     fun maxLevel(skill: Skill): Int = when (skill) {
         Skill.COUNT -> 4
@@ -48,15 +61,16 @@ object Advancement {
     fun record(progress: Progress, skill: Skill, correct: Boolean): Progress {
         val current = progress.skills[skill] ?: SkillRecord()
         val recent = (current.recent + Attempt(correct, progress.session)).takeLast(WINDOW)
+        val plays = current.plays + 1
 
         val updated = when {
             shouldAdvance(recent, current.level, skill) ->
-                SkillRecord(level = current.level + 1, recent = emptyList())
+                SkillRecord(current.level + 1, recent = emptyList(), plays = plays)
 
             shouldEase(recent, current.level) ->
-                SkillRecord(level = current.level - 1, recent = emptyList())
+                SkillRecord(current.level - 1, recent = emptyList(), plays = plays)
 
-            else -> current.copy(recent = recent)
+            else -> current.copy(recent = recent, plays = plays)
         }
         return progress.copy(skills = progress.skills + (skill to updated))
     }

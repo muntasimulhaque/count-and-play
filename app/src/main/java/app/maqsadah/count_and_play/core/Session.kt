@@ -1,11 +1,13 @@
 package app.maqsadah.count_and_play.core
 
 /**
- * A sitting has a shape and an end.
+ * A sitting has a shape, and a point at which it has been enough.
  *
- * The old build's guided mode was `finishRound() -> delay(1400) -> guidedRound()`
- * forever: autoplay, presented to an age group with no self-regulation. A
- * session here is a small number of tasks and then a calm, explicit finish.
+ * There is still no autoplay: nothing advances by itself. But the sitting no
+ * longer *ends* at a fixed count either. A shelf the child chose from and a
+ * locked door at task seven are contradictory ideas, and the door is the one
+ * worth losing — being stopped mid-enjoyment is the surest way to make a
+ * 3-year-old's last memory of an app a bad one.
  */
 data class SessionState(
     val progress: Progress,
@@ -13,13 +15,14 @@ data class SessionState(
     val index: Int = 0,
     val lastMissed: Boolean = false,
 ) {
-    val isComplete: Boolean get() = index >= Scheduler.TASKS_PER_SESSION
+    /** Advisory only: enough for one sitting. The shelf marks it; nothing blocks. */
+    val restSuggested: Boolean get() = index >= Scheduler.TASKS_PER_SESSION
 }
 
 data class Plan(val skill: Skill, val level: Int)
 
 object Scheduler {
-    /** Short enough to finish inside a 3-year-old's attention for one sitting. */
+    /** About as much as one sitting wants. A suggestion, not a limit. */
     const val TASKS_PER_SESSION = 7
 
     /** Every few tasks, drop below the working level so success stays frequent. */
@@ -52,13 +55,18 @@ object Scheduler {
         session.progress.copy(session = session.progress.session + 1)
 
     /**
-     * Practise whatever has had the least attention, so no strand stalls while
+     * Suggest whatever has had the least attention, so no strand stalls while
      * another is drilled. Ties are broken randomly rather than by enum order.
+     *
+     * Counted with [SkillRecord.plays], which is never reset. Counting `recent`
+     * instead meant the skill that had just changed level — which clears it —
+     * was always the least-practised, so the "balanced" scheduler in fact dealt
+     * out runs of five to seven identical activities.
      */
     private fun chooseSkill(progress: Progress, rng: Rng): Skill {
         val available = Ladder.unlocked(progress)
-        val fewest = available.minOf { progress.skills[it]?.recent?.size ?: 0 }
-        val candidates = available.filter { (progress.skills[it]?.recent?.size ?: 0) == fewest }
+        val fewest = available.minOf { progress.skills[it]?.plays ?: 0 }
+        val candidates = available.filter { (progress.skills[it]?.plays ?: 0) == fewest }
         return rng.pick(candidates)
     }
 }

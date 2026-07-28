@@ -19,6 +19,11 @@ sealed interface Line {
     data object CountThem : Line
     data object HowMany : Line
 
+    /** The child sets the number before the round starts. He owns the problem. */
+    data object PickHowMany : Line
+    data object PickHowManyMore : Line
+    data object PickHowManyAway : Line
+
     data class GiveN(val n: Int, val shape: ShapeKind) : Line
     data class GaveIt(val n: Int) : Line
     data object LetsCount : Line

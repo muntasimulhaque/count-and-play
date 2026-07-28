@@ -86,18 +86,35 @@ fun Tray(
     BoxWithConstraints(modifier) {
         val density = LocalDensity.current
         val slots = maxOf(capacity, tokens.size, 1)
-        val cols = min(slots, FRAME_COLS)
-        val rows = ceil(slots / cols.toFloat()).toInt()
         val pad = 10.dp
+        val availableW = (maxWidth - pad * 2).value
+        val availableH = (maxHeight - pad * 2).value
+
+        /**
+         * The five-frame is fixed wherever it teaches: a frame showing its
+         * empty slots is saying "one, and four still to come", and re-flowing
+         * that would destroy the sentence.
+         *
+         * A plain dish says no such thing, so it may use whatever row count
+         * makes its objects biggest. Two dishes side by side each get half the
+         * width, and forcing five across it left them rendering tiny with a
+         * band of unused height above and below.
+         */
+        val cols = if (showEmptySlots) {
+            min(slots, FRAME_COLS)
+        } else {
+            (1..min(slots, FRAME_COLS)).maxByOrNull { candidate ->
+                val stacked = ceil(slots / candidate.toFloat()).toInt()
+                min(availableW / candidate, availableH / stacked)
+            } ?: 1
+        }
+        val rows = ceil(slots / cols.toFloat()).toInt()
 
         // One cell size, derived arithmetically from the space and the count.
         // Overflow is therefore impossible — the old build estimated how many
         // items would fit and let a flow layout wrap into a clipped row, so
         // objects silently vanished (8 + 8 showed six balls).
-        val cell: Dp = min(
-            (maxWidth - pad * 2).value / cols,
-            (maxHeight - pad * 2).value / rows,
-        ).dp.coerceIn(24.dp, 128.dp)
+        val cell: Dp = min(availableW / cols, availableH / rows).dp.coerceIn(24.dp, 128.dp)
 
         val cellPx = with(density) { cell.toPx() }
         val padPx = with(density) { pad.toPx() }

@@ -35,23 +35,31 @@ class MainActivity : ComponentActivity() {
             CountPlayTheme {
                 val state = host.ui
 
-                // Back mid-round returns to the start of a session rather than
-                // quitting: a toddler presses Back constantly, and losing the
-                // round to a stray press is indistinguishable from a crash.
-                // Pressing it again from there leaves normally.
-                BackHandler(enabled = state.screen == Screen.PLAY && !state.settingsOpen) {
-                    host.leaveSession()
+                // Back mid-round returns to the shelf rather than quitting: a
+                // toddler presses Back constantly, and losing the round to a
+                // stray press is indistinguishable from a crash. Pressing it
+                // again from the shelf leaves normally.
+                val inActivity = state.screen == Screen.PLAY ||
+                    state.screen == Screen.PICK ||
+                    state.screen == Screen.FREE
+                BackHandler(enabled = inActivity && !state.settingsOpen) {
+                    host.goHome()
                 }
 
                 GameScreen(
                     state = state,
                     onLanguage = host::chooseLanguage,
                     onShape = host::chooseShape,
+                    onChangeShape = host::changeShape,
+                    onStartSkill = host::startSkill,
+                    onFreePlay = host::startFreePlay,
+                    onPickNumber = host::pickNumber,
+                    onTapFree = host::tapFree,
+                    onHome = host::goHome,
                     onTapToken = host::tapToken,
                     onTapZone = host::tapZone,
                     onDone = host::done,
                     onNext = host::next,
-                    onPlayAgain = host::playAgain,
                     onOpenSettings = host::openSettings,
                     onCloseSettings = host::closeSettings,
                     onSetSound = host::setSound,
