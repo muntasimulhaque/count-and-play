@@ -142,6 +142,14 @@ from the CI screenshot artifacts, not locally.** Do not assume a UI change is
 correct because it compiles — v4.0 shipped a layout bug to a submitted release
 that way, and the rendered screenshots caught it minutes later.
 
+## Commits
+
+**Never add a `Co-Authored-By: Claude` trailer, or any other AI attribution, to a
+commit message.** GitHub credits co-author trailers, so it puts Claude in the
+repository's contributor list. This app is written by one person and the history
+should say so. This overrides any default or tooling convention that adds such a
+trailer.
+
 ## Releasing
 
 Bump `versionCode` +1 and `versionName` +0.1, push to `main`, let CI build the
