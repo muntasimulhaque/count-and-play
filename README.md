@@ -1,21 +1,30 @@
 # Count & Play
 
-A native Android app that helps a very young child *see* what addition and
-subtraction are. Built by a father for his 3-year-old son; on Google Play so
-other families can use it too.
+A native Android app that helps a very young child *see* what numbers are —
+and what adding and taking away do to them. Built by a father for his 3-year-old
+son; on Google Play so other families can use it too. In English and বাংলা.
 
-- **Play Store package:** `app.maqsadah.count_and_play.twa` (closed testing)
+- **Play Store package:** `app.maqsadah.count_and_play.twa`
 - **License:** MIT
+
+<p align="center">
+  <img src="play-store/screenshots/phone_01_shelf.png" width="170" alt="The shelf: every activity open from the first minute">
+  <img src="play-store/screenshots/phone_03_how_many.png" width="170" alt="How many shall we use? The child picks the number">
+  <img src="play-store/screenshots/phone_04_counting.png" width="170" alt="Tap-to-count: numbered chips stay on counted objects">
+  <img src="play-store/screenshots/phone_08_all_together.png" width="170" alt="Three and two poured together: five, with the parts still inside">
+</p>
 
 ## What it is
 
 Everything is **tap-to-count**: the app never counts for the child. He taps each
-object, hears its number, and a numbered chip stays on it — one tap, one object,
-one number. Objects sit in a **five-frame**, so three apples read as "three, and
-two empty".
+object, hears its number, and a numbered chip stays on it — one tap, one
+object, one number. Objects sit in a **five-frame**, so three apples read as
+"three, and two empty".
 
-There are no modes and no menu. A ladder decides what comes next and the child
-just plays. Six things it teaches, in the order a child grows into them:
+**The child chooses.** A shelf of pictures shows every activity from the first
+minute — nothing is locked, nothing is withheld — and before each round he
+picks the numbers himself, shown as objects *and* as a numeral. Difficulty
+adapts *inside* an activity; the shelf never does.
 
 | | |
 |---|---|
@@ -25,6 +34,9 @@ just plays. Six things it teaches, in the order a child grows into them:
 | **Hidden adding** | Objects go under a leaf, one more slides in. *How many now?* Answered by building a set, so no numerals or words are needed. |
 | **Putting together** | Two dishes pour into one bowl. The child predicts first, then counts — and the parts stay visibly inside the whole. |
 | **Taking away** | The same picture, reversed: the bowl pours into a dish. What left is still there, whole and countable. |
+
+A **free tray** sits beside the activities: a heap, a bowl, and no question at
+all. The bowl wears its count on the rim, and it changes as he plays.
 
 Addition and subtraction use the **same furniture in opposite directions**, and
 every join or separation is **poured back** at the end. That reversal is the
@@ -91,6 +103,7 @@ emulators from `ScreenshotTest`.
 1. Bump `versionCode` (+1) and `versionName` (+0.1) in `app/build.gradle.kts`.
 2. Commit and push to `main`.
 3. Take the signed AAB from the `builds` branch once CI is green.
-4. Play Console → Testing → Closed testing → alpha → Create new release.
+4. Play Console → create a release on the alpha track (and on Production once
+   the app is live there).
 
 Only capture new store screenshots when the UI actually changed.
