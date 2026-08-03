@@ -1,97 +1,100 @@
-# Count & Play — Google Play Submission Pack
+# Count & Play — Play Console Reference (v6 era)
 
-Everything below is ready to paste into Play Console. Work through it top to bottom once your developer account is verified.
+Paste-ready material for the Play Console listing and release flow, kept in
+step with the rebuilt app. The original v1 submission pack (PWABuilder zip,
+Netlify TWA) is history — everything below describes the native app.
 
-## What you already have
+## Irreplaceable
 
-| Item | Where |
-|---|---|
-| Signed app bundle (.aab) | `Count and Play.aab` — in the PWABuilder zip you downloaded |
-| Test APK (sideload to verify) | `Count and Play.apk` — same zip |
-| Signing key — BACK THIS UP | `signing.keystore` + `signing-key-info.txt` — same zip |
-| App icon 512×512 | `play-icon-512.png` |
-| Feature graphic 1024×500 | `feature-graphic-1024x500.png` |
-| Privacy policy (live) | https://count-and-play.netlify.app/privacy.html |
-| Digital asset links (live, verified) | https://count-and-play.netlify.app/.well-known/assetlinks.json |
-| Package ID | `app.maqsadah.count_and_play.twa` |
+`signing.keystore` + `signing-key-info.txt` (vault folder outside the repo,
+base64 copy in the `KEYSTORE_BASE64` GitHub secret). If they are lost the app
+can never be updated again. Keep copies in two places.
 
-Still needed: at least 2 phone screenshots (and 1 tablet screenshot recommended). Open the app on your tablet/phone and screenshot the Learn picker, an addition scene mid-count, and a subtraction scene with the take-away slots.
+## Store listing (v6 — verify against what is actually live before pasting)
 
-## Store listing (paste as-is)
-
-**App name** (30 chars max):
-`Count & Play: Learn Math`
+**App name** (30 chars max): `Count & Play`
 
 **Short description** (80 chars max):
-`Watch addition and subtraction happen. Count fruits with your little one.`
+`See addition and subtraction happen. Three tap-to-play games, ages 3-5.`
 
 **Full description**:
 ```
-Count & Play helps young children (ages 2–5) truly SEE what addition and subtraction mean — not just memorize answers.
+Count & Play helps a very young child SEE what numbers are — and what adding
+and taking away do to them. Three big picture games, chosen with one tap:
 
-LEARN MODE — you or your child pick the numbers (up to 20), and the app acts the problem out:
+• Count them — tap each object once, hear its number, and a numbered chip
+  stays on it. One tap, one object, one number.
+• Put together — two plates pour into one bowl as your child taps, while the
+  voice counts ON across the join (1, 2, 3... then 4, 5). The parts keep their
+  colours inside the whole, so five reads as three-and-two at a glance.
+• Take away — "take away two": tap two out, the voice counts what is left.
 
-• Addition: two groups of different fruits appear and are counted aloud. Tap "Put together!" and they join into one basket — then the app counts on ("five... six, seven, eight!"), the way children naturally learn to add. Both groups stay visible inside the total, so 5 + 3 is always visible inside the 8.
+Every round ends with the fact huge on screen — 3 + 2 = 5 — as the voice says
+it. Difficulty creeps up invisibly and eases when your child struggles. There
+is no score, no timer, and no fail state.
 
-• Subtraction: the fruits are counted, then your child taps exactly the right number of fruits to "take away" into empty slots. The taken group stays visible — faded, countable — so 9 − 3 becomes a real quantity, not a disappearing act.
-
-QUIZ MODE — every problem is acted out visually first, then your child picks from three big number buttons. A wrong answer never fails: the app gently counts everything again, fruit by fruit, until the answer is clear. Stars and confetti celebrate every success.
-
-DESIGNED FOR LITTLE LEARNERS
-• Everything is narrated aloud — no reading required
+Made for little learners:
+• Everything is spoken aloud, in English and বাংলা — no reading needed
 • Huge touch targets for small fingers
-• A live equation (5 − 2 = 3) builds as your child plays
-• No ads, no in-app purchases, no data collection — ever
-• Works offline after the first load
-• No animal or human characters — just fruits, stars, balloons, balls, and cars
+• No music, no characters — just shapes, colour, motion and voice
+• No ads, no purchases, no data collection, zero permissions — ever
+• Fully offline
 
-Made by a parent, for parents who want to sit with their child and teach — not hand over a screen and walk away.
+Made by a parent, for parents who want to sit with their child and teach.
 ```
 
 **App category**: Education
-**Tags**: Education, Early learning
 **Contact email**: muntasim.haque@gmail.com
 **Privacy policy URL**: `https://count-and-play.netlify.app/privacy.html`
+(legacy host, still live; the declaration it makes — no data collected — is
+still exactly true of the native app)
+
+> ⚠️ Checked 2026-08-03: the live listing may still carry the v1-era text
+> (LEARN/QUIZ modes, stars, numbers to 20), which describes an app that no
+> longer exists. Update the full description and the screenshots the next time
+> you touch the listing — a Families-reviewed app should match what ships.
+
+## Screenshots
+
+The current phone set (eight scenes) is committed at
+`play-store/screenshots/phone_01_home.png` … `phone_08_bangla.png`, captured by
+CI's `ScreenshotTest`. The tablet7/tablet10 sets live in the artifacts of the
+latest "Capture store screenshots" run. Refresh the listing from these whenever
+the UI changes.
 
 ## Console questionnaires — answers
 
-**App content → Privacy policy**: paste the URL above.
-
 **App content → Ads**: No, the app does not contain ads.
 
-**App content → App access**: All functionality is available without special access (no login).
+**App content → App access**: All functionality is available without special
+access (no login).
 
-**App content → Content rating (IARC questionnaire)**: category "Utility, Productivity, Communication, or Other". Answer No to all violence/sexuality/language/controlled-substance questions, No to user interaction, No to sharing location, No to purchases. Expected rating: Everyone / PEGI 3.
+**App content → Content rating (IARC)**: category "Utility, Productivity,
+Communication, or Other". No to all violence/sexuality/language/controlled-
+substance questions, No to user interaction, No to sharing location, No to
+purchases. Expected rating: Everyone / PEGI 3.
 
-**App content → Target audience**: select age groups **5 and under** (both "Ages 0–5" bands if shown). This puts the app in the Families program — that's correct and intended. When asked if the app could unintentionally appeal to children: it is *designed for* children.
+**App content → Target audience**: **5 and under** bands. This puts the app in
+the Families program — correct and intended. It is *designed for* children.
 
-**App content → Data safety**: declare that the app does **not collect or share any user data**. No data collected, no data shared, no encryption needed (nothing transmitted), no deletion mechanism needed (nothing stored). This matches the privacy policy exactly — the app has no analytics, no SDKs, no network calls except loading its own static files.
+**App content → Data safety**: the app collects and shares **no user data**.
+Nothing transmitted, nothing stored beyond local preferences (language, mute,
+progress), no SDKs, no network calls.
 
-**App content → Families Policy / child safety**: self-certify compliance. Child safety point of contact: muntasim.haque@gmail.com. The app has no user-generated content, no chat, no external links a child can reach (the privacy policy page is not linked from inside the app UI).
+**App content → Families Policy / child safety**: self-certify compliance.
+Contact: muntasim.haque@gmail.com. No user-generated content, no chat, no
+external links reachable by a child.
 
-**App content → Government apps / Financial features / Health**: No to all.
+**Government apps / Financial features / Health**: No to all.
 
-## Release path (new personal account rules)
+## Release path (current state, 2026-08)
 
-1. **Play Console → Create app** → name "Count & Play: Learn Math", App (not game — or Game > Educational, either is accepted; App/Education is cleaner), Free.
-2. Complete ALL "App content" sections above first — the console blocks releases until they're done.
-3. **Test and release → Testing → Closed testing** → create track "family-testers" → upload `Count and Play.aab` → add release notes ("First release").
-4. Create an email list with your 12+ testers' Google account emails. Share the opt-in link with them; each must click it and install the app.
-5. Testers must stay opted in for **14 consecutive days**. During that window, open the app, note feedback, and ideally push at least one small update (I can bump the version and produce a new .aab whenever you want — takes minutes).
-6. After 14 days, the console Dashboard shows **Apply for production**. Answer honestly: testing process, feedback received, changes made.
-7. Approval typically takes a few days. Then **Production → create release** with the same .aab, and the app goes public after review (Families review can add extra days).
-
-## Version updates later
-
-**This app is fully native and fully offline.** Every change — however small —
-needs a new build, a bumped `versionCode`, and a new release through the Play
-Console. Nothing in the shipped app is loaded from a website.
-
-(This section previously claimed changes could be deployed to Netlify and would
-appear in the installed app without a Play Store update. That was true of the
-original Trusted Web Activity in 2026; it has been false since the native
-rewrite, and acting on it would have shipped nothing to anyone.)
-
-## One warning worth repeating
-
-`signing.keystore` and the passwords in `signing-key-info.txt` are irreplaceable. If they're lost, you can never update the app on Google Play. Keep copies in two places (e.g., password manager + cloud drive).
+- Closed testing (14 days, 12 testers) completed 2026-07-28; **production
+  access granted 2026-08-03**.
+- Alpha keeps running for testers; Production is the public track. Managed
+  publishing is off → an approved release publishes itself.
+- Every release: bump versions → push `main` → CI signs → pull the AAB from the
+  `builds` branch → Play Console → create release on alpha and/or Production →
+  notes → submit for review.
+- The app is fully native and fully offline: every change, however small, needs
+  a new build and a Play release. Nothing ships without it.

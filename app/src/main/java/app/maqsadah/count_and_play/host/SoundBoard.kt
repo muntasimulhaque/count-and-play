@@ -34,8 +34,18 @@ class SoundBoard(context: Context) {
         Sfx.RUSTLE to pool.load(app, R.raw.sfx_rustle, 1),
     )
 
+    private var lastChimeAt = 0L
+
     fun play(sfx: Sfx) {
         val id = loaded[sfx] ?: return
+        // Two pitched notes in quick succession make an interval, and intervals
+        // are where melody starts. The flow keeps chimes seconds apart already;
+        // this is the structural guarantee.
+        if (sfx == Sfx.CHIME) {
+            val now = System.currentTimeMillis()
+            if (now - lastChimeAt < 1200) return
+            lastChimeAt = now
+        }
         val volume = volumeOf(sfx)
         pool.play(id, volume, volume, 1, 0, 1f)
     }
