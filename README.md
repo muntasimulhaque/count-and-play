@@ -8,49 +8,37 @@ son; on Google Play so other families can use it too. In English and বাং�
 - **License:** MIT
 
 <p align="center">
-  <img src="play-store/screenshots/phone_01_shelf.png" width="170" alt="The shelf: every activity open from the first minute">
-  <img src="play-store/screenshots/phone_03_how_many.png" width="170" alt="How many shall we use? The child picks the number">
-  <img src="play-store/screenshots/phone_04_counting.png" width="170" alt="Tap-to-count: numbered chips stay on counted objects">
-  <img src="play-store/screenshots/phone_08_all_together.png" width="170" alt="Three and two poured together: five, with the parts still inside">
+  <img src="play-store/screenshots/phone_01_home.png" width="170" alt="Home: three big picture games">
+  <img src="play-store/screenshots/phone_03_add.png" width="170" alt="Put together: his taps pour two plates into one bowl">
+  <img src="play-store/screenshots/phone_04_add_fact.png" width="170" alt="The fact arrives huge on screen: 3 + 2 = 5">
+  <img src="play-store/screenshots/phone_06_take_fact.png" width="170" alt="Take away: 5 - 2 = 3 with ghost holes">
 </p>
 
 ## What it is
 
-Everything is **tap-to-count**: the app never counts for the child. He taps each
-object, hears its number, and a numbered chip stays on it — one tap, one
-object, one number. Objects sit in a **five-frame**, so three apples read as
-"three, and two empty".
-
-**The child chooses.** A shelf of pictures shows every activity from the first
-minute — nothing is locked, nothing is withheld — and before each round he
-picks the numbers himself, shown as objects *and* as a numeral. Difficulty
-adapts *inside* an activity; the shelf never does.
+Three games on one screen, each a huge picture button. One tap starts, and from
+there the app guides: nothing is locked, there is no menu, and a sitting ends
+when the phone goes down.
 
 | | |
 |---|---|
-| **Counting** | Tap each object once; the last number names the whole set. |
-| **Make a number** | *"Put three apples in the bowl."* The child **produces** a quantity — and where he stops is the single most informative thing the app can know. |
-| **More and fewer** | Two trays; which has more? Including trials where fewer objects are spread over more space. |
-| **Hidden adding** | Objects go under a leaf, one more slides in. *How many now?* Answered by building a set, so no numerals or words are needed. |
-| **Putting together** | Two dishes pour into one bowl. The child predicts first, then counts — and the parts stay visibly inside the whole. |
-| **Taking away** | The same picture, reversed: the bowl pours into a dish. What left is still there, whole and countable. |
+| **Count them** | Tap each object once; a numbered chip stays on it and the voice says its number. One tap, one object, one number. |
+| **Put together** | Two plates; his taps send the objects into one bowl while the voice *counts on* over the join — 1, 2, 3, then 4, 5. The parts keep their coloured seats inside the whole, so five reads as three-and-two at a glance. |
+| **Take away** | A bowl; *"take away two"*; he taps two out and they leave ghost holes. The voice counts what is left. |
 
-A **free tray** sits beside the activities: a heap, a bowl, and no question at
-all. The bowl wears its count on the rim, and it changes as he plays.
+Every round ends the same way: the fact arrives **huge on screen** — `3 + 2 = 5`
+in coloured numerals — while the voice says it, and paper confetti falls. The
+symbols land at the exact moment the child has just lived them.
 
-Addition and subtraction use the **same furniture in opposite directions**, and
-every join or separation is **poured back** at the end. That reversal is the
-point: if the join can be undone, the whole genuinely *contains* the parts
-rather than replacing them.
+Difficulty creeps up invisibly — totals of three, then five, then ten — and
+eases again when he struggles. Two clean rounds in a row step up; drumming on
+the wrong thing steps down. There is no score, no timer, no stars, no fail
+state, and the app never says "wrong".
 
-Numbers stay small on purpose. Arithmetic never exceeds **five**, counting
-practice never exceeds ten. A 3-year-old can see three at a glance and track
-one or two moving objects; twenty objects is not harder counting, it is a
+Numbers stay small on purpose. Arithmetic never exceeds **five** at first,
+counting practice never exceeds ten. A 3-year-old can see three at a glance and
+track one or two moving objects; twenty objects is not harder counting, it is a
 different and much worse task.
-
-**Nothing advances by itself.** There is no autoplay, no timer, no score, no
-stars, and no fail state. A wrong answer is met with the plain fact — *"We made
-five"* — and then an easier one. The app never says "wrong".
 
 Design constraints honoured throughout: **no music**, and **no depiction of any
 animate being** — no people, animals, faces, or mascots anywhere, including the
@@ -61,23 +49,22 @@ data collection, no network access, zero permissions.
 
 Kotlin + Jetpack Compose. The counting objects are ten shapes **drawn as vector
 paths in code**, not emoji, so they are identical on every device and can never
-drift into depicting a creature. The six sound effects are synthesized by
+drift into depicting a creature. The sound effects are synthesized by
 `tools/make_sounds.py` and are deliberately inharmonic; only the success chime
 has a pitch, and it can never play twice in quick succession.
 
 ```
 core/     pure Kotlin, zero Android imports — the rules
 copy/     what the words are, in English and বাংলা
-host/     ViewModel, script runner, all timing
-speech/   TTS      sound/  SoundPool      data/  prefs + migration
-ui/       Compose
+host/     ViewModel, beat runner, TTS, sounds
+ui/       Compose, candy toy-box
 ```
 
 The organising principle: **the rules are pure data and functions; Android is a
 player of those rules, not a participant.** The domain emits a script of beats —
 say this, play that, show this, wait — and the host performs it, so `delay()`
-exists in exactly one small file. That is why the entire game is playable in
-plain JVM tests, and why the store screenshots are rendered from state directly
+exists in exactly one place. That is why the entire game is playable in plain
+JVM tests, and why the store screenshots are rendered from state directly
 rather than by driving a live emulator.
 
 See [CLAUDE.md](CLAUDE.md) for the working rules and the pedagogy this rests on.
