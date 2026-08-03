@@ -25,7 +25,9 @@ the app toward what actually works at three.
 - `applicationId` is permanently `app.maqsadah.count_and_play.twa`. The `.twa`
   is a scar from the original Trusted Web Activity; Play ties an app to its
   first package ID forever. The *code namespace* is clean.
-- `versionCode` only ever increases. `targetSdk` must stay at 36.
+- `versionCode` only ever increases. `targetSdk` is 37; it can only move to a
+  newer API level together with an AGP that supports it (37 required AGP 9.3,
+  Gradle 9.5 and AGP 9's built-in Kotlin — no `kotlin-android` plugin).
 - **Zero manifest permissions.** This underpins the Data-safety declaration and
   the Families listing. Do not add one without a very good reason.
 - The signing keystore lives outside the repo and in the `KEYSTORE_BASE64`

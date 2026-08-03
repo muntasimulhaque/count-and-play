@@ -1,12 +1,11 @@
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
 android {
     namespace = "app.maqsadah.count_and_play"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         // Must never change: this is the published Play Store package ID.
@@ -14,9 +13,9 @@ android {
         // the code namespace above no longer carries it.)
         applicationId = "app.maqsadah.count_and_play.twa"
         minSdk = 23
-        targetSdk = 36
-        versionCode = 16
-        versionName = "5.0"
+        targetSdk = 37
+        versionCode = 17
+        versionName = "5.1"
 
         // Instrumented tests (the emulator screenshot capture) use AndroidX's runner.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -57,9 +56,6 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-    }
-    kotlinOptions {
-        jvmTarget = "17"
     }
     buildFeatures {
         compose = true
