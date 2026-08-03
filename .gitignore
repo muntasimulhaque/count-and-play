@@ -19,5 +19,6 @@ captures/
 .DS_Store
 Thumbs.db
 .idea/
+.qwen/
 .vscode/
 *.iml
