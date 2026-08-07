@@ -4,8 +4,11 @@ A native Android app that helps a very young child *see* what numbers are —
 and what adding and taking away do to them. Built by a father for his 3-year-old
 son; on Google Play so other families can use it too. In English and বাংলা.
 
+[![Get it on Google Play](https://img.shields.io/badge/-Get%20it%20on%20Google%20Play-414141?logo=google-play&logoColor=white&style=flat)](https://play.google.com/store/apps/details?id=app.maqsadah.count_and_play.twa)
+
 - **Play Store package:** `app.maqsadah.count_and_play.twa`
 - **License:** MIT
+- **Privacy policy:** [online](https://muntasimulhaque.github.io/count-and-play/privacy.html) · [in this repo](docs/privacy.html)
 
 <p align="center">
   <img src="play-store/screenshots/phone_01_home.png" width="170" alt="Home: three big picture games">
@@ -68,6 +71,14 @@ JVM tests, and why the store screenshots are rendered from state directly
 rather than by driving a live emulator.
 
 See [CLAUDE.md](CLAUDE.md) for the working rules and the pedagogy this rests on.
+
+## Privacy
+
+Count & Play collects no data — no accounts, no analytics, no ads, no network
+access, and no third-party SDKs of any kind. Because the app declares zero
+permissions, there is nothing for it to collect. The full policy is
+[in this repo](docs/privacy.html) and
+[hosted online](https://muntasimulhaque.github.io/count-and-play/privacy.html).
 
 ## Building
 
