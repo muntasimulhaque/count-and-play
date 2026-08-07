@@ -45,9 +45,9 @@ Made by a parent, for parents who want to sit with their child and teach.
 
 **App category**: Education
 **Contact email**: muntasim.haque@gmail.com
-**Privacy policy URL**: `https://count-and-play.netlify.app/privacy.html`
-(legacy host, still live; the declaration it makes — no data collected — is
-still exactly true of the native app)
+**Privacy policy URL**: `https://muntasimulhaque.github.io/count-and-play/privacy.html`
+(hosted on this repo's GitHub Pages, `docs/privacy.html`; the declaration it
+makes — no data collected — is exactly true of the native app)
 
 > ⚠️ Checked 2026-08-03: the live listing may still carry the v1-era text
 > (LEARN/QUIZ modes, stars, numbers to 20), which describes an app that no
