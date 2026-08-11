@@ -56,11 +56,14 @@ makes — no data collected — is exactly true of the native app)
 
 ## Screenshots
 
-The current phone set (eight scenes) is committed at
-`play-store/screenshots/phone_01_home.png` … `phone_08_bangla.png`, captured by
-CI's `ScreenshotTest`. The tablet7/tablet10 sets live in the artifacts of the
-latest "Capture store screenshots" run. Refresh the listing from these whenever
-the UI changes.
+All three sets are committed at `play-store/screenshots/`, captured by CI's
+`ScreenshotTest` (last refreshed for v6.1):
+
+- phone — `phone_01_home.png` … `phone_08_bangla.png`
+- 7" tablet — `tablet7_01_home.png` … `tablet7_08_bangla.png`
+- 10" tablet — `tablet10_01_home.png` … `tablet10_08_bangla.png`
+
+Refresh the Play listing from these whenever the UI changes.
 
 ## Console questionnaires — answers
 
