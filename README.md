@@ -80,7 +80,7 @@ exists in exactly one place. That is why the entire game is playable in plain
 JVM tests, and why the store screenshots are rendered from state directly
 rather than by driving a live emulator.
 
-See [CLAUDE.md](CLAUDE.md) for the working rules and the pedagogy this rests on.
+See [AGENTS.md](AGENTS.md) for the working rules and the pedagogy this rests on.
 
 ## Privacy
 
