@@ -17,11 +17,21 @@ son; on Google Play so other families can use it too. In English and বাং�
   <img src="play-store/screenshots/phone_06_take_fact.png" width="170" alt="Take away: 5 - 2 = 3 with ghost holes">
 </p>
 
+The same play on tablets — 7" and 10":
+
+<p align="center">
+  <img src="play-store/screenshots/tablet7_01_home.png" width="200" alt="Home on a 7-inch tablet">
+  <img src="play-store/screenshots/tablet7_05_take.png" width="200" alt="Take away on a 7-inch tablet">
+  <img src="play-store/screenshots/tablet10_01_home.png" width="300" alt="Home on a 10-inch tablet">
+  <img src="play-store/screenshots/tablet10_06_take_fact.png" width="300" alt="Take away on a 10-inch tablet">
+</p>
+
 ## What it is
 
 Three games on one screen, each a huge picture button. One tap starts, and from
 there the app guides: nothing is locked, there is no menu, and a sitting ends
-when the phone goes down.
+when the phone goes down. It runs full-screen — the system's status and
+navigation buttons are hidden while playing, so nothing crowds the toys.
 
 | | |
 |---|---|
@@ -98,7 +108,8 @@ emulators from `ScreenshotTest`.
 
 ## Releasing an update
 
-1. Bump `versionCode` (+1) and `versionName` (+0.1) in `app/build.gradle.kts`.
+1. Bump `versionCode` (+1) and `versionName` (+0.1 for a small fix, +1.0 for a
+   rebuild) in `app/build.gradle.kts`.
 2. Commit and push to `main`.
 3. Take the signed AAB from the `builds` branch once CI is green.
 4. Play Console → create a release on the alpha track (and on Production once
