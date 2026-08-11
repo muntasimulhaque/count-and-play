@@ -3,6 +3,7 @@ package app.maqsadah.count_and_play.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import app.maqsadah.count_and_play.copy.BnCopy
@@ -28,7 +29,10 @@ fun GameScreen(
     onSetLanguage: (Language) -> Unit,
     onToggleMute: () -> Unit,
 ) {
-    Box(Modifier.fillMaxSize().background(Ground)) {
+    // The ground fills the whole screen; safeDrawingPadding keeps the content
+    // clear of the (transient) system bars. When the bars are hidden this
+    // padding is zero, so the toy-box still owns every pixel.
+    Box(Modifier.fillMaxSize().background(Ground).safeDrawingPadding()) {
         when (val screen = ui.screen) {
             Screen.Home -> HomeScreen(copy = ui.copy, onChoose = onChoose, onOpenSettings = onOpenSettings)
             is Screen.Count -> CountScreen(state = screen.state, copy = ui.copy, onTap = onTapToken, onHome = onHome)

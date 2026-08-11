@@ -8,10 +8,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -98,20 +100,26 @@ fun TakeScreen(state: TakeState, copy: Copy, onTap: (Int) -> Unit, onHome: () ->
 /** Prompt on top, play in the middle, and always a small house top-left. */
 @Composable
 private fun ActivityFrame(prompt: String, onHome: () -> Unit, content: @Composable BoxScope.() -> Unit) {
-    Box(Modifier.fillMaxSize()) {
-        Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
+    Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
+        Row(
+            Modifier.fillMaxWidth().padding(top = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            HomeButton(Modifier, onHome)
             Text(
                 prompt,
-                Modifier.fillMaxWidth().padding(top = 16.dp),
+                Modifier.weight(1f),
                 textAlign = TextAlign.Center,
                 color = Ink,
                 fontSize = SizePrompt,
                 fontWeight = ToyBold,
                 fontFamily = ToyFont,
             )
-            Box(Modifier.weight(1f), contentAlignment = Alignment.Center) { content() }
+            // Mirrors the home button so the prompt stays optically centred and
+            // can never slide underneath it — whatever the screen width or font.
+            Spacer(Modifier.width(52.dp))
         }
-        HomeButton(Modifier.align(Alignment.TopStart).padding(start = 10.dp, top = 10.dp), onHome)
+        Box(Modifier.weight(1f), contentAlignment = Alignment.Center) { content() }
     }
 }
 
