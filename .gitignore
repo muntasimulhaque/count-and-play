@@ -22,3 +22,7 @@ Thumbs.db
 .qwen/
 .vscode/
 *.iml
+
+# Locally downloaded store assets (AAB, screenshots) for Play Console upload.
+aab/
+store-shots/
