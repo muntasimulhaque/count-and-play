@@ -82,7 +82,7 @@ class TakeTest {
         assertTrue(s.removalDone)
         assertFalse(s.done)
 
-        // A tap on a leftover now counts it — it does not remove it.
+        // A tap on a leftover now counts it; it does not remove it.
         val leftId = s.tokens.first { !it.gone }.id
         val (counted, beats) = s.onTap(leftId)
         assertEquals(listOf(1), beats.sayCounts())

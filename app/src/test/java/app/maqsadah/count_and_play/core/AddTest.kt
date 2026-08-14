@@ -70,7 +70,7 @@ class AddTest {
             plateA = listOf(Token(1, ShapeKind.APPLE), Token(2, ShapeKind.APPLE), Token(3, ShapeKind.APPLE)),
             plateB = listOf(Token(4, ShapeKind.BALL), Token(5, ShapeKind.BALL)),
         )
-        // A, B, A, B, A — there is no correct order to break.
+        // A, B, A, B, A: there is no correct order to break.
         var s = start
         val counts = mutableListOf<Int>()
         for (id in listOf(1, 4, 2, 5, 3)) {

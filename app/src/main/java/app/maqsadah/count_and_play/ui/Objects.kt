@@ -113,7 +113,7 @@ fun GhostSlot(sizeDp: Dp) {
 /**
  * A just-taken object: it lingers a beat wearing its take-away number, then
  * shrinks into the dashed ghost that keeps its slot for the rest of the
- * round. This is a visual transition (an animation), not pacing — the count
+ * round. This is a visual transition (an animation), not pacing: the count
  * words and their timing stay with the host's beats.
  */
 @Composable

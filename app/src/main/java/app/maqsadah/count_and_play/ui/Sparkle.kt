@@ -22,13 +22,13 @@ import kotlin.random.Random
 /**
  * A burst of confetti when something goes right.
  *
- * Squares, discs and bars — nothing with a top and a bottom, nothing that
+ * Squares, discs and bars: nothing with a top and a bottom, nothing that
  * could resolve into a creature at a glance. Physical delight is allowed; a
  * dancing mascot is not, and paper thrown in the air is about as physical as
  * a screen gets.
  *
  * It never blocks. A celebration the game has to stop and wait for is not a
- * celebration, it is another pause — so the voice names the mathematics at
+ * celebration, it is another pause, so the voice names the mathematics at
  * the same moment the paper is still coming down.
  */
 private class Fleck(

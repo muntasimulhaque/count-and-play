@@ -20,7 +20,7 @@ data class Token(
 /**
  * COUNT: a tray of n tokens. The child taps each token once, in whatever
  * order he likes; each valid tap says the next counting word and the token
- * keeps a chip with that number — his tap order, not the tray's. A tap on an
+ * keeps a chip with that number: his tap order, not the tray's. A tap on an
  * already-counted token is recorded as a struggle but changes nothing and
  * makes no noise.
  */
@@ -57,7 +57,7 @@ data class CountState(
  * ADD, in three phases the child drives himself:
  * 1. COUNT THE PARTS: each plate is counted on its own, one counting word per
  *    tap, chips in his tap order; finishing a plate says its cardinal. The
- *    plates may be counted in any order, even interleaved — each keeps its
+ *    plates may be counted in any order, even interleaved, and each keeps its
  *    own count.
  * 2. POUR: once both plates are counted the button wakes; tapping it pours
  *    everyone into the bowl, each part keeping its plate's colour.
@@ -139,7 +139,7 @@ data class AddState(
 
 /**
  * TAKE, in two phases the child drives himself:
- * 1. TAKE AWAY: each tap removes one token — THUD, its take-away number, and
+ * 1. TAKE AWAY: each tap removes one token: THUD, its take-away number, and
  *    the token sinks into its ghost wearing that number. The b-th removal
  *    asks how many are left.
  * 2. COUNT THE LEFT: the child counts the leftovers himself, one word per

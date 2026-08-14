@@ -18,7 +18,7 @@ import app.maqsadah.count_and_play.core.ShapeKind
 /**
  * The ten countable objects, drawn as vector paths. Never emoji: emoji depend
  * on a font we do not control, and drawing the shapes ourselves means the
- * no-animate-beings rule is guaranteed by construction — no code path here can
+ * no-animate-beings rule is guaranteed by construction: no code path here can
  * produce a face. Everything is designed in a 100x100 box and scaled to the
  * cell, so a shape is identical at every size and on every screen.
  */
@@ -68,7 +68,7 @@ fun DrawScope.drawCountable(kind: ShapeKind, cell: Float, detail: Detail = detai
     drawPath(body, colors.fill, style = Fill)
     if (detail == Detail.FULL || detail == Detail.PRIMARY) {
         // One hard-edged facet catching the upper-left light. No blur, no
-        // gradient — a bevel, not a highlight, so the look stays flat.
+        // gradient: a bevel, not a highlight, so the look stays flat.
         clipPath(body) { drawPath(facetPath(kind, s), colors.facet, style = Fill) }
     }
     drawPath(body, colors.stroke, style = Stroke(width = 4f * s, join = StrokeJoin.Round, cap = StrokeCap.Round))
@@ -125,7 +125,7 @@ private fun bodyPath(kind: ShapeKind, s: Float): Path {
             q(72f, 74f, 14f, 84f)
             p.close()
         }
-        // The only orthogonal shape — instantly separable from every fruit.
+        // The only orthogonal shape, instantly separable from every fruit.
         ShapeKind.BLOCK -> {
             m(16f, 36f)
             l(46f, 12f)
@@ -199,7 +199,7 @@ private fun facetPath(kind: ShapeKind, s: Float): Path {
     return p
 }
 
-/** Stems, veins, seeds and grooves — dropped first as the cell gets smaller. */
+/** Stems, veins, seeds and grooves, dropped first as the cell gets smaller. */
 private fun DrawScope.drawTrim(kind: ShapeKind, s: Float, colors: ShapeColors, detail: Detail) {
     when (kind) {
         ShapeKind.APPLE -> {
@@ -238,7 +238,7 @@ private fun DrawScope.drawTrim(kind: ShapeKind, s: Float, colors: ShapeColors, d
         ShapeKind.MELON -> {
             drawLine(MelonRind, Offset(8f * s, 34f * s), Offset(92f * s, 34f * s), 9f * s)
             if (detail == Detail.FULL) {
-                // Four seeds in an arc following the rind — deliberately NOT
+                // Four seeds in an arc following the rind, deliberately NOT
                 // two-above-one, which the eye reads as two eyes and a mouth.
                 // Pareidolia is still a face, and this app does not draw faces.
                 for ((x, y) in listOf(28f to 52f, 42f to 60f, 58f to 60f, 72f to 52f)) {

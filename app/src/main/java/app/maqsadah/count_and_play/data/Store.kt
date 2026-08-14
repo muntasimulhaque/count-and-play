@@ -7,7 +7,7 @@ import app.maqsadah.count_and_play.copy.Language
  * Everything that survives a restart: the grown-up's language and mute
  * choices, and the three invisible difficulty levels. Six values, so plain
  * SharedPreferences is the whole format. Levels are persisted, streaks are
- * not — a streak is a run, and a run ends when the app does.
+ * not (a streak is a run, and a run ends when the app does).
  */
 class Store(context: Context) {
 

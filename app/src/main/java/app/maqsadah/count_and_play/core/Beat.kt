@@ -4,7 +4,7 @@ package app.maqsadah.count_and_play.core
 enum class Sfx { TICK, CLINK, THUD, CHIME, RUSTLE }
 
 /**
- * Everything the core can ask the host to do, in order. Pure data — no speech
+ * Everything the core can ask the host to do, in order. Pure data: no speech
  * engine, no sound pool, no Android. The host decides how each beat is
  * performed and how beats are queued.
  */
@@ -21,7 +21,7 @@ sealed class Beat {
     /** Both ADD plates are counted, the button is awake: "Put them together!" */
     object SayPromptAdd : Beat()
 
-    /** ADD, after the pour: the whole is counted afresh — "Count them all!" */
+    /** ADD, after the pour: the whole is counted afresh: "Count them all!" */
     object SayPromptAll : Beat()
 
     /** Round-start prompt for TAKE: "take away [b]". */

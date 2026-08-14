@@ -8,8 +8,8 @@ enum class Language { EN, BN }
  *
  * Android string resources are the wrong tool here for a specific reason:
  * Bengali's plural rules have only an `other` category, so `<plurals>` buys
- * nothing, and the real grammatical difference is a *classifier* — টি attaches
- * to the numeral and the noun stays unchanged ("তিনটি আপেল") — which no resource
+ * nothing, and the real grammatical difference is a *classifier*: টি attaches
+ * to the numeral and the noun stays unchanged ("তিনটি আপেল"), which no resource
  * mechanism models. These lines are grammar, not text, so each language writes
  * its own templates instead of swapping words into a shared one.
  */
@@ -44,7 +44,7 @@ interface Copy {
     fun promptAdd(): String
     fun promptTake(b: Int): String
 
-    /** ADD, after the pour: the whole is counted afresh — "Count them all!" */
+    /** ADD, after the pour: the whole is counted afresh: "Count them all!" */
     fun promptAll(): String
 
     /** TAKE, once the asked number is gone: "How many are left?" */
@@ -54,7 +54,7 @@ interface Copy {
     fun cardinal(n: Int): String
 
     /**
-     * The plain arithmetic fact, spoken warmly — the statement itself is better
+     * The plain arithmetic fact, spoken warmly: the statement itself is better
      * praise than anything evaluative: "Three and two is five!"
      */
     fun factAdd(a: Int, b: Int, total: Int): String

@@ -1,4 +1,4 @@
-# Count & Play — working rules
+# Count & Play: working rules
 
 An Android app that helps a 3-year-old *see* what addition and subtraction are.
 Built by a father for his son; published on Google Play so other families can
@@ -12,13 +12,25 @@ use it too.
    refuses to play it twice inside 1200 ms, because two pitched notes in
    sequence make an interval and intervals are where melody starts.
 2. **No depiction of animate beings.** No humans, animals, faces, mascots,
-   characters, or eyes-on-objects — in the app, the launcher icon, or store art.
+   characters, or eyes-on-objects, in the app, the launcher icon, or store art.
    `ShapeKind` is the structural guarantee: there is no code path that renders a
    countable except through those ten shapes.
 
 Warmth comes from material, light, weight and voice instead. That is a design
-strength, not a workaround — it rules out the lazy affective devices and forces
+strength, not a workaround: it rules out the lazy affective devices and forces
 the app toward what actually works at three.
+
+## Style
+
+**No em-dashes (—), ever, unless absolutely necessary.** Not in chat replies,
+release notes, commit messages, code comments, or this file. Use commas,
+colons, parentheses, or a sentence break instead. The en-dash stays for number
+ranges ("1–2"); the ellipsis is not an em-dash and is fine.
+
+**Plain-text store text.** Release notes are pasted into Play Console, where
+quotes, markdown fences, and dashes mangle or get auto-corrected. Notes are
+always delivered as plain prose with no quote marks around phrases, no
+markdown, and no em-dashes, so a straight paste keeps the formatting.
 
 ## Shipping constraints
 
@@ -27,23 +39,23 @@ the app toward what actually works at three.
   first package ID forever. The *code namespace* is clean.
 - `versionCode` only ever increases. `targetSdk` is 37; it can only move to a
   newer API level together with an AGP that supports it (37 required AGP 9.3,
-  Gradle 9.5 and AGP 9's built-in Kotlin — no `kotlin-android` plugin).
+  Gradle 9.5 and AGP 9's built-in Kotlin, so no `kotlin-android` plugin).
 - **Zero manifest permissions.** This underpins the Data-safety declaration and
   the Families listing. Do not add one without a very good reason.
 - The signing keystore lives outside the repo and in the `KEYSTORE_BASE64`
   GitHub secret. If it is lost the app can never be updated again.
 
-## The game (v6)
+## The game (v7)
 
 Three games, each a huge picture button on the home screen; from there the app
 guides, and difficulty adapts invisibly *inside* a game.
 
-- **Count them** — tap the objects in any order; each tap leaves a numbered
+- **Count them:** tap the objects in any order; each tap leaves a numbered
   chip in HIS order and the voice says its number.
-- **Put together** — he counts each plate on its own, taps the big button to
+- **Put together:** he counts each plate on its own, taps the big button to
   pour them into one bowl, then counts the whole; the parts keep their
   coloured seats inside it.
-- **Take away** — he taps the asked number out (each taken piece wears its
+- **Take away:** he taps the asked number out (each taken piece wears its
   number as it sinks into its ghost), then he counts what is left himself.
 
 Every round ends with the fact arriving huge on screen (`3 + 2 = 5`) while the
@@ -53,15 +65,15 @@ lock, no session end, no score, and no fail state.
 ## Architecture
 
 ```
-core/     pure Kotlin, zero Android imports — the rules
+core/     pure Kotlin, zero Android imports: the rules
 copy/     what the words are, in English and বাংলা
 host/     ViewModel, beat performance, TTS, SoundPool, prefs
-ui/       Compose — the candy toy-box
+ui/       Compose: the candy toy-box
 ```
 
 The organising principle: **the rules are pure data and functions; Android is a
-player of those rules, not a participant.** The domain emits a script of beats —
-say this, play that, show this, wait — and the host performs it, so `delay()`
+player of those rules, not a participant.** The domain emits a script of beats
+(say this, play that, show this, wait) and the host performs it, so `delay()`
 exists in exactly one place. That is why the entire game is playable in plain
 JVM tests, and why the store screenshots are rendered from state directly
 rather than by driving a live emulator.
@@ -77,7 +89,7 @@ rather than by driving a live emulator.
 6. No fire-and-forget speech. Every utterance is a `Beat.Say*` performed by the
    host; `Narrator` epoch-guards every utterance and gates on foreground/mute.
 7. `Narrator.stop()` bumps the epoch *before* halting, so a stale callback can
-   never resurrect speech — the window where two voices overlap is closed.
+   never resurrect speech; the window where two voices overlap is closed.
 8. **No `busy` flag that swallows input.** During play a tap always produces an
    outcome. (The celebration dwell is post-round: the outcome already happened,
    and taps there are gently ignored so drumming cannot score a finished round
@@ -86,7 +98,7 @@ rather than by driving a live emulator.
 10. No fail state. Struggling *eases* the ladder. The word "wrong" is not
     spoken anywhere.
 11. Arithmetic totals stay ≤ 5 at first and ≤ 10 at the top level; counting
-    practice ≤ 10. These are not stylistic — a 3-year-old's subitizing limit is
+    practice ≤ 10. These are not stylistic: a 3-year-old's subitizing limit is
     3 and object-tracking limit is 1–2.
 12. ≤ 400 lines per file, ≤ 40 per function. The point is that no file becomes
     a god object. If any passes 400, split it.
@@ -97,19 +109,19 @@ rather than by driving a live emulator.
 ## Pedagogy this rests on
 
 - **There is no correct counting order.** Whatever he taps first is "one";
-  the chip follows his finger, not the tray. Order-irrelevance — that any
-  order gives the same count — is one of the things counting practice is for.
+  the chip follows his finger, not the tray. Order-irrelevance (that any
+  order gives the same count) is one of the things counting practice is for.
 - **The parts are counted, then the whole.** He counts each plate on its own
   ("three!" … "two!"), pours them into the bowl himself, and counts what
-  that made ("one … five!") — the total is something he produced, not
+  that made ("one … five!"): the total is something he produced, not
   something he was told.
 - **The parts stay inside the whole.** The bowl seats each part on its own
   colour, so five keeps reading as three-and-two at a glance.
 - **Subtraction stays visible.** Taken objects wear their take-away number as
   they sink into ghost holes, and he counts what is left himself, so "left"
   is a quantity you can see, not a disappearing act.
-- **Symbols arrive at the moment of the fact.** The huge `3 + 2 = 5` lands when
-  the child has just lived it — never before, never as chrome.
+- **Symbols arrive at the moment of the fact.** The huge `3 + 2 = 5` lands
+  the moment he has lived it, never earlier and never as chrome.
 - Praise the mathematics, not the child: *"Five! Three and two make five."*
 - Re-taps are recorded, never punished. Where a child hesitates or drums is
   diagnostic; the ladder eases, it never scolds.
@@ -123,7 +135,7 @@ python tools/make_sounds.py             # regenerate sound assets (deterministic
 ```
 
 An Android SDK and the Android Studio JBR are installed on the owner's machine
-(`JAVA_HOME` must point at the JBR — it is not on PATH), so unit tests and
+(`JAVA_HOME` must point at the JBR; it is not on PATH), so unit tests and
 release builds run locally in seconds.
 
 **Instrumented tests do not currently run locally.** The installed emulator
@@ -137,7 +149,7 @@ NoSuchMethodException: android.hardware.input.InputManager.getInstance
 CI runs API 34 and is unaffected. Until an API 34 system image is installed (the
 lower-risk fix) or the Compose BOM is bumped, **any UI change must be verified
 from the CI screenshot artifacts, not locally.** Do not assume a UI change is
-correct because it compiles — v4.0 shipped a layout bug to a submitted release
+correct because it compiles: v4.0 shipped a layout bug to a submitted release
 that way, and the rendered screenshots caught it minutes later.
 
 ## Commits
@@ -151,6 +163,25 @@ trailer.
 ## Releasing
 
 Bump `versionCode` +1 and `versionName` (+0.1 for small, +1.0 for a rebuild),
-push to `main`, let CI build the signed AAB, pull it from the `builds` branch,
-upload to Play Console — alpha for testers, Production for the public track.
-Only capture new store screenshots when the UI actually changed.
+push to `main`, and let CI do the rest:
+
+- `build.yml` builds the signed AAB (the keystore is decoded from the
+  `KEYSTORE_BASE64` secret) and publishes it to the `latest-build` GitHub
+  release. Pull the AAB from that release, not from the `builds` branch; the
+  branch push step has been observed to silently stay stale while the release
+  updates fine.
+- `screenshots.yml` auto-captures fresh store screenshots whenever UI files
+  change (`app/src/main/**`, `app/src/androidTest/**`). Download them from
+  that run's artifacts (three form factors, eight scenes each).
+
+Then deliver the whole upload kit to the owner in one place:
+
+1. The signed AAB, downloaded to `aab/` (gitignored).
+2. The new screenshots in `store-shots/` (gitignored), phone set at minimum.
+3. Release notes in the chat, ready to paste: English and Bengali, plain prose,
+   no quotes, no markdown, no em-dashes (see Style).
+
+The owner uploads the AAB to Play Console (alpha for testers, Production for
+the public track), pastes the notes into What's new, and drops in the
+screenshots. Only new screenshots are captured when the UI actually changed;
+the workflow handles this automatically.

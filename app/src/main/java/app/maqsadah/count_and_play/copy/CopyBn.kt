@@ -11,8 +11,8 @@ package app.maqsadah.count_and_play.copy
  *   "তিনটি আপেল", "দুইটি বাদ দাও!"
  * - The digits on screen are Bengali: ০-৯.
  * - Subtraction has two registers. The instruction to the child says বাদ দাও
- *   ("দুইটি বাদ দাও!"), but the arithmetic term — standalone and in the fact
- *   lines — is বিয়োগ. That was the v3.4 native-eye correction (it replaced বাদ),
+ *   ("দুইটি বাদ দাও!"), but the arithmetic term (standalone and in the fact
+ *   lines) is বিয়োগ. That was the v3.4 native-eye correction (it replaced বাদ),
  *   and the fact pair keeps the old pack's "...যোগ... হয়..." skeleton:
  *   "তিন যোগ দুই হয় পাঁচ!" / "পাঁচ বিয়োগ দুই হয় তিন!"
  */

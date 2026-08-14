@@ -30,7 +30,7 @@ class CountTest {
                 ),
                 beats.takeLast(4),
             )
-            // One TICK per tap, then the CHIME — no other sounds.
+            // One TICK per tap, then the CHIME: no other sounds.
             assertEquals(List(n) { Sfx.TICK } + Sfx.CHIME, beats.sfx())
         }
     }

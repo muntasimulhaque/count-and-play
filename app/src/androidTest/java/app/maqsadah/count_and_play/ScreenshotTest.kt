@@ -30,7 +30,7 @@ import org.junit.runner.RunWith
  *
  * These are ordinary state renders, not a live playthrough: every screen below
  * is a [UiModel] handed straight to [GameScreen]. That is only possible
- * because no composable in this app takes a ViewModel — so there is no TTS, no
+ * because no composable in this app takes a ViewModel, so there is no TTS, no
  * coroutine timing and no emulator flakiness involved in capturing them, and
  * states that are awkward to reach by playing are trivial to photograph.
  *
@@ -53,7 +53,7 @@ class ScreenshotTest {
 
     /**
      * The rule permits exactly one `setContent` per test, so the content is
-     * mounted once and every scene is a state change pushed into it — which is
+     * mounted once and every scene is a state change pushed into it, which is
      * also the faster way round, and only possible because the whole screen is
      * a function of one immutable state.
      */
@@ -92,7 +92,7 @@ class ScreenshotTest {
             model(Screen.Add(addPoured()), flash = Flash.Add(3, 2, 5))
         }
 
-        // Mid-take: two of five gone, their ghosts on the tray — the child
+        // Mid-take: two of five gone, their ghosts on the tray; the child
         // is about to count what is left.
         shoot("05_take") {
             model(Screen.Take(TakeState(n = 5, b = 2, tokens = bowlOfBalls(gone = 2))))

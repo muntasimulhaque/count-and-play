@@ -195,7 +195,7 @@ private fun ActivityFrame(prompt: String, onHome: () -> Unit, content: @Composab
                 fontFamily = ToyFont,
             )
             // Mirrors the home button so the prompt stays optically centred and
-            // can never slide underneath it — whatever the screen width or font.
+            // can never slide underneath it, whatever the screen width or font.
             Spacer(Modifier.width(52.dp))
         }
         Box(Modifier.weight(1f), contentAlignment = Alignment.Center) { content() }
