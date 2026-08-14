@@ -86,6 +86,16 @@ class GameHost(application: Application) : AndroidViewModel(application) {
         perform(beats)
     }
 
+    /** The ADD pour button: the one in-round action that is not a token tap. */
+    fun pour() {
+        val current = session ?: return
+        if (current.round.done) return
+        val (next, beats) = current.pour()
+        session = next
+        publish()
+        perform(beats)
+    }
+
     fun home() {
         hush()
         session = null
@@ -163,7 +173,9 @@ class GameHost(application: Application) : AndroidViewModel(application) {
             is Beat.SayCardinal -> say(copy.cardinal(beat.n))
             is Beat.SayPromptCount -> say(copy.promptCount())
             is Beat.SayPromptAdd -> say(copy.promptAdd())
+            is Beat.SayPromptAll -> say(copy.promptAll())
             is Beat.SayPromptTake -> say(copy.promptTake(beat.b))
+            is Beat.SayPromptLeft -> say(copy.promptLeft())
             is Beat.SayFactAdd -> say(copy.factAdd(beat.a, beat.b, beat.total))
             is Beat.SayFactTake -> say(copy.factTake(beat.n, beat.b, beat.left))
             is Beat.SayCelebrate -> say(copy.celebrate())

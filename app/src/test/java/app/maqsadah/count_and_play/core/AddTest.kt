@@ -1,13 +1,14 @@
 package app.maqsadah.count_and_play.core
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class AddTest {
 
     @Test
-    fun counting_on_across_plates_in_shuffled_order() {
+    fun count_each_plate_pour_then_count_the_whole() {
         for (seed in 1L..50L) for (level in 0..2) {
             val rng = SeededRng(seed)
             val start = AddRound.next(level, rng)
@@ -19,7 +20,6 @@ class AddTest {
             )
             assertEquals(start.a, start.plateA.size)
             assertEquals(start.b, start.plateB.size)
-            assertEquals(start.total, start.plateA.size + start.plateB.size)
             // Token ids are unique across both plates.
             assertEquals(
                 start.total,
@@ -29,7 +29,14 @@ class AddTest {
             val (end, beats) = start.playOut(rng)
             assertTrue(end.done)
             assertEquals(0, end.invalidTaps)
-            assertEquals((1..start.total).toList(), beats.sayCounts())
+            // Plate A's count, plate B's count, then the whole: 1..a, 1..b, 1..total.
+            val expected = (1..start.a).toList() + (1..start.b).toList() + (1..start.total).toList()
+            assertEquals(expected, beats.sayCounts())
+            // Each finished plate names its cardinal; the pour is announced.
+            assertTrue(beats.contains(Beat.SayCardinal(start.a)))
+            assertTrue(beats.contains(Beat.SayCardinal(start.b)))
+            assertTrue(beats.contains(Beat.SayPromptAdd))
+            assertTrue(beats.contains(Beat.SayPromptAll))
             assertEquals(
                 listOf(
                     Beat.SayFactAdd(start.a, start.b, start.total),
@@ -39,30 +46,120 @@ class AddTest {
                 ),
                 beats.takeLast(4),
             )
-            // One CLINK per move, then the CHIME.
-            assertEquals(List(start.total) { Sfx.CLINK } + Sfx.CHIME, beats.sfx())
+            // TICKs for the plate counts, one RUSTLE for the pour, TICKs for
+            // the bowl count, then the CHIME.
+            assertEquals(
+                List(start.total) { Sfx.TICK } + Sfx.RUSTLE + List(start.total) { Sfx.TICK } + Sfx.CHIME,
+                beats.sfx(),
+            )
+            assertTrue(end.poured)
             assertEquals(start.total, end.bowl.size)
             assertTrue(end.plateA.isEmpty() && end.plateB.isEmpty())
+            // The bowl keeps the parts: first a from plate A, then b from B.
+            assertEquals(List(start.a) { 1 } + List(start.b) { 2 }, end.bowl.map { it.origin })
+            // The bowl count is in the child's tap order, 1..total.
+            assertEquals((1..start.total).toList(), end.bowl.map { it.countOrder }.sorted())
         }
     }
 
     @Test
-    fun tapping_the_bowl_is_recorded_and_changes_nothing() {
-        val rng = SeededRng(4)
-        val start = AddRound.next(0, rng)
+    fun plates_may_be_counted_interleaved_each_keeps_its_own_count() {
+        val start = AddState(
+            a = 3,
+            b = 2,
+            plateA = listOf(Token(1, ShapeKind.APPLE), Token(2, ShapeKind.APPLE), Token(3, ShapeKind.APPLE)),
+            plateB = listOf(Token(4, ShapeKind.BALL), Token(5, ShapeKind.BALL)),
+        )
+        // A, B, A, B, A — there is no correct order to break.
+        var s = start
+        val counts = mutableListOf<Int>()
+        for (id in listOf(1, 4, 2, 5, 3)) {
+            val (next, beats) = s.onTap(id)
+            s = next
+            counts += beats.sayCounts()
+        }
+        assertEquals(listOf(1, 1, 2, 2, 3), counts)
+        assertTrue(s.platesReady)
+        assertFalse(s.poured)
+        assertFalse(s.done)
+        // Chips follow each plate's own tap order.
+        assertEquals(listOf(1, 2, 3), s.plateA.map { it.countOrder })
+        assertEquals(listOf(1, 2), s.plateB.map { it.countOrder })
+    }
+
+    @Test
+    fun the_pour_waits_for_both_plates_to_be_counted() {
+        val start = AddRound.next(1, SeededRng(4))
+        val (same, beats) = start.onPour()
+        assertEquals(start, same)
+        assertTrue(beats.isEmpty())
+
+        // Only plate A counted: still not ready.
+        var s = start
+        for (token in start.plateA) s = s.onTap(token.id).first
+        assertEquals(start.a, s.countedA)
+        assertFalse(s.platesReady)
+        val (stillSame, noBeats) = s.onPour()
+        assertEquals(s, stillSame)
+        assertTrue(noBeats.isEmpty())
+    }
+
+    @Test
+    fun the_pour_moves_everyone_to_the_bowl_ready_to_be_counted_afresh() {
+        val rng = SeededRng(8)
+        val start = AddRound.next(2, rng)
+        var s = start
+        for (token in start.plateA + start.plateB) s = s.onTap(token.id).first
+        assertTrue(s.platesReady)
+
+        val (poured, beats) = s.onPour()
+        assertTrue(poured.poured)
+        assertEquals(start.total, poured.bowl.size)
+        assertTrue(poured.plateA.isEmpty() && poured.plateB.isEmpty())
+        // Everyone starts uncounted again: the whole is counted afresh.
+        assertTrue(poured.bowl.none { it.counted })
+        assertTrue(poured.bowl.all { it.countOrder == 0 })
+        assertEquals(listOf(Sfx.RUSTLE), beats.sfx())
+        assertTrue(beats.contains(Beat.SayPromptAll))
+        // But the round is not done until the bowl is counted.
+        assertFalse(poured.done)
+
+        // A second pour is a no-op.
+        val (again, nothing) = poured.onPour()
+        assertEquals(poured, again)
+        assertTrue(nothing.isEmpty())
+    }
+
+    @Test
+    fun retapping_a_counted_plate_token_is_a_recorded_struggle() {
+        val start = AddRound.next(0, SeededRng(4))
         val firstId = start.plateA.first().id
 
-        val (moved, moveBeats) = start.onTap(firstId)
+        val (once, moveBeats) = start.onTap(firstId)
         assertEquals(listOf(1), moveBeats.sayCounts())
-        assertEquals(listOf(Sfx.CLINK), moveBeats.sfx())
-        assertEquals(1, moved.bowl.size)
+        assertEquals(listOf(Sfx.TICK), moveBeats.sfx())
 
-        // The same token now sits in the bowl: tapping it again is a struggle.
-        val (again, beats) = moved.onTap(firstId)
-        assertEquals(1, again.invalidTaps)
+        val (twice, beats) = once.onTap(firstId)
+        assertEquals(1, twice.invalidTaps)
         assertTrue(beats.isEmpty())
-        assertEquals(moved.plateA, again.plateA)
-        assertEquals(moved.plateB, again.plateB)
-        assertEquals(moved.bowl, again.bowl)
+        assertEquals(once.plateA, twice.plateA)
+        assertEquals(once.plateB, twice.plateB)
+    }
+
+    @Test
+    fun a_counted_bowl_token_cannot_be_counted_twice() {
+        val rng = SeededRng(6)
+        var s = AddRound.next(0, rng)
+        for (token in s.plateA + s.plateB) s = s.onTap(token.id).first
+        s = s.onPour().first
+
+        val bowlId = s.bowl.first().id
+        val (once, countBeats) = s.onTap(bowlId)
+        assertEquals(listOf(1), countBeats.sayCounts())
+
+        val (twice, beats) = once.onTap(bowlId)
+        assertEquals(1, twice.invalidTaps)
+        assertTrue(beats.isEmpty())
+        assertEquals(once.bowl, twice.bowl)
     }
 }

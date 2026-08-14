@@ -20,7 +20,8 @@ sealed class Round {
     data class IsAdd(val state: AddState) : Round() {
         override val done: Boolean get() = state.done
         override val invalidTaps: Int get() = state.invalidTaps
-        override fun startBeats(): List<Beat> = listOf(Beat.SayPromptAdd)
+        // ADD opens with counting each plate, so it borrows the count prompt.
+        override fun startBeats(): List<Beat> = listOf(Beat.SayPromptCount)
     }
 
     data class IsTake(val state: TakeState) : Round() {
@@ -57,6 +58,14 @@ data class SessionState(
             is Round.IsTake -> r.state.onTap(id).let { (s, b) -> Round.IsTake(s) to b }
         }
         return copy(round = nextRound) to beats
+    }
+
+    /** The ADD pour button, routed to the current round; every other round ignores it. */
+    fun pour(): Pair<SessionState, List<Beat>> {
+        val r = round
+        if (r !is Round.IsAdd) return this to emptyList()
+        val (next, beats) = r.state.onPour()
+        return copy(round = Round.IsAdd(next)) to beats
     }
 
     /**

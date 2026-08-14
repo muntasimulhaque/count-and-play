@@ -10,16 +10,27 @@ class FlowTest {
     /** The next tap a child who follows along would make. */
     private fun nextTapId(round: Round): Int = when (round) {
         is Round.IsCount -> round.state.tokens.first { !it.counted }.id
-        is Round.IsAdd -> (round.state.plateA + round.state.plateB).first().id
-        is Round.IsTake -> round.state.tokens.first { !it.gone }.id
+        is Round.IsAdd -> with(round.state) {
+            if (poured) bowl.first { !it.counted }.id
+            else (plateA + plateB).first { !it.counted }.id
+        }
+        is Round.IsTake -> with(round.state) {
+            if (removalDone) tokens.first { !it.gone && !it.counted }.id
+            else tokens.first { !it.gone }.id
+        }
     }
 
     private fun playToDone(session: SessionState): SessionState {
         var s = session
-        var taps = 0
+        var steps = 0
         while (!s.round.done) {
-            s = s.tap(nextTapId(s.round)).first
-            check(++taps < 50) { "round did not terminate" }
+            val add = (s.round as? Round.IsAdd)?.state
+            s = if (add != null && add.platesReady && !add.poured) {
+                s.pour().first
+            } else {
+                s.tap(nextTapId(s.round)).first
+            }
+            check(++steps < 60) { "round did not terminate" }
         }
         return s
     }

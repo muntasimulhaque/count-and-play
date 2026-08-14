@@ -67,6 +67,7 @@ class ScreenshotTest {
                 ui = scene.value,
                 onChoose = {},
                 onTapToken = {},
+                onPour = {},
                 onHome = {},
                 onOpenSettings = {},
                 onCloseSettings = {},
@@ -83,23 +84,24 @@ class ScreenshotTest {
             model(Screen.Count(CountState(tokens = tray(ShapeKind.APPLE, n = 4, counted = 2))))
         }
 
-        // Mid-pour: both plates still holding, the bowl already seated by origin.
-        shoot("03_add") { model(Screen.Add(addMidPour())) }
+        // Both plates fully counted, the pour button awake.
+        shoot("03_add") { model(Screen.Add(addReady())) }
 
         // The whole, with the parts still visible inside it: 3 + 2 = 5.
         shoot("04_add_fact") {
             model(Screen.Add(addPoured()), flash = Flash.Add(3, 2, 5))
         }
 
-        // Mid-take: two of five gone, their ghosts left on the tray.
+        // Mid-take: two of five gone, their ghosts on the tray — the child
+        // is about to count what is left.
         shoot("05_take") {
             model(Screen.Take(TakeState(n = 5, b = 2, tokens = bowlOfBalls(gone = 2))))
         }
 
-        // The take-away fact, after the removal: 5 - 2 = 3.
+        // The take-away fact, after counting the leftovers: 5 - 2 = 3.
         shoot("06_take_fact") {
             model(
-                Screen.Take(TakeState(n = 5, b = 2, tokens = bowlOfBalls(gone = 2))),
+                Screen.Take(TakeState(n = 5, b = 2, tokens = takeCounted())),
                 flash = Flash.Take(5, 2, 3),
             )
         }
@@ -136,42 +138,56 @@ class ScreenshotTest {
 
     /** A COUNT tray of [n] tokens, the first [counted] of them already tagged. */
     private fun tray(shape: ShapeKind, n: Int, counted: Int): List<Token> =
-        List(n) { i -> Token(id = i + 1, shape = shape, counted = i < counted) }
+        List(n) { i ->
+            Token(id = i + 1, shape = shape, counted = i < counted, countOrder = if (i < counted) i + 1 else 0)
+        }
 
-    /** 3 + 2 mid-pour: one apple still on its plate, both carrots on theirs. */
-    private fun addMidPour() = AddState(
-        a = 3,
-        b = 2,
-        plateA = listOf(Token(id = 1, shape = ShapeKind.APPLE)),
-        plateB = listOf(
-            Token(id = 2, shape = ShapeKind.CARROT),
-            Token(id = 3, shape = ShapeKind.CARROT),
+    /** 3 + 2, both plates fully counted and the button awake. */
+    private fun addReady() = AddState(
+        a = 3, b = 2,
+        plateA = listOf(
+            Token(id = 1, shape = ShapeKind.APPLE, counted = true, countOrder = 1),
+            Token(id = 2, shape = ShapeKind.APPLE, counted = true, countOrder = 2),
+            Token(id = 3, shape = ShapeKind.APPLE, counted = true, countOrder = 3),
         ),
-        bowl = listOf(
-            Token(id = 4, shape = ShapeKind.APPLE, counted = true, origin = 1),
-            Token(id = 5, shape = ShapeKind.APPLE, counted = true, origin = 1),
-            Token(id = 6, shape = ShapeKind.CARROT, counted = true, origin = 2),
+        plateB = listOf(
+            Token(id = 4, shape = ShapeKind.CARROT, counted = true, countOrder = 1),
+            Token(id = 5, shape = ShapeKind.CARROT, counted = true, countOrder = 2),
         ),
     )
 
-    /** The same 3 + 2 fully poured: plates empty, the bowl holding both parts. */
+    /** The same 3 + 2 poured and the bowl fully counted. */
     private fun addPoured() = AddState(
-        a = 3,
-        b = 2,
+        a = 3, b = 2,
         plateA = emptyList(),
         plateB = emptyList(),
+        poured = true,
         bowl = listOf(
-            Token(id = 1, shape = ShapeKind.APPLE, counted = true, origin = 1),
-            Token(id = 2, shape = ShapeKind.APPLE, counted = true, origin = 1),
-            Token(id = 3, shape = ShapeKind.APPLE, counted = true, origin = 1),
-            Token(id = 4, shape = ShapeKind.CARROT, counted = true, origin = 2),
-            Token(id = 5, shape = ShapeKind.CARROT, counted = true, origin = 2),
+            Token(id = 1, shape = ShapeKind.APPLE, counted = true, countOrder = 1, origin = 1),
+            Token(id = 2, shape = ShapeKind.APPLE, counted = true, countOrder = 2, origin = 1),
+            Token(id = 3, shape = ShapeKind.APPLE, counted = true, countOrder = 3, origin = 1),
+            Token(id = 4, shape = ShapeKind.CARROT, counted = true, countOrder = 4, origin = 2),
+            Token(id = 5, shape = ShapeKind.CARROT, counted = true, countOrder = 5, origin = 2),
         ),
     )
 
     /** A TAKE bowl of five balls, the first [gone] of them removed. */
     private fun bowlOfBalls(gone: Int): List<Token> =
-        List(5) { i -> Token(id = i + 1, shape = ShapeKind.BALL, gone = i < gone) }
+        List(5) { i ->
+            Token(id = i + 1, shape = ShapeKind.BALL,
+                gone = i < gone, countOrder = if (i < gone) i + 1 else 0)
+        }
+
+    /** 5 - 2 with the leftovers counted: two gone wearing their take-away
+     *  numbers, the three left counted 1..3. */
+    private fun takeCounted(): List<Token> =
+        listOf(
+            Token(id = 1, shape = ShapeKind.BALL, gone = true, countOrder = 1),
+            Token(id = 2, shape = ShapeKind.BALL, gone = true, countOrder = 2),
+            Token(id = 3, shape = ShapeKind.BALL, counted = true, countOrder = 1),
+            Token(id = 4, shape = ShapeKind.BALL, counted = true, countOrder = 2),
+            Token(id = 5, shape = ShapeKind.BALL, counted = true, countOrder = 3),
+        )
 
     // -- Capture ------------------------------------------------------------
 

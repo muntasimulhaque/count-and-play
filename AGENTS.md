@@ -38,13 +38,13 @@ the app toward what actually works at three.
 Three games, each a huge picture button on the home screen; from there the app
 guides, and difficulty adapts invisibly *inside* a game.
 
-- **Count them** — tap each object once; a numbered chip stays and the voice
-  says its number.
-- **Put together** — his taps pour two plates into one bowl while the voice
-  *counts on* across the join; the parts keep their coloured seats inside the
-  whole.
-- **Take away** — he taps the asked number out; ghosts mark the empty slots and
-  the voice counts what is left.
+- **Count them** — tap the objects in any order; each tap leaves a numbered
+  chip in HIS order and the voice says its number.
+- **Put together** — he counts each plate on its own, taps the big button to
+  pour them into one bowl, then counts the whole; the parts keep their
+  coloured seats inside it.
+- **Take away** — he taps the asked number out (each taken piece wears its
+  number as it sinks into its ghost), then he counts what is left himself.
 
 Every round ends with the fact arriving huge on screen (`3 + 2 = 5`) while the
 voice says it, then confetti. There is no menu beyond the three pictures, no
@@ -96,16 +96,18 @@ rather than by driving a live emulator.
 
 ## Pedagogy this rests on
 
-- Most 3-year-olds are **subset-knowers** (Wynn): they can chant "one two three"
-  and have no idea "three" answers *how many*. Answering "how many?" by
-  repeating the last count word is a verbal habit that *mimics* cardinality.
-- **Counting-on is the addition insight.** The voice does not restart at the
-  second plate — 1, 2, 3, then 4, 5 — so joining is heard as continuing, not as
-  starting over.
+- **There is no correct counting order.** Whatever he taps first is "one";
+  the chip follows his finger, not the tray. Order-irrelevance — that any
+  order gives the same count — is one of the things counting practice is for.
+- **The parts are counted, then the whole.** He counts each plate on its own
+  ("three!" … "two!"), pours them into the bowl himself, and counts what
+  that made ("one … five!") — the total is something he produced, not
+  something he was told.
 - **The parts stay inside the whole.** The bowl seats each part on its own
   colour, so five keeps reading as three-and-two at a glance.
-- **Subtraction stays visible.** Taken objects leave ghost holes and the rest
-  is counted, so "left" is a quantity you can see, not a disappearing act.
+- **Subtraction stays visible.** Taken objects wear their take-away number as
+  they sink into ghost holes, and he counts what is left himself, so "left"
+  is a quantity you can see, not a disappearing act.
 - **Symbols arrive at the moment of the fact.** The huge `3 + 2 = 5` lands when
   the child has just lived it — never before, never as chrome.
 - Praise the mathematics, not the child: *"Five! Three and two make five."*

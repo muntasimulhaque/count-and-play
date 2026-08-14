@@ -15,14 +15,20 @@ sealed class Beat {
     /** Say the cardinal answer: how many there are in all. */
     data class SayCardinal(val n: Int) : Beat()
 
-    /** Round-start prompt for COUNT. */
+    /** Round-start prompt for COUNT; also opens ADD, whose first job is to count each plate. */
     object SayPromptCount : Beat()
 
-    /** Round-start prompt for ADD. */
+    /** Both ADD plates are counted, the button is awake: "Put them together!" */
     object SayPromptAdd : Beat()
+
+    /** ADD, after the pour: the whole is counted afresh — "Count them all!" */
+    object SayPromptAll : Beat()
 
     /** Round-start prompt for TAKE: "take away [b]". */
     data class SayPromptTake(val b: Int) : Beat()
+
+    /** TAKE, once the b are gone: "How many are left?" */
+    object SayPromptLeft : Beat()
 
     /** "a and b make total". */
     data class SayFactAdd(val a: Int, val b: Int, val total: Int) : Beat()

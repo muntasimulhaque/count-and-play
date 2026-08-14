@@ -57,6 +57,9 @@ object BnCopy : Copy {
     override fun promptAdd(): String = "একসাথে করো!"
     override fun promptTake(b: Int): String = "${numberWord(b)}টি বাদ দাও!"
 
+    override fun promptAll(): String = "সবগুলো গুনো!"
+    override fun promptLeft(): String = "কতগুলো রইলো?"
+
     override fun cardinal(n: Int): String = "${numberWord(n)}!"
 
     override fun factAdd(a: Int, b: Int, total: Int): String =

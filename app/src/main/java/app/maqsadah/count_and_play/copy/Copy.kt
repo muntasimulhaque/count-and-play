@@ -44,6 +44,12 @@ interface Copy {
     fun promptAdd(): String
     fun promptTake(b: Int): String
 
+    /** ADD, after the pour: the whole is counted afresh — "Count them all!" */
+    fun promptAll(): String
+
+    /** TAKE, once the asked number is gone: "How many are left?" */
+    fun promptLeft(): String
+
     /** The answer to "how many", as a spoken exclamation: "Four!" */
     fun cardinal(n: Int): String
 

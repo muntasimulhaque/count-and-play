@@ -23,6 +23,7 @@ fun GameScreen(
     ui: UiModel,
     onChoose: (Skill) -> Unit,
     onTapToken: (Int) -> Unit,
+    onPour: () -> Unit,
     onHome: () -> Unit,
     onOpenSettings: () -> Unit,
     onCloseSettings: () -> Unit,
@@ -36,7 +37,7 @@ fun GameScreen(
         when (val screen = ui.screen) {
             Screen.Home -> HomeScreen(copy = ui.copy, onChoose = onChoose, onOpenSettings = onOpenSettings)
             is Screen.Count -> CountScreen(state = screen.state, copy = ui.copy, onTap = onTapToken, onHome = onHome)
-            is Screen.Add -> AddScreen(state = screen.state, copy = ui.copy, onTap = onTapToken, onHome = onHome)
+            is Screen.Add -> AddScreen(state = screen.state, copy = ui.copy, onTap = onTapToken, onPour = onPour, onHome = onHome)
             is Screen.Take -> TakeScreen(state = screen.state, copy = ui.copy, onTap = onTapToken, onHome = onHome)
         }
         Sparkle(key = ui.confettiKey)

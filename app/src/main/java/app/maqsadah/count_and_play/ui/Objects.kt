@@ -1,8 +1,10 @@
 package app.maqsadah.count_and_play.ui
 
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -22,6 +24,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -104,6 +107,35 @@ fun ObjectView(
 fun GhostSlot(sizeDp: Dp) {
     Canvas(Modifier.size(sizeDp)) {
         drawEmptySlot(size.minDimension)
+    }
+}
+
+/**
+ * A just-taken object: it lingers a beat wearing its take-away number, then
+ * shrinks into the dashed ghost that keeps its slot for the rest of the
+ * round. This is a visual transition (an animation), not pacing — the count
+ * words and their timing stay with the host's beats.
+ */
+@Composable
+fun TakenSlot(shape: ShapeKind, sizeDp: Dp, chip: String?) {
+    val vanish = remember { Animatable(0f) }
+    LaunchedEffect(Unit) { vanish.animateTo(1f, tween(durationMillis = 900)) }
+    Box(
+        Modifier.sizeIn(minWidth = HitTarget, minHeight = HitTarget),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(Modifier.graphicsLayer { alpha = vanish.value }) { GhostSlot(sizeDp) }
+        Box(
+            Modifier.graphicsLayer {
+                val p = vanish.value
+                alpha = 1f - p
+                val s = 1f - 0.5f * p
+                scaleX = s
+                scaleY = s
+            },
+        ) {
+            ObjectView(shape = shape, sizeDp = sizeDp, chip = chip)
+        }
     }
 }
 

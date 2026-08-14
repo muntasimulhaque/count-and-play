@@ -40,6 +40,9 @@ object EnCopy : Copy {
     override fun promptAdd(): String = "Put them together!"
     override fun promptTake(b: Int): String = "Take away ${numberWord(b)}!"
 
+    override fun promptAll(): String = "Count them all!"
+    override fun promptLeft(): String = "How many are left?"
+
     override fun cardinal(n: Int): String = "${cap(n)}!"
 
     override fun factAdd(a: Int, b: Int, total: Int): String =

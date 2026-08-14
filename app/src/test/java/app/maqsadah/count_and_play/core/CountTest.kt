@@ -1,6 +1,7 @@
 package app.maqsadah.count_and_play.core
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -58,6 +59,31 @@ class CountTest {
             assertEquals(2, thrice.invalidTaps)
             assertTrue(beatsThrice.isEmpty())
         }
+    }
+
+    @Test
+    fun chips_follow_the_childs_tap_order_not_the_tray_order() {
+        val start = CountState(
+            tokens = listOf(
+                Token(1, ShapeKind.APPLE),
+                Token(2, ShapeKind.APPLE),
+                Token(3, ShapeKind.APPLE),
+                Token(4, ShapeKind.APPLE),
+            ),
+        )
+        // Break the left-to-right habit: last first, then first, then third.
+        val (s1, b1) = start.onTap(4)
+        val (s2, b2) = s1.onTap(1)
+        val (s3, b3) = s2.onTap(3)
+        assertEquals(listOf(1), b1.sayCounts())
+        assertEquals(listOf(2), b2.sayCounts())
+        assertEquals(listOf(3), b3.sayCounts())
+        assertEquals(1, s3.tokens.first { it.id == 4 }.countOrder)
+        assertEquals(2, s3.tokens.first { it.id == 1 }.countOrder)
+        assertEquals(3, s3.tokens.first { it.id == 3 }.countOrder)
+        assertEquals(0, s3.tokens.first { it.id == 2 }.countOrder)
+        assertFalse(s3.done)
+        assertFalse(s3.tokens.first { it.id == 2 }.counted)
     }
 
     @Test

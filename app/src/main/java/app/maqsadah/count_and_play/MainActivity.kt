@@ -42,6 +42,7 @@ class MainActivity : ComponentActivity() {
                 ui = ui,
                 onChoose = host::choose,
                 onTapToken = host::tap,
+                onPour = host::pour,
                 onHome = host::home,
                 onOpenSettings = host::openSettings,
                 onCloseSettings = host::closeSettings,

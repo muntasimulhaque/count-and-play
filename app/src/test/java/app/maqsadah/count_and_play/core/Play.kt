@@ -22,12 +22,23 @@ fun CountState.playOut(): Pair<CountState, List<Beat>> {
     return state to beats
 }
 
-/** Taps every plate token in an order shuffled by [rng] (counting-on across plates). */
+/**
+ * Plays a full ADD round the way a child who follows along would: count each
+ * plate (shuffled within the plate), pour, then count the bowl (shuffled).
+ */
 fun AddState.playOut(rng: Rng): Pair<AddState, List<Beat>> {
     var state = this
     val beats = mutableListOf<Beat>()
-    val ids = rng.shuffled(plateA.map { it.id } + plateB.map { it.id })
-    for (id in ids) {
+    val plateOrder = rng.shuffled(plateA.map { it.id }) + rng.shuffled(plateB.map { it.id })
+    for (id in plateOrder) {
+        val (next, more) = state.onTap(id)
+        state = next
+        beats += more
+    }
+    val (poured, pourBeats) = state.onPour()
+    state = poured
+    beats += pourBeats
+    for (id in rng.shuffled(state.bowl.map { it.id })) {
         val (next, more) = state.onTap(id)
         state = next
         beats += more
@@ -35,11 +46,16 @@ fun AddState.playOut(rng: Rng): Pair<AddState, List<Beat>> {
     return state to beats
 }
 
-/** Removes the first [TakeState.b] tokens, in order. */
+/** Removes the first [TakeState.b] tokens, then counts what is left, in order. */
 fun TakeState.playOut(): Pair<TakeState, List<Beat>> {
     var state = this
     val beats = mutableListOf<Beat>()
     for (token in tokens.take(b)) {
+        val (next, more) = state.onTap(token.id)
+        state = next
+        beats += more
+    }
+    for (token in state.tokens.filter { !it.gone }) {
         val (next, more) = state.onTap(token.id)
         state = next
         beats += more
