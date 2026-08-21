@@ -23,12 +23,6 @@ fun <T> Rng.pick(items: List<T>): T {
     return items[int(items.size)]
 }
 
-/** Picks from [items] avoiding [notThis], falling back to it if it is the only option. */
-fun <T> Rng.pickOther(items: List<T>, notThis: T): T {
-    val others = items.filter { it != notThis }
-    return if (others.isEmpty()) notThis else pick(others)
-}
-
 /** Fisher-Yates, driven entirely by [int] so it stays reproducible. */
 fun <T> Rng.shuffled(items: List<T>): List<T> {
     val out = items.toMutableList()

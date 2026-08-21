@@ -1,5 +1,6 @@
 package app.maqsadah.count_and_play.core
 
+import kotlinx.collections.immutable.persistentListOf
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -21,18 +22,28 @@ class CountTest {
             assertTrue(end.done)
             assertEquals(0, end.invalidTaps)
             assertEquals((1..n).toList(), beats.sayCounts())
-            assertEquals(
-                listOf(
-                    Beat.SayCardinal(n),
-                    Beat.FlashCount(n),
-                    Beat.Confetti,
-                    Beat.Play(Sfx.CHIME),
-                ),
-                beats.takeLast(4),
-            )
+            // A single-object tray already said its number as the count word;
+            // bigger trays name the cardinal before the card lands.
+            val tail = if (n == 1) {
+                listOf(Beat.FlashCount(n), Beat.Confetti, Beat.Play(Sfx.CHIME))
+            } else {
+                listOf(Beat.SayCardinal(n), Beat.FlashCount(n), Beat.Confetti, Beat.Play(Sfx.CHIME))
+            }
+            assertEquals(tail, beats.takeLast(tail.size))
             // One TICK per tap, then the CHIME: no other sounds.
             assertEquals(List(n) { Sfx.TICK } + Sfx.CHIME, beats.sfx())
         }
+    }
+
+    @Test
+    fun a_singleton_tray_speaks_one_exactly_once() {
+        val start = CountState(
+            tokens = persistentListOf(Token(1, ShapeKind.APPLE)),
+        )
+        val (_, beats) = start.playOut()
+        assertEquals(listOf(1), beats.sayCounts())
+        assertTrue(beats.none { it is Beat.SayCardinal })
+        assertTrue(beats.contains(Beat.FlashCount(1)))
     }
 
     @Test
@@ -64,7 +75,7 @@ class CountTest {
     @Test
     fun chips_follow_the_childs_tap_order_not_the_tray_order() {
         val start = CountState(
-            tokens = listOf(
+            tokens = persistentListOf(
                 Token(1, ShapeKind.APPLE),
                 Token(2, ShapeKind.APPLE),
                 Token(3, ShapeKind.APPLE),

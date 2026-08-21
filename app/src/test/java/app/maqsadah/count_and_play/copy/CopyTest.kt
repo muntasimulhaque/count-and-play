@@ -15,6 +15,46 @@ class CopyTest {
         "APPLE", "PEAR", "STAR", "LEAF", "BLOCK", "BEAD", "MELON", "CARROT", "TULIP", "BALL",
     )
 
+    /** Every line a pack can ever produce, spoken or shown. */
+    private fun allLines(copy: Copy): List<String> {
+        val lines = mutableListOf<String>()
+        for (n in 0..20) {
+            lines += copy.numberWord(n)
+            lines += copy.digits(n)
+            lines += copy.cardinal(n)
+        }
+        for (n in 21..99) lines += copy.digits(n)
+        for (name in shapeNames) {
+            lines += copy.itemName(name)
+            lines += copy.objectLabel(name, 0)
+            lines += copy.objectLabel(name, 3)
+        }
+        lines += copy.homeTitle()
+        lines += copy.tileCount()
+        lines += copy.tileAdd()
+        lines += copy.tileTake()
+        lines += copy.promptCount()
+        lines += copy.promptAdd()
+        lines += copy.promptAll()
+        lines += copy.promptLeft()
+        for (b in 1..10) lines += copy.promptTake(b)
+        for (a in 0..5) for (b in 0..5) if (a + b <= 10) lines += copy.factAdd(a, b, a + b)
+        for (n in 0..10) for (b in 0..n) lines += copy.factTake(n, b, n - b)
+        lines += copy.languageName(Language.EN)
+        lines += copy.languageName(Language.BN)
+        lines += copy.firstRunTitleEn()
+        lines += copy.firstRunTitleBn()
+        lines += copy.voiceMissingNote()
+        lines += copy.homeLabel()
+        lines += copy.settingsLabel()
+        lines += copy.closeLabel()
+        lines += copy.soundOnLabel()
+        lines += copy.soundOffLabel()
+        lines += copy.pourReadyState()
+        lines += copy.pourNotYetState()
+        return lines
+    }
+
     @Test
     fun numberWordsCoverZeroToTwenty() {
         for (copy in packs) {
@@ -85,9 +125,8 @@ class CopyTest {
         assertEquals("Count them all!", EnCopy.promptAll())
         assertEquals("How many are left?", EnCopy.promptLeft())
         assertEquals("Four!", EnCopy.cardinal(4))
-        assertEquals("Three and two is five!", EnCopy.factAdd(3, 2, 5))
-        assertEquals("Five take away two is three!", EnCopy.factTake(5, 2, 3))
-        assertEquals("Well done!", EnCopy.celebrate())
+        assertEquals("Three and two make five!", EnCopy.factAdd(3, 2, 5))
+        assertEquals("Five take away two leaves three!", EnCopy.factTake(5, 2, 3))
     }
 
     @Test
@@ -130,7 +169,30 @@ class CopyTest {
         assertEquals("কতগুলো রইলো?", BnCopy.promptLeft())
         assertEquals("তিন যোগ দুই হয় পাঁচ!", BnCopy.factAdd(3, 2, 5))
         assertEquals("পাঁচ বিয়োগ দুই হয় তিন!", BnCopy.factTake(5, 2, 3))
-        assertEquals("সাবাস!", BnCopy.celebrate())
+    }
+
+    @Test
+    fun languageNamesAreWrittenInThemselves() {
+        for (copy in packs) {
+            assertEquals("English", copy.languageName(Language.EN))
+            assertEquals("বাংলা", copy.languageName(Language.BN))
+        }
+    }
+
+    @Test
+    fun firstRunTitlesCarryBothLanguagesFromBothPacks() {
+        for (copy in packs) {
+            assertEquals("Choose your language", copy.firstRunTitleEn())
+            assertEquals("আপনার ভাষা বাছুন", copy.firstRunTitleBn())
+        }
+    }
+
+    @Test
+    fun objectLabelsNameTheItemAndItsCountOrder() {
+        assertEquals("apple", EnCopy.objectLabel("APPLE", 0))
+        assertEquals("apple, three", EnCopy.objectLabel("APPLE", 3))
+        assertEquals("আপেল", BnCopy.objectLabel("APPLE", 0))
+        assertEquals("আপেল, তিন", BnCopy.objectLabel("APPLE", 3))
     }
 
     @Test
@@ -143,31 +205,37 @@ class CopyTest {
     fun noTemplateIsBlankOrCarriesFormatMarkers() {
         for (copy in packs) {
             val lang = copy.javaClass.simpleName
-            val lines = mutableListOf<String>()
-            for (n in 0..20) {
-                lines += copy.numberWord(n)
-                lines += copy.digits(n)
-                lines += copy.cardinal(n)
-            }
-            for (n in 21..99) lines += copy.digits(n)
-            for (name in shapeNames) lines += copy.itemName(name)
-            lines += copy.homeTitle()
-            lines += copy.tileCount()
-            lines += copy.tileAdd()
-            lines += copy.tileTake()
-            lines += copy.promptCount()
-            lines += copy.promptAdd()
-            lines += copy.promptAll()
-            lines += copy.promptLeft()
-            for (b in 1..10) lines += copy.promptTake(b)
-            for (a in 0..5) for (b in 0..5) if (a + b <= 10) lines += copy.factAdd(a, b, a + b)
-            for (n in 0..10) for (b in 0..n) lines += copy.factTake(n, b, n - b)
-            lines += copy.celebrate()
-
-            for (line in lines) {
+            for (line in allLines(copy)) {
                 assertTrue("$lang: blank line", line.isNotBlank())
                 assertFalse("$lang: unreplaced { in '$line'", line.contains('{'))
                 assertFalse("$lang: unreplaced % in '$line'", line.contains('%'))
+            }
+        }
+    }
+
+    @Test
+    fun noLineEverScoldsOrSpeaksFailure() {
+        // Forbidden rule 10 as a test: the word "wrong" is not spoken anywhere,
+        // no retry-demanding scold, no em-dash anywhere.
+        val forbiddenEverywhere = listOf("\u2014")
+        val forbiddenEnglish = listOf("wrong", "try again", "oops", "error", "no!")
+        val forbiddenBengali = listOf("ভুল", "আবার করো", "ঠিক হয়নি")
+        for (copy in packs) {
+            val lang = copy.javaClass.simpleName
+            for (line in allLines(copy)) {
+                for (bad in forbiddenEverywhere) {
+                    assertFalse("$lang: '$bad' in '$line'", line.contains(bad))
+                }
+                if (copy is EnCopy) {
+                    for (bad in forbiddenEnglish) {
+                        assertFalse("$lang: '$bad' in '$line'", line.lowercase().contains(bad))
+                    }
+                }
+                if (copy is BnCopy) {
+                    for (bad in forbiddenBengali) {
+                        assertFalse("$lang: '$bad' in '$line'", line.contains(bad))
+                    }
+                }
             }
         }
     }

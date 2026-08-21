@@ -27,6 +27,12 @@ interface Copy {
      */
     fun itemName(shapeName: String): String
 
+    /**
+     * What one countable says to a screen reader: its name, and when it has
+     * been counted, its order in the child's own count.
+     */
+    fun objectLabel(shapeName: String, countOrder: Int): String
+
     /** The home shelf's question: "What shall we play?" */
     fun homeTitle(): String
 
@@ -55,13 +61,36 @@ interface Copy {
 
     /**
      * The plain arithmetic fact, spoken warmly: the statement itself is better
-     * praise than anything evaluative: "Three and two is five!"
+     * praise than anything evaluative: "Three and two make five!"
      */
     fun factAdd(a: Int, b: Int, total: Int): String
     fun factTake(n: Int, b: Int, left: Int): String
 
-    /** Warm praise after a success: "Well done!" */
-    fun celebrate(): String
+    // -- Grown-up chrome (icon labels for screen readers, settings copy) ----
+
+    /** Each language's own name, written in itself: "English" / "বাংলা". */
+    fun languageName(language: Language): String
+
+    /**
+     * The first-run picker shows both titles at once, before any language is
+     * chosen, so both packs carry both lines identically.
+     */
+    fun firstRunTitleEn(): String
+    fun firstRunTitleBn(): String
+
+    /** Grown-up note shown when the device lacks voice data for the chosen language. */
+    fun voiceMissingNote(): String
+
+    /** Labels for the icon-only controls, for screen readers. */
+    fun homeLabel(): String
+    fun settingsLabel(): String
+    fun closeLabel(): String
+    fun soundOnLabel(): String
+    fun soundOffLabel(): String
+
+    /** State of the pour button, announced alongside its label. */
+    fun pourReadyState(): String
+    fun pourNotYetState(): String
 }
 
 /** The one entry point: a language, and the words that go with it. */

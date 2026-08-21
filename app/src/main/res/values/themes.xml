@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="Theme.CountPlay" parent="android:Theme.Material.Light.NoActionBar">
+        <!-- The resting ground, so the very first frame is already the app's
+             world rather than a flash the Compose surface then replaces. The
+             bar-colour items are gone: at this targetSdk the app is
+             edge-to-edge and they are inert. -->
         <item name="android:windowBackground">@color/tabletop</item>
-        <item name="android:statusBarColor">@color/tabletop</item>
-        <item name="android:navigationBarColor">@color/tabletop</item>
     </style>
 </resources>

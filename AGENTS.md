@@ -4,6 +4,17 @@ An Android app that helps a 3-year-old *see* what addition and subtraction are.
 Built by a father for his son; published on Google Play so other families can
 use it too.
 
+## This file is not the final word
+
+Follow these rules while you work, but they are the current best understanding,
+not the ceiling. If a change you think would genuinely improve the app
+contradicts a rule here, do not silently drop the idea, and do not implement it
+against the rules either. Bring it to the owner: name the rule it conflicts
+with, make the case for the change, and let the owner decide. If the owner
+approves, implement it and revise this file so the rule reflects the new
+decision. A rule that gets overridden is updated, not kept as a dead letter,
+so this file always describes how the app actually works.
+
 ## Two hard constraints (non-negotiable)
 
 1. **No music.** No melodies, tunes, rhythmic beats or instrumental loops. The
@@ -105,6 +116,8 @@ rather than by driving a live emulator.
 13. **The three games are always visible.** Difficulty adapts *inside* a game,
     never to the home screen. Nothing the child has been shown is ever taken
     away.
+14. Prohibit outputting tool calls in XML/DSML/card format text (<invoke>/<parameter> are
+    strictly prohibited). All tool calls must use native tool call.
 
 ## Pedagogy this rests on
 

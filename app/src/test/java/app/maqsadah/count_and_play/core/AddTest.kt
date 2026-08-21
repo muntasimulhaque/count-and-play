@@ -1,5 +1,6 @@
 package app.maqsadah.count_and_play.core
 
+import kotlinx.collections.immutable.persistentListOf
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -32,9 +33,10 @@ class AddTest {
             // Plate A's count, plate B's count, then the whole: 1..a, 1..b, 1..total.
             val expected = (1..start.a).toList() + (1..start.b).toList() + (1..start.total).toList()
             assertEquals(expected, beats.sayCounts())
-            // Each finished plate names its cardinal; the pour is announced.
-            assertTrue(beats.contains(Beat.SayCardinal(start.a)))
-            assertTrue(beats.contains(Beat.SayCardinal(start.b)))
+            // Each finished plate names its cardinal, unless it holds exactly
+            // one token: then the count word already was the cardinal.
+            if (start.a > 1) assertTrue(beats.contains(Beat.SayCardinal(start.a)))
+            if (start.b > 1) assertTrue(beats.contains(Beat.SayCardinal(start.b)))
             assertTrue(beats.contains(Beat.SayPromptAdd))
             assertTrue(beats.contains(Beat.SayPromptAll))
             assertEquals(
@@ -67,8 +69,15 @@ class AddTest {
         val start = AddState(
             a = 3,
             b = 2,
-            plateA = listOf(Token(1, ShapeKind.APPLE), Token(2, ShapeKind.APPLE), Token(3, ShapeKind.APPLE)),
-            plateB = listOf(Token(4, ShapeKind.BALL), Token(5, ShapeKind.BALL)),
+            plateA = persistentListOf(
+                Token(1, ShapeKind.APPLE),
+                Token(2, ShapeKind.APPLE),
+                Token(3, ShapeKind.APPLE),
+            ),
+            plateB = persistentListOf(
+                Token(4, ShapeKind.BALL),
+                Token(5, ShapeKind.BALL),
+            ),
         )
         // A, B, A, B, A: there is no correct order to break.
         var s = start
@@ -92,7 +101,8 @@ class AddTest {
         val start = AddRound.next(1, SeededRng(4))
         val (same, beats) = start.onPour()
         assertEquals(start, same)
-        assertTrue(beats.isEmpty())
+        // The touch is never dead: an asleep button still answers with a tick.
+        assertEquals(listOf(Sfx.TICK), beats.sfx())
 
         // Only plate A counted: still not ready.
         var s = start
@@ -101,7 +111,25 @@ class AddTest {
         assertFalse(s.platesReady)
         val (stillSame, noBeats) = s.onPour()
         assertEquals(s, stillSame)
-        assertTrue(noBeats.isEmpty())
+        assertEquals(listOf(Sfx.TICK), noBeats.sfx())
+    }
+
+    @Test
+    fun a_one_token_plate_finishes_without_repeating_one() {
+        // 1 + 1 is a third of level-0 deals; the voice must not stutter "one ... one".
+        val start = AddState(
+            a = 1,
+            b = 1,
+            plateA = persistentListOf(Token(1, ShapeKind.STAR)),
+            plateB = persistentListOf(Token(2, ShapeKind.BALL)),
+        )
+        val (afterA, beatsA) = start.onTap(1)
+        assertEquals(listOf(1), beatsA.sayCounts())
+        assertTrue(beatsA.none { it is Beat.SayCardinal })
+        val (afterB, beatsB) = afterA.onTap(2)
+        assertEquals(listOf(1), beatsB.sayCounts())
+        assertTrue(beatsB.none { it is Beat.SayCardinal })
+        assertTrue(afterB.platesReady)
     }
 
     @Test
@@ -124,10 +152,10 @@ class AddTest {
         // But the round is not done until the bowl is counted.
         assertFalse(poured.done)
 
-        // A second pour is a no-op.
+        // A second pour changes nothing; it answers with the soft tick.
         val (again, nothing) = poured.onPour()
         assertEquals(poured, again)
-        assertTrue(nothing.isEmpty())
+        assertEquals(listOf(Sfx.TICK), nothing.sfx())
     }
 
     @Test

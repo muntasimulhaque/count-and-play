@@ -1,5 +1,9 @@
 package app.maqsadah.count_and_play.core
 
+import kotlinx.collections.immutable.PersistentList
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toPersistentList
+
 /**
  * One countable object on screen. [counted] marks a finished count (COUNT's
  * tap, ADD's plate and bowl counts, TAKE's leftover count); [gone] marks a
@@ -25,7 +29,7 @@ data class Token(
  * makes no noise.
  */
 data class CountState(
-    val tokens: List<Token>,
+    val tokens: PersistentList<Token>,
     val invalidTaps: Int = 0,
 ) {
     val n: Int get() = tokens.size
@@ -39,14 +43,18 @@ data class CountState(
         val beats = buildList {
             add(Beat.Play(Sfx.TICK))
             add(Beat.SayCount(k))
-            if (k == n) {
+            // A single-object tray would say its number twice back to back;
+            // the counting word already IS the cardinal there.
+            if (k == n && n > 1) {
                 add(Beat.SayCardinal(n))
+            }
+            if (k == n) {
                 add(Beat.FlashCount(n))
                 add(Beat.Confetti)
                 add(Beat.Play(Sfx.CHIME))
             }
         }
-        return CountState(updated, invalidTaps) to beats
+        return CountState(updated.toPersistentList(), invalidTaps) to beats
     }
 
     private fun struggle(): Pair<CountState, List<Beat>> =
@@ -68,9 +76,9 @@ data class CountState(
 data class AddState(
     val a: Int,
     val b: Int,
-    val plateA: List<Token>,
-    val plateB: List<Token>,
-    val bowl: List<Token> = emptyList(),
+    val plateA: PersistentList<Token>,
+    val plateB: PersistentList<Token>,
+    val bowl: PersistentList<Token> = persistentListOf(),
     val poured: Boolean = false,
     val invalidTaps: Int = 0,
 ) {
@@ -85,29 +93,42 @@ data class AddState(
     fun onTap(id: Int): Pair<AddState, List<Beat>> =
         if (poured) tapBowl(id) else tapPlate(id)
 
-    /** The one in-round action that is not a token tap: pour the counted plates. */
+    /**
+     * The one in-round action that is not a token tap: pour the counted plates.
+     * Pouring before both plates are counted plays a soft tick so the touch is
+     * never dead, records no struggle (the asleep button is the UI's job to
+     * prevent), and changes nothing.
+     */
     fun onPour(): Pair<AddState, List<Beat>> {
-        if (poured || !platesReady) return this to emptyList()
+        if (poured || !platesReady) return this to listOf(Beat.Play(Sfx.TICK))
         // Everyone is counted afresh in the bowl; only the part colour stays.
         val moved = plateA.map { it.copy(counted = false, countOrder = 0, origin = 1) } +
             plateB.map { it.copy(counted = false, countOrder = 0, origin = 2) }
         val beats = listOf(Beat.Play(Sfx.RUSTLE), Beat.SayPromptAll)
-        return copy(plateA = emptyList(), plateB = emptyList(), bowl = moved, poured = true) to beats
+        return copy(
+            plateA = persistentListOf(),
+            plateB = persistentListOf(),
+            bowl = moved.toPersistentList(),
+            poured = true,
+        ) to beats
     }
 
     private fun tapPlate(id: Int): Pair<AddState, List<Beat>> {
         val inA = plateA.any { it.id == id }
         val token = plateA.find { it.id == id } ?: plateB.find { it.id == id } ?: return struggle()
         if (token.counted) return struggle()
+        val plateSize = if (inA) a else b
         val k = (if (inA) countedA else countedB) + 1
         val next = copy(
-            plateA = plateA.map { if (it.id == id) it.copy(counted = true, countOrder = k) else it },
-            plateB = plateB.map { if (it.id == id) it.copy(counted = true, countOrder = k) else it },
+            plateA = plateA.map { if (it.id == id) it.copy(counted = true, countOrder = k) else it }.toPersistentList(),
+            plateB = plateB.map { if (it.id == id) it.copy(counted = true, countOrder = k) else it }.toPersistentList(),
         )
         val beats = buildList {
             add(Beat.Play(Sfx.TICK))
             add(Beat.SayCount(k))
-            if (k == (if (inA) a else b)) add(Beat.SayCardinal(k))
+            // A one-token plate just said "one" as its count word; repeating
+            // it as the cardinal stutters at the most formative rounds.
+            if (k == plateSize && k > 1) add(Beat.SayCardinal(k))
             if (next.platesReady) add(Beat.SayPromptAdd)
         }
         return next to beats
@@ -118,7 +139,7 @@ data class AddState(
         if (token.counted) return struggle()
         val k = bowl.count { it.counted } + 1
         val next = copy(
-            bowl = bowl.map { if (it.id == id) it.copy(counted = true, countOrder = k) else it },
+            bowl = bowl.map { if (it.id == id) it.copy(counted = true, countOrder = k) else it }.toPersistentList(),
         )
         val beats = buildList {
             add(Beat.Play(Sfx.TICK))
@@ -150,7 +171,7 @@ data class AddState(
 data class TakeState(
     val n: Int,
     val b: Int,
-    val tokens: List<Token>,
+    val tokens: PersistentList<Token>,
     val invalidTaps: Int = 0,
 ) {
     val removed: Int get() = tokens.count { it.gone }
@@ -174,7 +195,7 @@ data class TakeState(
             add(Beat.SayCount(k))
             if (k == b) add(Beat.SayPromptLeft)
         }
-        return TakeState(n, b, updated, invalidTaps) to beats
+        return TakeState(n, b, updated.toPersistentList(), invalidTaps) to beats
     }
 
     private fun countLeft(id: Int): Pair<TakeState, List<Beat>> {
@@ -190,7 +211,7 @@ data class TakeState(
                 add(Beat.Play(Sfx.CHIME))
             }
         }
-        return TakeState(n, b, updated, invalidTaps) to beats
+        return TakeState(n, b, updated.toPersistentList(), invalidTaps) to beats
     }
 
     private fun struggle(): Pair<TakeState, List<Beat>> =

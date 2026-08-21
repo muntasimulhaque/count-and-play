@@ -21,6 +21,9 @@ import app.maqsadah.count_and_play.host.Screen
 import app.maqsadah.count_and_play.host.UiModel
 import app.maqsadah.count_and_play.ui.GameScreen
 import java.io.File
+import kotlinx.collections.immutable.PersistentList
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toPersistentList
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -137,20 +140,20 @@ class ScreenshotTest {
     )
 
     /** A COUNT tray of [n] tokens, the first [counted] of them already tagged. */
-    private fun tray(shape: ShapeKind, n: Int, counted: Int): List<Token> =
+    private fun tray(shape: ShapeKind, n: Int, counted: Int): PersistentList<Token> =
         List(n) { i ->
             Token(id = i + 1, shape = shape, counted = i < counted, countOrder = if (i < counted) i + 1 else 0)
-        }
+        }.toPersistentList()
 
     /** 3 + 2, both plates fully counted and the button awake. */
     private fun addReady() = AddState(
         a = 3, b = 2,
-        plateA = listOf(
+        plateA = persistentListOf(
             Token(id = 1, shape = ShapeKind.APPLE, counted = true, countOrder = 1),
             Token(id = 2, shape = ShapeKind.APPLE, counted = true, countOrder = 2),
             Token(id = 3, shape = ShapeKind.APPLE, counted = true, countOrder = 3),
         ),
-        plateB = listOf(
+        plateB = persistentListOf(
             Token(id = 4, shape = ShapeKind.CARROT, counted = true, countOrder = 1),
             Token(id = 5, shape = ShapeKind.CARROT, counted = true, countOrder = 2),
         ),
@@ -159,10 +162,10 @@ class ScreenshotTest {
     /** The same 3 + 2 poured and the bowl fully counted. */
     private fun addPoured() = AddState(
         a = 3, b = 2,
-        plateA = emptyList(),
-        plateB = emptyList(),
+        plateA = persistentListOf(),
+        plateB = persistentListOf(),
         poured = true,
-        bowl = listOf(
+        bowl = persistentListOf(
             Token(id = 1, shape = ShapeKind.APPLE, counted = true, countOrder = 1, origin = 1),
             Token(id = 2, shape = ShapeKind.APPLE, counted = true, countOrder = 2, origin = 1),
             Token(id = 3, shape = ShapeKind.APPLE, counted = true, countOrder = 3, origin = 1),
@@ -172,22 +175,22 @@ class ScreenshotTest {
     )
 
     /** A TAKE bowl of five balls, the first [gone] of them removed. */
-    private fun bowlOfBalls(gone: Int): List<Token> =
+    private fun bowlOfBalls(gone: Int): PersistentList<Token> =
         List(5) { i ->
             Token(id = i + 1, shape = ShapeKind.BALL,
                 gone = i < gone, countOrder = if (i < gone) i + 1 else 0)
-        }
+        }.toPersistentList()
 
     /** 5 - 2 with the leftovers counted: two gone wearing their take-away
      *  numbers, the three left counted 1..3. */
-    private fun takeCounted(): List<Token> =
+    private fun takeCounted(): PersistentList<Token> =
         listOf(
             Token(id = 1, shape = ShapeKind.BALL, gone = true, countOrder = 1),
             Token(id = 2, shape = ShapeKind.BALL, gone = true, countOrder = 2),
             Token(id = 3, shape = ShapeKind.BALL, counted = true, countOrder = 1),
             Token(id = 4, shape = ShapeKind.BALL, counted = true, countOrder = 2),
             Token(id = 5, shape = ShapeKind.BALL, counted = true, countOrder = 3),
-        )
+        ).toPersistentList()
 
     // -- Capture ------------------------------------------------------------
 

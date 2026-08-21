@@ -35,11 +35,15 @@ sealed class Round {
  * Everything the core knows about one sitting. Plain data transforms: [tap]
  * and [nextRound] return a fresh state plus beats, so the host owns pacing,
  * persistence and undo. The [Adapt]s are exposed so the host can store them.
+ *
+ * Randomness is carried as a [seed], not a generator: two equal sessions
+ * produce equal futures, so a session can be saved, copied or replayed and
+ * still deal exactly what this child was dealt.
  */
 data class SessionState(
     val skill: Skill,
     val round: Round,
-    val rng: Rng,
+    val seed: Long,
     val adaptCount: Adapt = Adapt(),
     val adaptAdd: Adapt = Adapt(),
     val adaptTake: Adapt = Adapt(),
@@ -50,8 +54,9 @@ data class SessionState(
         Skill.TAKE -> adaptTake
     }
 
-    /** One child tap, routed to the current round. */
+    /** One child tap, routed to the current round. A finished round ignores taps. */
     fun tap(id: Int): Pair<SessionState, List<Beat>> {
+        if (round.done) return this to emptyList()
         val (nextRound, beats) = when (val r = round) {
             is Round.IsCount -> r.state.onTap(id).let { (s, b) -> Round.IsCount(s) to b }
             is Round.IsAdd -> r.state.onTap(id).let { (s, b) -> Round.IsAdd(s) to b }
@@ -60,8 +65,12 @@ data class SessionState(
         return copy(round = nextRound) to beats
     }
 
-    /** The ADD pour button, routed to the current round; every other round ignores it. */
+    /**
+     * The ADD pour button, routed to the current round; every other round
+     * ignores it, and a finished round ignores it too.
+     */
     fun pour(): Pair<SessionState, List<Beat>> {
+        if (round.done) return this to emptyList()
         val r = round
         if (r !is Round.IsAdd) return this to emptyList()
         val (next, beats) = r.state.onPour()
@@ -71,18 +80,20 @@ data class SessionState(
     /**
      * Records the finished round into this skill's [Adapt] and deals the next
      * round of the same skill at the (possibly changed) level. The returned
-     * beats are the new round's start beats.
+     * beats are the new round's start beats. Safe by construction on an
+     * unfinished round: it changes nothing.
      */
     fun nextRound(): Pair<SessionState, List<Beat>> {
-        val invalid = round.invalidTaps
-        val adapted = adapt(skill).record(clean = invalid == 0, invalidTaps = invalid)
-        val next = deal(skill, adapted.level, rng)
+        if (!round.done) return this to emptyList()
+        val adapted = adapt(skill).record(round.invalidTaps)
+        val nextSeed = successorSeed(seed)
+        val next = deal(skill, adapted.level, SeededRng(nextSeed))
         val nextSession = when (skill) {
             Skill.COUNT -> copy(adaptCount = adapted)
             Skill.ADD -> copy(adaptAdd = adapted)
             Skill.TAKE -> copy(adaptTake = adapted)
-        }
-        return nextSession.copy(round = next) to next.startBeats()
+        }.copy(seed = nextSeed, round = next)
+        return nextSession to next.startBeats()
     }
 }
 
@@ -93,6 +104,27 @@ fun deal(skill: Skill, level: Int, rng: Rng): Round = when (skill) {
     Skill.TAKE -> Round.IsTake(TakeRound.next(level, rng))
 }
 
-/** Starts a fresh session for [skill] at level 0. */
-fun choose(skill: Skill, rng: Rng): SessionState =
-    SessionState(skill, deal(skill, 0, rng), rng)
+/**
+ * Starts a fresh session for [skill] at [level] from [seed], carrying any
+ * previously earned adapts. The stored seed is already the successor of the
+ * one used for the first deal, so the stream never repeats a draw.
+ */
+fun startSession(
+    skill: Skill,
+    seed: Long,
+    level: Int = 0,
+    adaptCount: Adapt = Adapt(),
+    adaptAdd: Adapt = Adapt(),
+    adaptTake: Adapt = Adapt(),
+): SessionState = SessionState(
+    skill = skill,
+    round = deal(skill, level, SeededRng(seed)),
+    seed = successorSeed(seed),
+    adaptCount = adaptCount,
+    adaptAdd = adaptAdd,
+    adaptTake = adaptTake,
+)
+
+/** A deterministic, well-mixed step in the seed stream (a 64-bit LCG). */
+fun successorSeed(seed: Long): Long =
+    seed * 6364136223846793005L + 1442695040888963407L

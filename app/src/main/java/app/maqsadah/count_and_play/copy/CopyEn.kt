@@ -1,5 +1,7 @@
 package app.maqsadah.count_and_play.copy
 
+import kotlinx.collections.immutable.toPersistentList
+
 /** English: short, warm, toddler-directed. */
 object EnCopy : Copy {
 
@@ -30,6 +32,10 @@ object EnCopy : Copy {
 
     override fun itemName(shapeName: String): String = items[shapeName] ?: "things"
 
+    override fun objectLabel(shapeName: String, countOrder: Int): String =
+        if (countOrder == 0) itemName(shapeName)
+        else "${itemName(shapeName)}, ${numberWord(countOrder)}"
+
     override fun homeTitle(): String = "What shall we play?"
 
     override fun tileCount(): String = "Count them"
@@ -46,12 +52,30 @@ object EnCopy : Copy {
     override fun cardinal(n: Int): String = "${cap(n)}!"
 
     override fun factAdd(a: Int, b: Int, total: Int): String =
-        "${cap(a)} and ${numberWord(b)} is ${numberWord(total)}!"
+        "${cap(a)} and ${numberWord(b)} make ${numberWord(total)}!"
 
     override fun factTake(n: Int, b: Int, left: Int): String =
-        "${cap(n)} take away ${numberWord(b)} is ${numberWord(left)}!"
+        "${cap(n)} take away ${numberWord(b)} leaves ${numberWord(left)}!"
 
-    override fun celebrate(): String = "Well done!"
+    override fun languageName(language: Language): String = when (language) {
+        Language.EN -> "English"
+        Language.BN -> "বাংলা"
+    }
+
+    override fun firstRunTitleEn(): String = "Choose your language"
+    override fun firstRunTitleBn(): String = "আপনার ভাষা বাছুন"
+
+    override fun voiceMissingNote(): String =
+        "This device has no voice installed for the selected language."
+
+    override fun homeLabel(): String = "Home"
+    override fun settingsLabel(): String = "Settings"
+    override fun closeLabel(): String = "Close"
+    override fun soundOnLabel(): String = "Sound on"
+    override fun soundOffLabel(): String = "Sound off"
+
+    override fun pourReadyState(): String = "Ready"
+    override fun pourNotYetState(): String = "Not yet"
 
     /** The number word with a capital first letter, for sentence starts. */
     private fun cap(n: Int): String = numberWord(n).replaceFirstChar { it.uppercase() }

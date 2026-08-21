@@ -27,7 +27,9 @@ data class UiModel(
     val settingsOpen: Boolean,
     /** True until a language has ever been chosen: shows the first-run picker. */
     val firstRun: Boolean,
-    val flash: Flash?,
+    /** False when the device lacks TTS voice data for the chosen language. */
+    val voiceAvailable: Boolean = true,
+    val flash: Flash? = null,
     /** Increments to fire one confetti burst. */
-    val confettiKey: Int,
+    val confettiKey: Int = 0,
 )

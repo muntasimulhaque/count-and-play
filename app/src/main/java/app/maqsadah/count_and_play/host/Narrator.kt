@@ -7,11 +7,12 @@ import app.maqsadah.count_and_play.copy.Language
 import java.util.Locale
 
 /**
- * Speech, fire-and-forget: the host paces beats with fixed delays, so nothing
- * awaits an utterance. What still holds from the old build: every utterance is
- * epoch-tagged so a late engine callback can never be mistaken for live ones,
- * stopping bumps the epoch before the engine halts, and a foreground/mute gate
- * makes speak a silent no-op whenever the app should not be talking.
+ * Speech, paced by the host on [speaking]: an utterance is fired and the host
+ * then waits until the engine reports it done (bounded, so a wedged engine
+ * cannot stall a round). What still holds from the old build: every utterance
+ * is epoch-tagged so a late engine callback can never be mistaken for live
+ * ones, stopping bumps the epoch before the engine halts, and a foreground/
+ * mute gate makes speak a silent no-op whenever the app should not be talking.
  */
 class Narrator(application: Application, initialLanguage: Language) {
 
@@ -34,6 +35,9 @@ class Narrator(application: Application, initialLanguage: Language) {
 
     init {
         engine = TextToSpeech(application.applicationContext) { status ->
+            // The ViewModel can be cleared before the engine binds; a callback
+            // arriving after release() must not resurrect state.
+            if (engine == null) return@TextToSpeech
             ready = status == TextToSpeech.SUCCESS
             if (ready) {
                 engine?.setSpeechRate(RATE)

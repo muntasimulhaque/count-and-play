@@ -1,5 +1,7 @@
 package app.maqsadah.count_and_play.core
 
+import kotlinx.collections.immutable.toPersistentList
+
 /**
  * Round factories. All randomness flows through the injected [Rng], so every
  * round is reproducible from a seed. Levels are clamped to 0..2 defensively:
@@ -51,12 +53,18 @@ object AddRound {
         val a = rng.range(1, total - 1)
         val b = total - a
         val all = tokens(total, rng)
-        return AddState(a, b, plateA = all.take(a), plateB = all.drop(a))
+        return AddState(a, b, plateA = all.take(a).toPersistentList(), plateB = all.drop(a).toPersistentList())
     }
 }
 
 object TakeRound {
     fun next(level: Int, rng: Rng): TakeState {
+        // The bounds tables must always leave at least one leftover at the
+        // smallest n, or the b range below collapses and every TAKE deal
+        // crashes. Pinned here so a future table edit fails loudly.
+        require(takeN(level).first > takeB(level).first) {
+            "takeB minimum must stay below takeN minimum at level $level"
+        }
         val nBounds = takeN(level)
         val n = rng.range(nBounds.first, nBounds.last)
         val bBounds = takeB(level)
@@ -66,5 +74,5 @@ object TakeRound {
     }
 }
 
-private fun tokens(count: Int, rng: Rng): List<Token> =
-    (1..count).map { Token(it, rng.pick(ShapeKind.all)) }
+private fun tokens(count: Int, rng: Rng) =
+    (1..count).map { Token(it, rng.pick(ShapeKind.all)) }.toPersistentList()

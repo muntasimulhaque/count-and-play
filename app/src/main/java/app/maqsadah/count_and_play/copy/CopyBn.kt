@@ -45,13 +45,19 @@ object BnCopy : Copy {
     override fun digits(n: Int): String =
         n.toString().map { c -> if (c in '0'..'9') numerals[c - '0'] else c }.joinToString("")
 
-    override fun itemName(shapeName: String): String = items[shapeName] ?: "things"
+    override fun itemName(shapeName: String): String = items[shapeName] ?: "জিনিস"
+
+    override fun objectLabel(shapeName: String, countOrder: Int): String =
+        if (countOrder == 0) itemName(shapeName)
+        else "${itemName(shapeName)}, ${numberWord(countOrder)}"
 
     override fun homeTitle(): String = "কী খেলবো?"
 
     override fun tileCount(): String = "গুনে দেখি"
     override fun tileAdd(): String = "একসাথে করি"
-    override fun tileTake(): String = "বের করি"
+    // The tile echoes the instruction verb (বাদ দাও) in the tiles' first-person
+    // register, so picture and voice say the same thing inside the game.
+    override fun tileTake(): String = "বাদ করি"
 
     override fun promptCount(): String = "ট্যাপ করে গুনো!"
     override fun promptAdd(): String = "একসাথে করো!"
@@ -68,5 +74,23 @@ object BnCopy : Copy {
     override fun factTake(n: Int, b: Int, left: Int): String =
         "${numberWord(n)} বিয়োগ ${numberWord(b)} হয় ${numberWord(left)}!"
 
-    override fun celebrate(): String = "সাবাস!"
+    override fun languageName(language: Language): String = when (language) {
+        Language.EN -> "English"
+        Language.BN -> "বাংলা"
+    }
+
+    override fun firstRunTitleEn(): String = "Choose your language"
+    override fun firstRunTitleBn(): String = "আপনার ভাষা বাছুন"
+
+    override fun voiceMissingNote(): String =
+        "এই ডিভাইসে নির্বাচিত ভাষার কণ্ঠস্বর নেই।"
+
+    override fun homeLabel(): String = "হোম"
+    override fun settingsLabel(): String = "সেটিংস"
+    override fun closeLabel(): String = "বন্ধ করুন"
+    override fun soundOnLabel(): String = "শব্দ চালু"
+    override fun soundOffLabel(): String = "শব্দ বন্ধ"
+
+    override fun pourReadyState(): String = "প্রস্তুত"
+    override fun pourNotYetState(): String = "এখনো নয়"
 }

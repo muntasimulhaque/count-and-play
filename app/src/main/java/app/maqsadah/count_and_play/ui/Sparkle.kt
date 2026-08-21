@@ -44,10 +44,12 @@ private val confettiColors = listOf(Blue, Orange, Green, Purple, Pink, Yellow)
 
 /**
  * Fires one burst every time [key] changes to a new non-zero value.
- * The fall runs ~1.5 s and draws nothing once it has landed.
+ * The fall runs ~1.5 s and draws nothing once it has landed. Skipped
+ * entirely when the device has animations switched off system-wide.
  */
 @Composable
 fun Sparkle(key: Int, modifier: Modifier = Modifier) {
+    val reducedMotion = rememberReducedMotion()
     // Fixed seed: every burst looks the same, so success has one face.
     val flecks = remember {
         val random = Random(4)
@@ -64,33 +66,34 @@ fun Sparkle(key: Int, modifier: Modifier = Modifier) {
         }
     }
     val flight = remember { Animatable(0f) }
-    LaunchedEffect(key) {
-        if (key == 0) return@LaunchedEffect
+    LaunchedEffect(key, reducedMotion) {
+        if (key == 0 || reducedMotion) return@LaunchedEffect
         flight.snapTo(0f)
         flight.animateTo(1f, tween(durationMillis = 1500, easing = LinearEasing))
     }
     Box(
         modifier
             .fillMaxSize()
-            .drawBehind {
-                val t = flight.value
-                if (t <= 0f || t >= 1f) return@drawBehind
-                val origin = Offset(size.width / 2f, size.height * 0.42f)
-                val reach = size.minDimension
-                for (fleck in flecks) {
-                    val radians = Math.toRadians(fleck.angle.toDouble())
-                    val x = origin.x + cos(radians).toFloat() * fleck.speed * reach * t
-                    // Thrown up, then gravity takes it: t - t^2 rises and falls.
-                    val y = origin.y + sin(radians).toFloat() * fleck.speed * reach * t +
-                        reach * 1.15f * t * t
-                    val side = fleck.size * reach
-                    val fade = if (t < 0.7f) 1f else 1f - (t - 0.7f) / 0.3f
-                    rotate(fleck.spin * t, pivot = Offset(x, y)) {
-                        drawFleck(fleck.kind, Offset(x, y), side, fleck.color.copy(alpha = fade))
-                    }
-                }
-            },
+            .drawBehind { drawBurst(flecks, flight.value) },
     )
+}
+
+private fun DrawScope.drawBurst(flecks: List<Fleck>, t: Float) {
+    if (t <= 0f || t >= 1f) return
+    val origin = Offset(size.width / 2f, size.height * 0.42f)
+    val reach = size.minDimension
+    for (fleck in flecks) {
+        val radians = Math.toRadians(fleck.angle.toDouble())
+        val x = origin.x + cos(radians).toFloat() * fleck.speed * reach * t
+        // Thrown up, then gravity takes it: t - t^2 rises and falls.
+        val y = origin.y + sin(radians).toFloat() * fleck.speed * reach * t +
+            reach * 1.15f * t * t
+        val side = fleck.size * reach
+        val fade = if (t < 0.7f) 1f else 1f - (t - 0.7f) / 0.3f
+        rotate(fleck.spin * t, pivot = Offset(x, y)) {
+            drawFleck(fleck.kind, Offset(x, y), side, fleck.color.copy(alpha = fade))
+        }
+    }
 }
 
 private fun DrawScope.drawFleck(kind: Int, at: Offset, side: Float, color: Color) {

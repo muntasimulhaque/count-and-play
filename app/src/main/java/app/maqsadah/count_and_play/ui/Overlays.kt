@@ -10,6 +10,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -34,7 +35,16 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.maqsadah.count_and_play.copy.Copy
@@ -47,68 +57,99 @@ private val AdultSize = 16.sp
 /**
  * The big numeral moment after a round completes: the arithmetic itself is the
  * praise, so the card shows nothing else. Pops in at 0.6 and springs to full.
+ * The card is a polite live region, so a screen reader announces the fact too.
  */
 @Composable
 fun FlashOverlay(flash: Flash, copy: Copy) {
+    val reducedMotion = rememberReducedMotion()
     val scale = remember { Animatable(0.6f) }
-    LaunchedEffect(flash) {
-        scale.snapTo(0.6f)
-        scale.animateTo(1f, spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow))
+    LaunchedEffect(flash, reducedMotion) {
+        if (reducedMotion) {
+            scale.snapTo(1f)
+        } else {
+            scale.snapTo(0.6f)
+            scale.animateTo(1f, PopSpring)
+        }
     }
     Box(
-        Modifier.fillMaxSize().background(Color.White.copy(alpha = 0.62f)),
+        Modifier.fillMaxSize().background(Color.White.copy(alpha = 0.45f)),
         contentAlignment = Alignment.Center,
     ) {
-        Column(
-            Modifier
-                .graphicsLayer { scaleX = scale.value; scaleY = scale.value }
-                .background(Liner, RoundedCornerShape(Corner))
-                .border(BorderStroke(OutlineWidth, Yellow), RoundedCornerShape(Corner))
-                .padding(horizontal = 36.dp, vertical = 26.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            when (flash) {
-                is Flash.Count -> {
-                    Numeral(copy.digits(flash.n), Ink)
-                    Text(
-                        copy.celebrate(),
-                        color = Ink,
-                        fontSize = SizeLabel,
-                        fontWeight = ToyBold,
-                        fontFamily = ToyFont,
-                    )
-                }
-                is Flash.Add -> Row(verticalAlignment = Alignment.CenterVertically) {
-                    Numeral(copy.digits(flash.a), Blue)
-                    Operator("+")
-                    Numeral(copy.digits(flash.b), Orange)
-                    Operator("=")
-                    Numeral(copy.digits(flash.total), Green)
-                }
-                is Flash.Take -> Row(verticalAlignment = Alignment.CenterVertically) {
-                    Numeral(copy.digits(flash.n), Blue)
-                    Operator("\u2212")
-                    Numeral(copy.digits(flash.b), Pink)
-                    Operator("=")
-                    Numeral(copy.digits(flash.left), Green)
-                }
+        FactCard(flash, copy, Modifier.graphicsLayer { scaleX = scale.value; scaleY = scale.value })
+    }
+}
+
+/** The pop the fact card lands with. */
+private val PopSpring = spring<Float>(
+    dampingRatio = Spring.DampingRatioMediumBouncy,
+    stiffness = Spring.StiffnessLow,
+)
+
+@Composable
+private fun FactCard(flash: Flash, copy: Copy, modifier: Modifier = Modifier) {
+    Column(
+        modifier
+            .semantics { liveRegion = LiveRegionMode.Polite }
+            .background(Liner, RoundedCornerShape(Corner))
+            .border(BorderStroke(OutlineWidth, Yellow), RoundedCornerShape(Corner))
+            .padding(horizontal = 36.dp, vertical = 26.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        when (flash) {
+            is Flash.Count -> Numeral(copy.digits(flash.n), Ink, SizeFlash)
+            is Flash.Add -> FactRow(
+                glyphs = digitsOf(flash.a) + digitsOf(flash.b) + digitsOf(flash.total),
+            ) { size ->
+                Numeral(copy.digits(flash.a), FlashBlue, size)
+                Operator("+", size)
+                Numeral(copy.digits(flash.b), FlashOrange, size)
+                Operator("=", size)
+                Numeral(copy.digits(flash.total), FlashGreen, size)
+            }
+            is Flash.Take -> FactRow(
+                glyphs = digitsOf(flash.n) + digitsOf(flash.b) + digitsOf(flash.left),
+            ) { size ->
+                Numeral(copy.digits(flash.n), FlashBlue, size)
+                Operator("\u2212", size)
+                Numeral(copy.digits(flash.b), FlashPink, size)
+                Operator("=", size)
+                Numeral(copy.digits(flash.left), FlashGreen, size)
             }
         }
     }
 }
 
+private fun digitsOf(n: Int): Int = n.toString().length
+
+/**
+ * The equation row shrinks to fit whatever width the phone has, so even the
+ * widest fact at the largest accessibility font scale stays fully on screen.
+ */
 @Composable
-private fun Numeral(text: String, color: Color) {
-    Text(text, color = color, fontSize = SizeFlash, fontWeight = ToyBlack, fontFamily = ToyFont)
+private fun FactRow(glyphs: Int, content: @Composable (TextUnit) -> Unit) {
+    BoxWithConstraints(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+        val fontScale = LocalDensity.current.fontScale
+        // Digit glyph ~0.62em, each operator ~0.75em including its padding.
+        val needed = (glyphs * 0.62f + 2 * 0.75f) * SizeFlash.value * fontScale
+        val fit = minOf(1f, maxWidth.value / needed)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            content((SizeFlash.value * fit).sp)
+        }
+    }
 }
 
 @Composable
-private fun Operator(text: String) {
+private fun Numeral(text: String, color: Color, size: TextUnit) {
+    Text(text, color = color, fontSize = size, fontWeight = ToyBlack, fontFamily = ToyFont)
+}
+
+@Composable
+private fun Operator(text: String, size: TextUnit) {
     Text(
         text,
         Modifier.padding(horizontal = 8.dp),
         color = Ink,
-        fontSize = SizeFlash * 0.6f,
+        fontSize = size * 0.6f,
         fontWeight = ToyBlack,
         fontFamily = ToyFont,
     )
@@ -120,50 +161,96 @@ fun SettingsSheet(
     copy: Copy,
     language: Language,
     muted: Boolean,
+    voiceAvailable: Boolean,
     onSetLanguage: (Language) -> Unit,
     onToggleMute: () -> Unit,
     onCloseSettings: () -> Unit,
 ) {
-    Box(Modifier.fillMaxSize().background(Ink.copy(alpha = 0.25f))) {
+    // The scrim swallows outside taps (closing the sheet) so nothing beneath
+    // can be reached by accident, by finger or by screen reader.
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(Ink.copy(alpha = 0.25f))
+            .clickable(remember { MutableInteractionSource() }, indication = null) { onCloseSettings() },
+    ) {
         Column(
             Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .background(Liner, RoundedCornerShape(topStart = Corner, topEnd = Corner))
+                .clickable(remember { MutableInteractionSource() }, indication = null) { }
                 .padding(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Box(Modifier.fillMaxWidth()) {
-                CloseButton(Modifier.align(Alignment.CenterEnd), onCloseSettings)
+                CloseButton(Modifier.align(Alignment.CenterEnd), copy.closeLabel(), onCloseSettings)
             }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                LangButton("English", active = language == Language.EN, big = false, modifier = Modifier.weight(1f)) {
-                    onSetLanguage(Language.EN)
-                }
-                LangButton("বাংলা", active = language == Language.BN, big = false, modifier = Modifier.weight(1f)) {
-                    onSetLanguage(Language.BN)
-                }
+            LanguageRow(copy, language, onSetLanguage)
+            if (!voiceAvailable) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    copy.voiceMissingNote(),
+                    color = Ink.copy(alpha = 0.7f),
+                    fontSize = 13.sp,
+                    fontFamily = ToyFont,
+                )
             }
             Spacer(Modifier.height(14.dp))
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(18.dp))
-                    .clickable(remember { MutableInteractionSource() }, indication = null) { onToggleMute() }
-                    .padding(vertical = 10.dp),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                SpeakerIcon(muted, 32.dp, Ink)
-            }
+            SoundRow(copy, muted, onToggleMute)
         }
+    }
+}
+
+@Composable
+private fun LanguageRow(copy: Copy, language: Language, onSetLanguage: (Language) -> Unit) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+        LangButton(
+            copy.languageName(Language.EN),
+            active = language == Language.EN,
+            big = false,
+            modifier = Modifier.weight(1f),
+        ) { onSetLanguage(Language.EN) }
+        LangButton(
+            copy.languageName(Language.BN),
+            active = language == Language.BN,
+            big = false,
+            modifier = Modifier.weight(1f),
+        ) { onSetLanguage(Language.BN) }
+    }
+}
+
+@Composable
+private fun SoundRow(copy: Copy, muted: Boolean, onToggleMute: () -> Unit) {
+    val description = if (muted) copy.soundOffLabel() else copy.soundOnLabel()
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .clickable(remember { MutableInteractionSource() }, indication = null) { onToggleMute() }
+            .semantics {
+                role = Role.Button
+                contentDescription = description
+            }
+            .padding(vertical = 10.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        SpeakerIcon(muted, 32.dp, Ink)
     }
 }
 
 /** The one-time door: nothing is playable until a language has been chosen. */
 @Composable
-fun FirstRunPicker(onSetLanguage: (Language) -> Unit) {
-    Box(Modifier.fillMaxSize().background(Ground), contentAlignment = Alignment.Center) {
+fun FirstRunPicker(copy: Copy, onSetLanguage: (Language) -> Unit) {
+    // Opaque and tap-swallowing: no touch reaches the shelf beneath it.
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(Ground)
+            .clickable(remember { MutableInteractionSource() }, indication = null) { },
+        contentAlignment = Alignment.Center,
+    ) {
         Column(
             Modifier
                 .padding(28.dp)
@@ -174,13 +261,13 @@ fun FirstRunPicker(onSetLanguage: (Language) -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Text("Choose your language", color = Ink, fontSize = SizeLabel, fontWeight = ToyBlack, fontFamily = ToyFont)
-            Text("আপনার ভাষা বাছুন", color = Ink, fontSize = SizeLabel, fontWeight = ToyBlack, fontFamily = ToyFont)
+            Text(copy.firstRunTitleEn(), color = Ink, fontSize = SizeLabel, fontWeight = ToyBlack, fontFamily = ToyFont)
+            Text(copy.firstRunTitleBn(), color = Ink, fontSize = SizeLabel, fontWeight = ToyBlack, fontFamily = ToyFont)
             Spacer(Modifier.height(4.dp))
-            LangButton("English", active = false, big = true, modifier = Modifier.fillMaxWidth()) {
+            LangButton(copy.languageName(Language.EN), active = false, big = true, modifier = Modifier.fillMaxWidth()) {
                 onSetLanguage(Language.EN)
             }
-            LangButton("বাংলা", active = false, big = true, modifier = Modifier.fillMaxWidth()) {
+            LangButton(copy.languageName(Language.BN), active = false, big = true, modifier = Modifier.fillMaxWidth()) {
                 onSetLanguage(Language.BN)
             }
         }
@@ -197,23 +284,51 @@ private fun LangButton(name: String, active: Boolean, big: Boolean, modifier: Mo
                 BorderStroke(if (active) 4.dp else 2.dp, if (active) Blue else Ink.copy(alpha = 0.2f)),
                 RoundedCornerShape(18.dp),
             )
-            .clickable(remember { MutableInteractionSource() }, indication = null, onClick = onClick),
+            .clickable(remember { MutableInteractionSource() }, indication = null, onClick = onClick)
+            .semantics {
+                role = Role.Button
+                selected = active
+            },
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            name,
-            color = Ink,
-            fontSize = if (big) SizePrompt else AdultSize,
-            fontWeight = ToyBold,
-            fontFamily = ToyFont,
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (active) {
+                TickMark(Blue, 16.dp)
+                Spacer(Modifier.size(8.dp))
+            }
+            Text(
+                name,
+                color = Ink,
+                fontSize = if (big) SizePrompt else AdultSize,
+                fontWeight = ToyBold,
+                fontFamily = ToyFont,
+            )
+        }
+    }
+}
+
+/** A small checkmark: the active choice is marked twice, in colour and shape. */
+@Composable
+private fun TickMark(color: Color, size: Dp) {
+    Canvas(Modifier.size(size)) {
+        val w = this.size.width
+        val h = this.size.height
+        val stroke = w * 0.16f
+        drawLine(color, Offset(w * 0.12f, h * 0.55f), Offset(w * 0.38f, h * 0.85f), stroke, StrokeCap.Round)
+        drawLine(color, Offset(w * 0.38f, h * 0.85f), Offset(w * 0.88f, h * 0.15f), stroke, StrokeCap.Round)
     }
 }
 
 @Composable
-private fun CloseButton(modifier: Modifier, onClose: () -> Unit) {
+private fun CloseButton(modifier: Modifier, description: String, onClose: () -> Unit) {
     Box(
-        modifier.size(48.dp).clickable(remember { MutableInteractionSource() }, indication = null, onClick = onClose),
+        modifier
+            .size(48.dp)
+            .clickable(remember { MutableInteractionSource() }, indication = null, onClick = onClose)
+            .semantics {
+                role = Role.Button
+                contentDescription = description
+            },
         contentAlignment = Alignment.Center,
     ) {
         Canvas(Modifier.size(18.dp)) {

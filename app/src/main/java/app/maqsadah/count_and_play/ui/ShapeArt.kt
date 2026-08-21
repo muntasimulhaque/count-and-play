@@ -75,207 +75,240 @@ fun DrawScope.drawCountable(kind: ShapeKind, cell: Float, detail: Detail = detai
     if (detail == Detail.FULL || detail == Detail.PRIMARY) drawTrim(kind, s, colors, detail)
 }
 
-/** The silhouette. Ten shapes, ten distinct silhouette classes, no collisions. */
-private fun bodyPath(kind: ShapeKind, s: Float): Path {
-    val p = Path()
-    fun m(x: Float, y: Float) = p.moveTo(x * s, y * s)
-    fun l(x: Float, y: Float) = p.lineTo(x * s, y * s)
-    fun q(cx: Float, cy: Float, x: Float, y: Float) = p.quadraticTo(cx * s, cy * s, x * s, y * s)
+// ---- Bodies: ten silhouettes, ten distinct classes, no collisions ----------
 
-    when (kind) {
-        // A circle with a dimple and a stalk.
-        ShapeKind.APPLE -> {
-            m(50f, 24f)
-            q(58f, 14f, 70f, 20f)
-            q(92f, 32f, 88f, 58f)
-            q(84f, 88f, 50f, 90f)
-            q(16f, 88f, 12f, 58f)
-            q(8f, 32f, 30f, 20f)
-            q(42f, 14f, 50f, 24f)
-            p.close()
-        }
-        // The only shape whose width changes down its length.
-        ShapeKind.PEAR -> {
-            m(50f, 12f)
-            q(70f, 16f, 66f, 40f)
-            q(62f, 56f, 78f, 66f)
-            q(92f, 78f, 78f, 88f)
-            q(64f, 96f, 50f, 94f)
-            q(36f, 96f, 22f, 88f)
-            q(8f, 78f, 22f, 66f)
-            q(38f, 56f, 34f, 40f)
-            q(30f, 16f, 50f, 12f)
-            p.close()
-        }
-        // Fat-armed, not spiky: spiky stars read badly at small sizes.
-        ShapeKind.STAR -> {
-            for (i in 0 until 10) {
-                val r = if (i % 2 == 0) 44f else 25f
-                val a = Math.toRadians((-90 + i * 36).toDouble())
-                val x = 50f + r * kotlin.math.cos(a).toFloat()
-                val y = 52f + r * kotlin.math.sin(a).toFloat()
-                if (i == 0) m(x, y) else l(x, y)
-            }
-            p.close()
-        }
-        // A tilted lens with one sharp end.
-        ShapeKind.LEAF -> {
-            m(14f, 84f)
-            q(24f, 30f, 86f, 16f)
-            q(72f, 74f, 14f, 84f)
-            p.close()
-        }
-        // The only orthogonal shape, instantly separable from every fruit.
-        ShapeKind.BLOCK -> {
-            m(16f, 36f)
-            l(46f, 12f)
-            l(88f, 12f)
-            l(88f, 62f)
-            l(58f, 88f)
-            l(16f, 88f)
-            p.close()
-        }
-        // The only shape with a hole in it.
-        ShapeKind.BEAD -> {
-            p.addOval(Rect(6f * s, 6f * s, 94f * s, 94f * s))
-            val hole = Path().apply { addOval(Rect(33f * s, 33f * s, 67f * s, 67f * s)) }
-            return Path.combine(PathOperation.Difference, p, hole)
-        }
-        // A half-disc, flat side up.
-        ShapeKind.MELON -> {
-            m(8f, 30f)
-            l(92f, 30f)
-            q(92f, 92f, 50f, 92f)
-            q(8f, 92f, 8f, 30f)
-            p.close()
-        }
-        // The only downward-pointing wedge.
-        ShapeKind.CARROT -> {
-            m(26f, 28f)
-            l(74f, 28f)
-            q(70f, 62f, 54f, 92f)
-            q(50f, 97f, 46f, 92f)
-            q(30f, 62f, 26f, 28f)
-            p.close()
-        }
-        // A three-pointed cup on a stalk. Distinct from the carrot by pointing up.
-        ShapeKind.TULIP -> {
-            m(24f, 44f)
-            l(35f, 24f)
-            l(42f, 44f)
-            l(50f, 22f)
-            l(58f, 44f)
-            l(65f, 24f)
-            l(76f, 44f)
-            q(76f, 78f, 50f, 80f)
-            q(24f, 78f, 24f, 44f)
-            p.close()
-        }
-        // The only clean circle: nothing else is un-notched, un-holed, un-tipped.
-        ShapeKind.BALL -> p.addOval(Rect(6f * s, 6f * s, 94f * s, 94f * s))
+private fun bodyPath(kind: ShapeKind, s: Float): Path = when (kind) {
+    ShapeKind.APPLE -> appleBody(s)
+    ShapeKind.PEAR -> pearBody(s)
+    ShapeKind.STAR -> starBody(s)
+    ShapeKind.LEAF -> leafBody(s)
+    ShapeKind.BLOCK -> blockBody(s)
+    ShapeKind.BEAD -> beadBody(s)
+    ShapeKind.MELON -> melonBody(s)
+    ShapeKind.CARROT -> carrotBody(s)
+    ShapeKind.TULIP -> tulipBody(s)
+    ShapeKind.BALL -> ballBody(s)
+}
+
+private fun Path.boxed(block: Path.() -> Unit): Path = apply(block)
+
+private fun appleBody(s: Float): Path = Path().boxed {
+    // A circle with a dimple and a stalk.
+    moveTo(50f * s, 24f * s)
+    quadraticTo(58f * s, 14f * s, 70f * s, 20f * s)
+    quadraticTo(92f * s, 32f * s, 88f * s, 58f * s)
+    quadraticTo(84f * s, 88f * s, 50f * s, 90f * s)
+    quadraticTo(16f * s, 88f * s, 12f * s, 58f * s)
+    quadraticTo(8f * s, 32f * s, 30f * s, 20f * s)
+    quadraticTo(42f * s, 14f * s, 50f * s, 24f * s)
+    close()
+}
+
+private fun pearBody(s: Float): Path = Path().boxed {
+    // The only shape whose width changes down its length.
+    moveTo(50f * s, 12f * s)
+    quadraticTo(70f * s, 16f * s, 66f * s, 40f * s)
+    quadraticTo(62f * s, 56f * s, 78f * s, 66f * s)
+    quadraticTo(92f * s, 78f * s, 78f * s, 88f * s)
+    quadraticTo(64f * s, 96f * s, 50f * s, 94f * s)
+    quadraticTo(36f * s, 96f * s, 22f * s, 88f * s)
+    quadraticTo(8f * s, 78f * s, 22f * s, 66f * s)
+    quadraticTo(38f * s, 56f * s, 34f * s, 40f * s)
+    quadraticTo(30f * s, 16f * s, 50f * s, 12f * s)
+    close()
+}
+
+private fun starBody(s: Float): Path = Path().boxed {
+    // Fat-armed, not spiky: spiky stars read badly at small sizes.
+    for (i in 0 until 10) {
+        val r = if (i % 2 == 0) 44f else 25f
+        val a = Math.toRadians((-90 + i * 36).toDouble())
+        val x = (50f + r * kotlin.math.cos(a).toFloat()) * s
+        val y = (52f + r * kotlin.math.sin(a).toFloat()) * s
+        if (i == 0) moveTo(x, y) else lineTo(x, y)
     }
-    return p
+    close()
+}
+
+private fun leafBody(s: Float): Path = Path().boxed {
+    // A tilted lens with one sharp end.
+    moveTo(14f * s, 84f * s)
+    quadraticTo(24f * s, 30f * s, 86f * s, 16f * s)
+    quadraticTo(72f * s, 74f * s, 14f * s, 84f * s)
+    close()
+}
+
+private fun blockBody(s: Float): Path = Path().boxed {
+    // The only orthogonal shape, instantly separable from every fruit.
+    moveTo(16f * s, 36f * s)
+    lineTo(46f * s, 12f * s)
+    lineTo(88f * s, 12f * s)
+    lineTo(88f * s, 62f * s)
+    lineTo(58f * s, 88f * s)
+    lineTo(16f * s, 88f * s)
+    close()
+}
+
+private fun beadBody(s: Float): Path {
+    // The only shape with a hole in it.
+    val outer = Path().apply { addOval(Rect(6f * s, 6f * s, 94f * s, 94f * s)) }
+    val hole = Path().apply { addOval(Rect(33f * s, 33f * s, 67f * s, 67f * s)) }
+    return Path.combine(PathOperation.Difference, outer, hole)
+}
+
+private fun melonBody(s: Float): Path = Path().boxed {
+    // A half-disc, flat side up.
+    moveTo(8f * s, 30f * s)
+    lineTo(92f * s, 30f * s)
+    quadraticTo(92f * s, 92f * s, 50f * s, 92f * s)
+    quadraticTo(8f * s, 92f * s, 8f * s, 30f * s)
+    close()
+}
+
+private fun carrotBody(s: Float): Path = Path().boxed {
+    // The only downward-pointing wedge.
+    moveTo(26f * s, 28f * s)
+    lineTo(74f * s, 28f * s)
+    quadraticTo(70f * s, 62f * s, 54f * s, 92f * s)
+    quadraticTo(50f * s, 97f * s, 46f * s, 92f * s)
+    quadraticTo(30f * s, 62f * s, 26f * s, 28f * s)
+    close()
+}
+
+private fun tulipBody(s: Float): Path = Path().boxed {
+    // A three-pointed cup on a stalk. Distinct from the carrot by pointing up.
+    moveTo(24f * s, 44f * s)
+    lineTo(35f * s, 24f * s)
+    lineTo(42f * s, 44f * s)
+    lineTo(50f * s, 22f * s)
+    lineTo(58f * s, 44f * s)
+    lineTo(65f * s, 24f * s)
+    lineTo(76f * s, 44f * s)
+    quadraticTo(76f * s, 78f * s, 50f * s, 80f * s)
+    quadraticTo(24f * s, 78f * s, 24f * s, 44f * s)
+    close()
+}
+
+private fun ballBody(s: Float): Path = Path().boxed {
+    // The only clean circle: nothing else is un-notched, un-holed, un-tipped.
+    addOval(Rect(6f * s, 6f * s, 94f * s, 94f * s))
 }
 
 /** The lit facet, upper-left, clipped to the body. */
-private fun facetPath(kind: ShapeKind, s: Float): Path {
-    val p = Path()
-    when (kind) {
-        ShapeKind.BLOCK -> {
-            // The block states the light model most plainly: a lit top face.
-            p.moveTo(16f * s, 36f * s)
-            p.lineTo(46f * s, 12f * s)
-            p.lineTo(88f * s, 12f * s)
-            p.lineTo(58f * s, 36f * s)
-            p.close()
+private fun facetPath(kind: ShapeKind, s: Float): Path = when (kind) {
+    ShapeKind.BLOCK ->
+        // The block states the light model most plainly: a lit top face.
+        Path().boxed {
+            moveTo(16f * s, 36f * s)
+            lineTo(46f * s, 12f * s)
+            lineTo(88f * s, 12f * s)
+            lineTo(58f * s, 36f * s)
+            close()
         }
-        else -> {
-            p.moveTo(6f * s, 62f * s)
-            p.quadraticTo(10f * s, 16f * s, 58f * s, 8f * s)
-            p.quadraticTo(30f * s, 26f * s, 30f * s, 62f * s)
-            p.close()
+    else ->
+        Path().boxed {
+            moveTo(6f * s, 62f * s)
+            quadraticTo(10f * s, 16f * s, 58f * s, 8f * s)
+            quadraticTo(30f * s, 26f * s, 30f * s, 62f * s)
+            close()
         }
-    }
-    return p
 }
 
-/** Stems, veins, seeds and grooves, dropped first as the cell gets smaller. */
+// ---- Trims: stems, veins, seeds and grooves, dropped first as cells shrink --
+
 private fun DrawScope.drawTrim(kind: ShapeKind, s: Float, colors: ShapeColors, detail: Detail) {
     when (kind) {
-        ShapeKind.APPLE -> {
-            drawLine(StemBrown, Offset(50f * s, 26f * s), Offset(56f * s, 6f * s), 5f * s, StrokeCap.Round)
-            if (detail == Detail.FULL) {
-                val leaf = Path().apply {
-                    moveTo(54f * s, 14f * s)
-                    quadraticTo(74f * s, 2f * s, 84f * s, 14f * s)
-                    quadraticTo(70f * s, 22f * s, 54f * s, 14f * s)
-                    close()
-                }
-                drawPath(leaf, Green)
-                drawPath(leaf, LeafDark, style = Stroke(2.6f * s))
-            }
-        }
-        ShapeKind.PEAR ->
-            drawLine(StemBrown, Offset(50f * s, 14f * s), Offset(50f * s, 2f * s), 4.6f * s, StrokeCap.Round)
+        ShapeKind.APPLE -> trimApple(s, detail)
+        ShapeKind.PEAR -> trimPear(s)
+        ShapeKind.LEAF -> trimLeaf(s, colors, detail)
+        ShapeKind.BLOCK -> trimBlock(s, colors)
+        ShapeKind.MELON -> trimMelon(s, detail)
+        ShapeKind.CARROT -> trimCarrot(s, colors, detail)
+        ShapeKind.TULIP -> trimTulip(s, detail)
+        ShapeKind.BALL -> trimBall(s)
+        ShapeKind.STAR -> Unit
+        ShapeKind.BEAD -> drawCircle(
+            colors.stroke, radius = 17f * s,
+            center = Offset(50f * s, 50f * s), style = Stroke(3f * s),
+        )
+    }
+}
 
-        ShapeKind.LEAF -> {
-            drawLine(colors.stroke, Offset(18f * s, 80f * s), Offset(80f * s, 22f * s), 3.2f * s, StrokeCap.Round)
-            if (detail == Detail.FULL) {
-                for (i in 1..3) {
-                    val t = i / 4f
-                    val x = 18f + (80f - 18f) * t
-                    val y = 80f + (22f - 80f) * t
-                    drawLine(colors.stroke, Offset(x * s, y * s), Offset((x + 6f) * s, (y - 14f) * s), 2.2f * s, StrokeCap.Round)
-                    drawLine(colors.stroke, Offset(x * s, y * s), Offset((x - 14f) * s, (y + 6f) * s), 2.2f * s, StrokeCap.Round)
-                }
-            }
+private fun DrawScope.trimApple(s: Float, detail: Detail) {
+    drawLine(StemBrown, Offset(50f * s, 26f * s), Offset(56f * s, 6f * s), 5f * s, StrokeCap.Round)
+    if (detail == Detail.FULL) {
+        val leaf = Path().boxed {
+            moveTo(54f * s, 14f * s)
+            quadraticTo(74f * s, 2f * s, 84f * s, 14f * s)
+            quadraticTo(70f * s, 22f * s, 54f * s, 14f * s)
+            close()
         }
-        ShapeKind.BLOCK -> {
-            drawLine(colors.stroke, Offset(16f * s, 36f * s), Offset(58f * s, 36f * s), 3f * s)
-            drawLine(colors.stroke, Offset(58f * s, 36f * s), Offset(58f * s, 88f * s), 3f * s)
-            drawLine(colors.stroke, Offset(58f * s, 36f * s), Offset(88f * s, 12f * s), 3f * s)
-        }
-        ShapeKind.MELON -> {
-            drawLine(MelonRind, Offset(8f * s, 34f * s), Offset(92f * s, 34f * s), 9f * s)
-            if (detail == Detail.FULL) {
-                // Four seeds in an arc following the rind, deliberately NOT
-                // two-above-one, which the eye reads as two eyes and a mouth.
-                // Pareidolia is still a face, and this app does not draw faces.
-                for ((x, y) in listOf(28f to 52f, 42f to 60f, 58f to 60f, 72f to 52f)) {
-                    drawOval(MelonSeed, Offset((x - 3.5f) * s, (y - 5f) * s), Size(7f * s, 10f * s))
-                }
-            }
-        }
-        ShapeKind.CARROT -> {
-            for (fx in listOf(-26f, 0f, 26f)) {
-                drawLine(Green, Offset(50f * s, 30f * s), Offset((50f + fx) * s, 4f * s), 5.4f * s, StrokeCap.Round)
-            }
-            if (detail == Detail.FULL) {
-                for (y in listOf(44f, 58f, 72f)) {
-                    val half = (24f - (y - 44f) * 0.42f) * 0.6f
-                    drawLine(colors.stroke, Offset((50f - half) * s, y * s), Offset((50f + half) * s, y * s), 2.6f * s, StrokeCap.Round)
-                }
-            }
-        }
-        ShapeKind.TULIP -> {
-            drawLine(Green, Offset(50f * s, 78f * s), Offset(50f * s, 98f * s), 5f * s, StrokeCap.Round)
-            if (detail == Detail.FULL) {
-                drawLine(Green, Offset(50f * s, 88f * s), Offset(26f * s, 80f * s), 5f * s, StrokeCap.Round)
-                drawLine(Green, Offset(50f * s, 92f * s), Offset(74f * s, 86f * s), 5f * s, StrokeCap.Round)
-            }
-        }
-        ShapeKind.BALL -> {
-            val band = Stroke(width = 9f * s, cap = StrokeCap.Butt)
-            val arc = Path().apply { moveTo(9f * s, 40f * s); quadraticTo(50f * s, 30f * s, 91f * s, 40f * s) }
-            val arc2 = Path().apply { moveTo(12f * s, 66f * s); quadraticTo(50f * s, 76f * s, 88f * s, 66f * s) }
-            drawPath(arc, Liner, style = band)
-            drawPath(arc2, Liner, style = band)
-        }
-        ShapeKind.STAR, ShapeKind.BEAD -> Unit
+        drawPath(leaf, Green)
+        drawPath(leaf, LeafDark, style = Stroke(2.6f * s))
     }
-    if (kind == ShapeKind.BEAD) {
-        drawCircle(colors.stroke, radius = 17f * s, center = Offset(50f * s, 50f * s), style = Stroke(3f * s))
+}
+
+private fun DrawScope.trimPear(s: Float) {
+    drawLine(StemBrown, Offset(50f * s, 14f * s), Offset(50f * s, 2f * s), 4.6f * s, StrokeCap.Round)
+}
+
+private fun DrawScope.trimLeaf(s: Float, colors: ShapeColors, detail: Detail) {
+    drawLine(colors.stroke, Offset(18f * s, 80f * s), Offset(80f * s, 22f * s), 3.2f * s, StrokeCap.Round)
+    if (detail == Detail.FULL) {
+        for (i in 1..3) {
+            val t = i / 4f
+            val x = 18f + (80f - 18f) * t
+            val y = 80f + (22f - 80f) * t
+            drawLine(colors.stroke, Offset(x * s, y * s), Offset((x + 6f) * s, (y - 14f) * s), 2.2f * s, StrokeCap.Round)
+            drawLine(colors.stroke, Offset(x * s, y * s), Offset((x - 14f) * s, (y + 6f) * s), 2.2f * s, StrokeCap.Round)
+        }
     }
+}
+
+private fun DrawScope.trimBlock(s: Float, colors: ShapeColors) {
+    drawLine(colors.stroke, Offset(16f * s, 36f * s), Offset(58f * s, 36f * s), 3f * s)
+    drawLine(colors.stroke, Offset(58f * s, 36f * s), Offset(58f * s, 88f * s), 3f * s)
+    drawLine(colors.stroke, Offset(58f * s, 36f * s), Offset(88f * s, 12f * s), 3f * s)
+}
+
+private fun DrawScope.trimMelon(s: Float, detail: Detail) {
+    drawLine(MelonRind, Offset(8f * s, 34f * s), Offset(92f * s, 34f * s), 9f * s)
+    if (detail == Detail.FULL) {
+        // Four seeds in an arc following the rind, deliberately NOT
+        // two-above-one, which the eye reads as two eyes and a mouth.
+        // Pareidolia is still a face, and this app does not draw faces.
+        for ((x, y) in listOf(28f to 52f, 42f to 60f, 58f to 60f, 72f to 52f)) {
+            drawOval(MelonSeed, Offset((x - 3.5f) * s, (y - 5f) * s), Size(7f * s, 10f * s))
+        }
+    }
+}
+
+private fun DrawScope.trimCarrot(s: Float, colors: ShapeColors, detail: Detail) {
+    for (fx in listOf(-26f, 0f, 26f)) {
+        drawLine(Green, Offset(50f * s, 30f * s), Offset((50f + fx) * s, 4f * s), 5.4f * s, StrokeCap.Round)
+    }
+    if (detail == Detail.FULL) {
+        for (y in listOf(44f, 58f, 72f)) {
+            val half = (24f - (y - 44f) * 0.42f) * 0.6f
+            drawLine(colors.stroke, Offset((50f - half) * s, y * s), Offset((50f + half) * s, y * s), 2.6f * s, StrokeCap.Round)
+        }
+    }
+}
+
+private fun DrawScope.trimTulip(s: Float, detail: Detail) {
+    drawLine(Green, Offset(50f * s, 78f * s), Offset(50f * s, 98f * s), 5f * s, StrokeCap.Round)
+    if (detail == Detail.FULL) {
+        drawLine(Green, Offset(50f * s, 88f * s), Offset(26f * s, 80f * s), 5f * s, StrokeCap.Round)
+        drawLine(Green, Offset(50f * s, 92f * s), Offset(74f * s, 86f * s), 5f * s, StrokeCap.Round)
+    }
+}
+
+private fun DrawScope.trimBall(s: Float) {
+    val band = Stroke(width = 9f * s, cap = StrokeCap.Butt)
+    val arc = Path().boxed { moveTo(9f * s, 40f * s); quadraticTo(50f * s, 30f * s, 91f * s, 40f * s) }
+    val arc2 = Path().boxed { moveTo(12f * s, 66f * s); quadraticTo(50f * s, 76f * s, 88f * s, 66f * s) }
+    drawPath(arc, Liner, style = band)
+    drawPath(arc2, Liner, style = band)
 }
 
 /**

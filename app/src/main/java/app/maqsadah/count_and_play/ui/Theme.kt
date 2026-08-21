@@ -24,6 +24,14 @@ val SeatA = Color(0xFFCFE9FB)
 val SeatB = Color(0xFFFDE3C4)
 val ChipBlue = Color(0xFF27357A)
 
+// The fact card's variants of the candy hues: same families, darkened enough
+// to clear the 3:1 large-text contrast floor on the white liner. Used only on
+// the flash card, where the numerals must survive glare and low vision.
+val FlashBlue = Color(0xFF0B72A8)
+val FlashOrange = Color(0xFFAD5A00)
+val FlashGreen = Color(0xFF1E803E)
+val FlashPink = Color(0xFFC2266F)
+
 /** The two shared measures: the fat outline everything is drawn with, and the one corner radius. */
 val OutlineWidth = 6.dp
 val Corner = 28.dp

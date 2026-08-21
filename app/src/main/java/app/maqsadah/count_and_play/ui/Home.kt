@@ -27,6 +27,10 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -54,7 +58,7 @@ fun HomeScreen(copy: Copy, onChoose: (Skill) -> Unit, onOpenSettings: () -> Unit
                 fontWeight = ToyBlack,
                 fontFamily = ToyFont,
             )
-            GearButton(Modifier, onOpenSettings)
+            GearButton(Modifier, copy.settingsLabel(), onOpenSettings)
         }
         Tile(Skill.COUNT, Blue, copy.tileCount(), Modifier.weight(1f), onChoose) { CountMini() }
         Tile(Skill.ADD, Green, copy.tileAdd(), Modifier.weight(1f), onChoose) { AddMini() }
@@ -77,7 +81,8 @@ private fun Tile(
             .padding(vertical = 7.dp)
             .background(rim.copy(alpha = 0.14f), RoundedCornerShape(Corner))
             .border(BorderStroke(OutlineWidth, rim), RoundedCornerShape(Corner))
-            .clickable(remember { MutableInteractionSource() }, indication = null) { onChoose(skill) },
+            .clickable(remember { MutableInteractionSource() }, indication = null) { onChoose(skill) }
+            .semantics { role = Role.Button },
         contentAlignment = Alignment.Center,
     ) {
         mini()
@@ -93,9 +98,15 @@ private fun Tile(
 }
 
 @Composable
-private fun GearButton(modifier: Modifier, onOpenSettings: () -> Unit) {
+private fun GearButton(modifier: Modifier, description: String, onOpenSettings: () -> Unit) {
     Box(
-        modifier.size(52.dp).clickable(remember { MutableInteractionSource() }, indication = null) { onOpenSettings() },
+        modifier
+            .size(52.dp)
+            .clickable(remember { MutableInteractionSource() }, indication = null) { onOpenSettings() }
+            .semantics {
+                role = Role.Button
+                contentDescription = description
+            },
         contentAlignment = Alignment.Center,
     ) {
         GearIcon(30.dp, Ink)

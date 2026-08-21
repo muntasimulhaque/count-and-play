@@ -16,7 +16,8 @@ import app.maqsadah.count_and_play.host.UiModel
 /**
  * The one composable the host renders: the current screen, then celebration,
  * then the grown-up layers, each above the last. Everything reads from [ui];
- * nothing here owns state.
+ * nothing here owns state. The first-run picker replaces the whole shelf
+ * rather than covering it, so nothing beneath is composed at all.
  */
 @Composable
 fun GameScreen(
@@ -34,26 +35,30 @@ fun GameScreen(
     // clear of the (transient) system bars. When the bars are hidden this
     // padding is zero, so the toy-box still owns every pixel.
     Box(Modifier.fillMaxSize().background(Ground).safeDrawingPadding()) {
-        when (val screen = ui.screen) {
-            Screen.Home -> HomeScreen(copy = ui.copy, onChoose = onChoose, onOpenSettings = onOpenSettings)
-            is Screen.Count -> CountScreen(state = screen.state, copy = ui.copy, onTap = onTapToken, onHome = onHome)
-            is Screen.Add -> AddScreen(state = screen.state, copy = ui.copy, onTap = onTapToken, onPour = onPour, onHome = onHome)
-            is Screen.Take -> TakeScreen(state = screen.state, copy = ui.copy, onTap = onTapToken, onHome = onHome)
-        }
-        Sparkle(key = ui.confettiKey)
-        ui.flash?.let { flash -> FlashOverlay(flash = flash, copy = ui.copy) }
-        if (ui.settingsOpen) {
-            SettingsSheet(
-                copy = ui.copy,
-                language = languageOf(ui.copy),
-                muted = ui.muted,
-                onSetLanguage = onSetLanguage,
-                onToggleMute = onToggleMute,
-                onCloseSettings = onCloseSettings,
-            )
-        }
         if (ui.firstRun) {
-            FirstRunPicker(onSetLanguage = onSetLanguage)
+            FirstRunPicker(copy = ui.copy, onSetLanguage = onSetLanguage)
+        } else {
+            when (val screen = ui.screen) {
+                Screen.Home -> HomeScreen(copy = ui.copy, onChoose = onChoose, onOpenSettings = onOpenSettings)
+                is Screen.Count -> CountScreen(state = screen.state, copy = ui.copy, onTap = onTapToken, onHome = onHome)
+                is Screen.Add -> AddScreen(state = screen.state, copy = ui.copy, onTap = onTapToken, onPour = onPour, onHome = onHome)
+                is Screen.Take -> TakeScreen(state = screen.state, copy = ui.copy, onTap = onTapToken, onHome = onHome)
+            }
+            ui.flash?.let { flash -> FlashOverlay(flash = flash, copy = ui.copy) }
+            // Confetti above the fact card's scrim: the paper falls in front of
+            // the arithmetic, not dimmed behind it.
+            Sparkle(key = ui.confettiKey)
+            if (ui.settingsOpen) {
+                SettingsSheet(
+                    copy = ui.copy,
+                    language = languageOf(ui.copy),
+                    muted = ui.muted,
+                    voiceAvailable = ui.voiceAvailable,
+                    onSetLanguage = onSetLanguage,
+                    onToggleMute = onToggleMute,
+                    onCloseSettings = onCloseSettings,
+                )
+            }
         }
     }
 }

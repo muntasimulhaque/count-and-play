@@ -4,13 +4,13 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.getValue
 import app.maqsadah.count_and_play.host.GameHost
 import app.maqsadah.count_and_play.ui.GameScreen
 
@@ -27,8 +27,8 @@ class MainActivity : ComponentActivity() {
         // swipe, and the UI's safe-insets padding keeps content clear of them.
         keepBarsHidden()
         lifecycle.addObserver(object : DefaultLifecycleObserver {
-            // A backgrounded app stops talking; the round resumes where it
-            // stopped when the child returns.
+            // A backgrounded app stops talking; on return the host re-performs
+            // whatever beats the interruption cut short.
             override fun onStart(owner: LifecycleOwner) {
                 // The system may re-show the bars while the app is away.
                 keepBarsHidden()
@@ -37,7 +37,7 @@ class MainActivity : ComponentActivity() {
             override fun onStop(owner: LifecycleOwner) = host.pause()
         })
         setContent {
-            val ui by host.ui.collectAsState()
+            val ui by host.ui.collectAsStateWithLifecycle()
             GameScreen(
                 ui = ui,
                 onChoose = host::choose,

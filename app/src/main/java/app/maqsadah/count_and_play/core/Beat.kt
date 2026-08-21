@@ -36,9 +36,6 @@ sealed class Beat {
     /** "n take away b leaves left". */
     data class SayFactTake(val n: Int, val b: Int, val left: Int) : Beat()
 
-    /** A generic praise line. */
-    object SayCelebrate : Beat()
-
     /** Play one sound effect. */
     data class Play(val sfx: Sfx) : Beat()
 

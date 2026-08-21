@@ -14,8 +14,8 @@ android {
         applicationId = "app.maqsadah.count_and_play.twa"
         minSdk = 23
         targetSdk = 37
-        versionCode = 20
-        versionName = "7.0"
+        versionCode = 21
+        versionName = "7.1"
 
         // Instrumented tests (the emulator screenshot capture) use AndroidX's runner.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -38,8 +38,8 @@ android {
     buildTypes {
         release {
             // R8 code shrinking + resource shrinking. Safe here: no reflection,
-            // serialization, or JNI — only framework APIs (TextToSpeech) and Compose,
-            // both of which ship their own keep rules.
+            // serialization, or JNI, only framework APIs (TextToSpeech) and
+            // Compose, both of which ship their own keep rules.
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
@@ -60,20 +60,34 @@ android {
     buildFeatures {
         compose = true
     }
+    lint {
+        // Full lint runs in CI next to the unit tests (:app:lintRelease), not
+        // just the vital subset that rides along with assembleRelease.
+        abortOnError = true
+        checkDependencies = false
+    }
 }
 
 dependencies {
-    val composeBom = platform("androidx.compose:compose-bom:2024.12.01")
+    // The Compose BOM governs every Compose artifact. Keep it reasonably
+    // current: ui-test releases after 1.7 work on API 35+ emulators again,
+    // which is what lets instrumented runs happen on modern local images.
+    val composeBom = platform("androidx.compose:compose-bom:2026.08.00")
     implementation(composeBom)
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("androidx.activity:activity-compose:1.9.3")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
     // GameViewModel: ViewModel + viewModelScope (viewmodel-compose pulls in
     // lifecycle-viewmodel, which since 2.8.x also carries viewModelScope).
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.material3:material3")
+    // Pure-JVM persistent collections: the domain's list fields stay immutable
+    // values, so Compose can see domain states as stable without any Android
+    // or Compose annotation touching core/.
+    implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable:0.3.8")
 
     testImplementation("junit:junit:4.13.2")
 
