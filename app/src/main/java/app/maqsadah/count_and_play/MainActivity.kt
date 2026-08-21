@@ -4,15 +4,22 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.runtime.getValue
 import app.maqsadah.count_and_play.host.GameHost
 import app.maqsadah.count_and_play.ui.GameScreen
+
+/** The most the toy-box lets system font scaling grow its words. */
+private const val MAX_FONT_SCALE = 1.3f
 
 class MainActivity : ComponentActivity() {
 
@@ -37,18 +44,28 @@ class MainActivity : ComponentActivity() {
             override fun onStop(owner: LifecycleOwner) = host.pause()
         })
         setContent {
-            val ui by host.ui.collectAsStateWithLifecycle()
-            GameScreen(
-                ui = ui,
-                onChoose = host::choose,
-                onTapToken = host::tap,
-                onPour = host::pour,
-                onHome = host::home,
-                onOpenSettings = host::openSettings,
-                onCloseSettings = host::closeSettings,
-                onSetLanguage = host::setLanguage,
-                onToggleMute = host::toggleMute,
-            )
+            // A toy-box, not a document: text follows the system font setting,
+            // but only so far. Past this cap the words stop fitting the fixed
+            // play surfaces and begin to overlap them, which serves nobody, so
+            // the whole UI is composed under a bounded density instead.
+            val system = LocalDensity.current
+            val capped = remember(system.fontScale) {
+                Density(density = system.density, fontScale = minOf(system.fontScale, MAX_FONT_SCALE))
+            }
+            CompositionLocalProvider(LocalDensity provides capped) {
+                val ui by host.ui.collectAsStateWithLifecycle()
+                GameScreen(
+                    ui = ui,
+                    onChoose = host::choose,
+                    onTapToken = host::tap,
+                    onPour = host::pour,
+                    onHome = host::home,
+                    onOpenSettings = host::openSettings,
+                    onCloseSettings = host::closeSettings,
+                    onSetLanguage = host::setLanguage,
+                    onToggleMute = host::toggleMute,
+                )
+            }
         }
     }
 

@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -278,7 +279,9 @@ fun FirstRunPicker(copy: Copy, onSetLanguage: (Language) -> Unit) {
 private fun LangButton(name: String, active: Boolean, big: Boolean, modifier: Modifier, onClick: () -> Unit) {
     Box(
         modifier
-            .height(if (big) 72.dp else 56.dp)
+            // A floor, not a ceiling: the box grows with the text under the
+            // capped font scale, so no label ever clips at any setting.
+            .heightIn(min = if (big) 72.dp else 56.dp)
             .background(if (active) Blue.copy(alpha = 0.18f) else Color.White, RoundedCornerShape(18.dp))
             .border(
                 BorderStroke(if (active) 4.dp else 2.dp, if (active) Blue else Ink.copy(alpha = 0.2f)),
@@ -288,7 +291,8 @@ private fun LangButton(name: String, active: Boolean, big: Boolean, modifier: Mo
             .semantics {
                 role = Role.Button
                 selected = active
-            },
+            }
+            .padding(horizontal = 10.dp),
         contentAlignment = Alignment.Center,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
