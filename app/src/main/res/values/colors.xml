@@ -6,8 +6,8 @@
     <color name="tabletop">#FDF2D2</color>
     <color name="tray">#FFFFFF</color>
     <color name="tray_rim">#F0B32B</color>
-    <!-- The launcher foreground PNG is opaque and fills its tile, so this is
-         only ever seen at the very edge of a mask. Matched to the blue baked
-         into that artwork so no sliver of another colour can show. -->
-    <color name="ic_launcher_background">#74C7E3</color>
+    <!-- The adaptive icon's background: the candy blue the foreground trio
+         is drawn on. Matched to tools/make_art.py, which regenerates the
+         launcher PNGs and the store icon. -->
+    <color name="ic_launcher_background">#1CA9E8</color>
 </resources>
