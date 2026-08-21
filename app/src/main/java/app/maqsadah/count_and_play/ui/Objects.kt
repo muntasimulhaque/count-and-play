@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -42,7 +41,9 @@ import app.maqsadah.count_and_play.core.ShapeKind
 private val RimWidth = 8.dp
 private val TrayPad = 14.dp
 private val TrayGap = 10.dp
-private val ChipDiameter = 26.dp
+
+// Room for two digits ("10" / "১০") at the chip's font without going oval.
+private val ChipDiameter = 30.dp
 
 // A three-year-old's finger lands with a wide margin; anything tappable gets
 // at least this much target, whatever the visible object inside it measures.
@@ -138,17 +139,17 @@ private fun CountableContent(shape: ShapeKind, sizeDp: Dp, seat: Color?, chip: S
 }
 
 /**
- * The numbered chip in the child's own tap order. aspectRatio keeps it a true
- * circle even for two-digit chips like 10.
+ * The numbered chip in the child's own tap order. A fixed square, so it stays
+ * a true circle even for two-digit chips like 10: aspectRatio under loose
+ * constraints would balloon it to fill the tray.
  */
 @Composable
 private fun CountChip(text: String, modifier: Modifier = Modifier) {
     Box(
         modifier
-            .sizeIn(minWidth = ChipDiameter, minHeight = ChipDiameter)
-            .aspectRatio(1f)
+            .size(ChipDiameter)
             .background(ChipBlue, CircleShape)
-            .padding(3.dp),
+            .padding(2.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(text, color = Color.White, fontSize = SizeChip, fontWeight = ToyBlack, fontFamily = ToyFont)
