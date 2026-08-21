@@ -191,7 +191,7 @@ Then deliver the whole upload kit to the owner in one place:
 
 1. The signed AAB, downloaded to `aab/` (gitignored).
 2. The new screenshots in `store-shots/` (gitignored), phone set at minimum.
-3. Release notes in the chat, ready to paste: English and Bengali, plain prose,
+3. Release notes in the chat, ready to paste: English only, plain prose,
    no quotes, no markdown, no em-dashes (see Style).
 
 The owner uploads the AAB to Play Console (alpha for testers, Production for
