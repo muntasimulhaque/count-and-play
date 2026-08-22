@@ -26,3 +26,4 @@ Thumbs.db
 # Locally downloaded store assets (AAB, screenshots) for Play Console upload.
 aab/
 store-shots/
+__pycache__/

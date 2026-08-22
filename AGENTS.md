@@ -155,9 +155,16 @@ release builds run locally in seconds.
 **Instrumented tests** run on the installed API 35+ emulator images since the
 Compose BOM bump (2026.08.00 lifted the old `InputManager.getInstance`
 limitation), but the discipline stands: **any UI change must be verified from
-the CI screenshot artifacts, not locally.** Do not assume a UI change is
-correct because it compiles: v4.0 shipped a layout bug to a submitted release
-that way, and the rendered screenshots caught it minutes later.
+the rendered screenshot artifacts, not by reading code.** Do not assume a UI
+change is correct because it compiles: v4.0 shipped a layout bug to a
+submitted release that way, and the rendered screenshots caught it minutes
+later.
+
+**Standing rule: verify on the newest image the app targets, never an older
+one.** The app targets compileSdk/targetSdk 37, so UI verification runs on an
+android-37.1 image (the Pixel_4 AVD locally, matching the app's target), not
+on whatever older image happens to boot fastest. Dropping down a level hides
+exactly the kind of break this discipline exists to catch.
 
 ## Commits
 
