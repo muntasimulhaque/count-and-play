@@ -55,7 +55,7 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class ScreenshotTest {
 
-    private fun outDir(): File {
+    private fun resolveOutDir(): File {
         val path = InstrumentationRegistry.getArguments().getString("additionalTestOutputDir")
         if (path != null) {
             val dir = File(path)
@@ -112,7 +112,7 @@ class ScreenshotTest {
 
     @Test
     fun captureStoreScreenshots() {
-        val outDir = outDir()
+        val outDir = resolveOutDir()
         val scenario = launch()
 
         // The shelf: everything the app offers, on the very first screen.
@@ -251,7 +251,7 @@ class ScreenshotTest {
 
     // -- Capture ------------------------------------------------------------
 
-    private fun shoot(scenario: ActivityScenario<ComponentActivity>, name: String, state: () -> UiModel) {
+    private fun shoot(outDir: File, scenario: ActivityScenario<ComponentActivity>, name: String, state: () -> UiModel) {
         push(state())
         lateinit var bitmap: Bitmap
         scenario.onActivity { activity -> bitmap = captureWindow(activity) }
