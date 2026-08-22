@@ -47,7 +47,7 @@ jobs:
       # api-level: 37 while the actual image pins 37.0 through the action's
       # dedicated system-image-api-level input.
       API_LEVEL: 37
-      SYSTEM_IMAGE_LEVEL: 37.0
+      SYSTEM_IMAGE_LEVEL: "37.0"
     steps:
       - name: Check out source
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
