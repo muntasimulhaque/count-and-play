@@ -1,10 +1,13 @@
 """Generates the store art and launcher icons, deterministically.
 
-Everything here is drawn in the app's own design language: the flat warm
-ground, the candy palette with each hue's darker outline, hard-edged facets
-instead of gradients, and the ten vector shapes ported from ShapeArt.kt by
-sampling the same quadratic paths. No stock clip-art, no gradients, no faces,
-so the no-animate-beings rule holds on the store shelf too.
+The 2025 redesign. Flat clip-art is gone; this is the app's candy palette
+rendered with real light: soft contact shadows, shaded materials, one crisp
+specular per object, a warm ground with a quiet vignette and confetti.
+
+The icon is the app's whole idea in one glance: two balls and three balls
+seated on a plate, the parts you can count inside the whole they make.
+The feature graphic stages that same fact as its hero, 2 + 3 with a giant
+glossy 5 as the payoff, beside a title set like toy lettering.
 
 Run:  python tools/make_art.py
 
@@ -12,272 +15,120 @@ Outputs:
   play-store/feature-graphic-1024x500.png
   play-store/play-icon-512.png
   app/src/main/res/mipmap-*/ic_launcher.png            (legacy, rounded)
-  app/src/main/res/mipmap-*/ic_launcher_foreground.png (adaptive, safe zone)
+  app/src/main/res/mipmap-*/ic_launcher_foreground.png (adaptive, full bleed)
 """
 
-import math
 import os
+import random
 
-from PIL import Image, ImageChops, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
-# -- The palette, verbatim from ui/Theme.kt ---------------------------------
-
-GROUND = (255, 246, 227, 255)
-INK = (34, 38, 46, 255)
-BLUE = (28, 169, 232, 255)
-LINER = (251, 251, 249, 255)
-CHIP_BLUE = (39, 53, 122, 255)
-
-APPLE_FILL = (227, 59, 44, 255)
-APPLE_STROKE = (140, 29, 18, 255)
-APPLE_FACET = (244, 105, 92, 255)
-CARROT_FILL = (240, 106, 14, 255)
-CARROT_STROKE = (138, 58, 5, 255)
-BALL_FILL = (14, 160, 174, 255)
-BALL_STROKE = (4, 82, 90, 255)
-BALL_FACET = (68, 192, 204, 255)
-GREEN = (51, 168, 82, 255)
-LEAF_DARK = (27, 107, 55, 255)
-STEM_BROWN = (122, 82, 51, 255)
+from artkit import (INK, SHADOW_WARM, WHITE, ball_tile, capsule, confetti,
+                    corner_shade, darken, place_tile, plate_tile, rgrad,
+                    soft_ellipse, star4, sticker_text, vgrad)
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 STORE = os.path.join(ROOT, "play-store")
 RES = os.path.join(ROOT, "app", "src", "main", "res")
 
-FONT_PATHS = [
-    r"C:\Windows\Fonts\ariblk.ttf",   # Arial Black, closest to ToyBlack
-    r"C:\Windows\Fonts\seguibl.ttf",  # Segoe UI Black fallback
-]
+FONTS = {
+    "black": [r"C:\Windows\Fonts\ariblk.ttf", r"C:\Windows\Fonts\seguibl.ttf"],
+    "bold": [r"C:\Windows\Fonts\arialbd.ttf", r"C:\Windows\Fonts\seguibl.ttf"],
+}
+
+CREAM = (255, 246, 227)
+CREAM_DEEP = (255, 233, 189)
+BLUE = (28, 169, 232)
+BLUE_LIGHT = (99, 203, 246)
+BLUE_DEEP = (8, 110, 180)
+CHIP_BLUE = (39, 53, 122)
+RED = (227, 59, 44)
+ORANGE = (240, 106, 14)
+YELLOW = (250, 184, 5)
+GREEN = (51, 168, 82)
+TEAL = (14, 160, 174)
+CONFETTI = (BLUE, RED, YELLOW, GREEN, TEAL, ORANGE)
+
+# The icon scene lives in a 1024 design box: five balls packed two over
+# three, tangent to each other, centred on the canvas. Two and three make
+# five, and nothing else in the frame competes with that.
+SPARKLES = ((168, 196, 30, WHITE, 170), (872, 300, 22, YELLOW, 180), (140, 800, 16, WHITE, 125))
 
 
-def font(size):
-    for path in FONT_PATHS:
+def font(kind, size):
+    for path in FONTS[kind]:
         if os.path.exists(path):
-            return ImageFont.truetype(path, size)
-    return ImageFont.load_default()
+            return ImageFont.truetype(path, int(size))
+    raise SystemExit("no usable font found")
 
 
-# -- Vector shapes, ported from ui/ShapeArt.kt ------------------------------
+def fit_size(text, budget, start, kind="black"):
+    size = start
+    while size > 20 and font(kind, size).getlength(text) > budget:
+        size -= 4
+    return size
 
-def quad(p0, c, p1, n=28):
-    return [
-        (
-            (1 - t) ** 2 * p0[0] + 2 * (1 - t) * t * c[0] + t * t * p1[0],
-            (1 - t) ** 2 * p0[1] + 2 * (1 - t) * t * c[1] + t * t * p1[1],
-        )
-        for t in (i / n for i in range(n + 1))
+
+# -- the shared scene -----------------------------------------------------------
+
+def icon_bg(size):
+    """Candy blue, lit from the top left and falling into deep blue."""
+    return rgrad(size, size, size * 0.36, size * 0.24, size * 0.75, size * 0.86,
+                 [(0, BLUE_LIGHT), (0.55, BLUE), (1, BLUE_DEEP)])
+
+
+def paint_scene(img, cx, cy, s, sparkles=True):
+    """Five balls packed two over three, tangent, one pooled shadow beneath."""
+    r = 134 * s
+    dy = 1.732 * r
+    seats = [
+        (cx - r, cy - dy / 2, YELLOW), (cx + r, cy - dy / 2, RED),
+        (cx - 2 * r, cy + dy / 2, ORANGE), (cx, cy + dy / 2, GREEN),
+        (cx + 2 * r, cy + dy / 2, TEAL),
     ]
+    base = dy / 2 + r * 1.27
+    soft_ellipse(img, cx, cy + base, 3.3 * r, 0.65 * r, (7, 74, 132), 120, 0.35 * r)
+    soft_ellipse(img, cx, cy + base - 8 * s, 2.4 * r, 0.45 * r, (6, 60, 110), 85, 0.17 * r)
+    for bx, by, col in seats:
+        place_tile(img, ball_tile(r * 2, col), bx, by)
+    if sparkles:
+        for sx, sy, sr, scol, sa in SPARKLES:
+            px, py = cx + (sx - 512) * s, cy + (sy - 512) * s
+            place_tile(img, star4(px, py, sr * s, scol, sa), px, py)
 
 
-def apple_body():
-    """A circle with a dimple and a stalk, in the 100x100 design box."""
-    pts = []
-    pts += quad((50, 24), (58, 14), (70, 20))
-    pts += quad((70, 20), (92, 32), (88, 58))[1:]
-    pts += quad((88, 58), (84, 88), (50, 90))[1:]
-    pts += quad((50, 90), (16, 88), (12, 58))[1:]
-    pts += quad((12, 58), (8, 32), (30, 20))[1:]
-    pts += quad((30, 20), (42, 14), (50, 24))[1:]
-    return pts
-
-
-def carrot_body():
-    """The only downward-pointing wedge."""
-    pts = [(26, 28), (74, 28)]
-    pts += quad((74, 28), (70, 62), (54, 92))[1:]
-    pts += quad((54, 92), (50, 97), (46, 92))[1:]
-    pts += quad((46, 92), (30, 62), (26, 28))[1:]
-    return pts
-
-
-def ball_body(n=64):
-    """The only clean circle."""
-    return [
-        (50 + 44 * math.cos(2 * math.pi * i / n), 50 + 44 * math.sin(2 * math.pi * i / n))
-        for i in range(n + 1)
-    ]
-
-
-def facet_blob():
-    """The lit facet, upper-left, shared by round shapes."""
-    pts = []
-    pts += quad((6, 62), (10, 16), (58, 8))
-    pts += quad((58, 8), (30, 26), (30, 62))[1:]
-    return pts
-
-
-BODIES = {"apple": apple_body, "carrot": carrot_body, "ball": ball_body}
-FACETS = {
-    "apple": facet_blob(),
-    "carrot": facet_blob(),
-    "ball": facet_blob(),
-}
-PALETTE = {
-    "apple": (APPLE_FILL, APPLE_STROKE, APPLE_FACET),
-    "carrot": (CARROT_FILL, CARROT_STROKE, BALL_FACET and (255, 148, 64, 255)),
-    "ball": (BALL_FILL, BALL_STROKE, BALL_FACET),
-}
-
-
-def draw_shape(img, kind, x, y, size, outline_scale=4.0):
-    """One countable at (x, y), `size` px tall, straight from ShapeArt."""
-    s = size / 100.0
-    fill, stroke, facet = PALETTE[kind]
-    body = [(x + px * s, y + py * s) for px, py in BODIES[kind]()]
-    facet_pts = [(x + px * s, y + py * s) for px, py in FACETS[kind]]
-
-    layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
-    d = ImageDraw.Draw(layer)
-    d.polygon(body, fill=fill)
-
-    body_mask = Image.new("L", img.size, 0)
-    ImageDraw.Draw(body_mask).polygon(body, fill=255)
-    facet_mask = Image.new("L", img.size, 0)
-    ImageDraw.Draw(facet_mask).polygon(facet_pts, fill=255)
-    clipped = ImageChops.multiply(body_mask, facet_mask)
-    solid = Image.new("RGBA", img.size, facet)
-    # The facet shows only where it lies inside the body.
-    facet_layer = Image.composite(solid, Image.new("RGBA", img.size, (0, 0, 0, 0)), clipped)
-    layer.alpha_composite(facet_layer)
-
-    w = max(2, int(outline_scale * s))
-    d.line(body + [body[0]], fill=stroke, width=w, joint="curve")
-    for pt in (body[0], body[-1]):
-        d.ellipse([pt[0] - w / 2, pt[1] - w / 2, pt[0] + w / 2, pt[1] + w / 2], fill=stroke)
-    img.alpha_composite(layer)
-
-
-def draw_apple_trim(img, x, y, size):
-    s = size / 100.0
-    d = ImageDraw.Draw(img)
-    a = (x + 50 * s, y + 26 * s)
-    b = (x + 56 * s, y + 6 * s)
-    w = max(2, int(5 * s))
-    d.line([a, b], fill=STEM_BROWN, width=w)
-    for pt in (a, b):
-        d.ellipse([pt[0] - w / 2, pt[1] - w / 2, pt[0] + w / 2, pt[1] + w / 2], fill=STEM_BROWN)
-    leaf = []
-    leaf += quad((x + 54 * s, y + 14 * s), (x + 74 * s, y + 2 * s), (x + 84 * s, y + 14 * s))
-    leaf += quad((x + 84 * s, y + 14 * s), (x + 70 * s, y + 22 * s), (x + 54 * s, y + 14 * s))[1:]
-    d.polygon(leaf, fill=GREEN)
-    d.line(leaf + [leaf[0]], fill=LEAF_DARK, width=max(1, int(2.6 * s)), joint="curve")
-
-
-def draw_carrot_trim(img, x, y, size):
-    s = size / 100.0
-    d = ImageDraw.Draw(img)
-    w = max(2, int(4.2 * s))
-    # A narrow, short fan: wide fans read as arrows once strokes scale up.
-    for fx in (-16, 0, 16):
-        a = (x + 50 * s, y + 28 * s)
-        b = (x + (50 + fx) * s, y + 8 * s)
-        d.line([a, b], fill=GREEN, width=w)
-        for pt in (a, b):
-            d.ellipse([pt[0] - w / 2, pt[1] - w / 2, pt[0] + w / 2, pt[1] + w / 2], fill=GREEN)
-
-
-def draw_ball_trim(img, x, y, size):
-    s = size / 100.0
-    d = ImageDraw.Draw(img)
-    w = max(2, int(9 * s))
-    for p0, c, p1 in (((9, 40), (50, 30), (91, 40)), ((12, 66), (50, 76), (88, 66))):
-        pts = [(x + px * s, y + py * s) for px, py in quad(p0, c, p1)]
-        d.line(pts, fill=LINER, width=w, joint="curve")
-
-
-TRIMS = {"apple": draw_apple_trim, "carrot": draw_carrot_trim, "ball": draw_ball_trim}
-
-
-def draw_countable(img, kind, x, y, size):
-    draw_shape(img, kind, x, y, size)
-    TRIMS[kind](img, x, y, size)
-
-
-def draw_chip(img, cx, cy, dia, text):
-    d = ImageDraw.Draw(img)
-    d.ellipse([cx - dia / 2, cy - dia / 2, cx + dia / 2, cy + dia / 2], fill=CHIP_BLUE)
-    f = font(int(dia * 0.56))
-    box = d.textbbox((0, 0), text, font=f)
-    d.text((cx - (box[2] - box[0]) / 2 - box[0], cy - (box[3] - box[1]) / 2 - box[1]), text, font=f, fill=(255, 255, 255, 255))
-
-
-# -- The feature graphic ------------------------------------------------------
-
-def feature_graphic():
-    W, H = 1024, 500
-    img = Image.new("RGBA", (W, H), GROUND)
-    d = ImageDraw.Draw(img)
-
-    title_f = font(96)
-    d.text((W / 2, 108), "Count & Play", font=title_f, fill=INK, anchor="mm")
-
-    # Two apples plus three carrots: the fact the app teaches, in its own art.
-    fruit = 132
-    gap = 22
-    plus_w = 74
-    widths = [fruit, fruit, plus_w, fruit, fruit, fruit]
-    total = sum(widths) + gap * 5
-    x = (W - total) / 2
-    y = 196
-    row_cy = y + fruit / 2
-    chips = ["1", "2", None, "1", "2", "3"]
-    kinds = ["apple", "apple", None, "carrot", "carrot", "carrot"]
-    centers = []
-    for kind, w in zip(kinds, widths):
-        if kind is None:
-            f = font(86)
-            d.text((x + w / 2, row_cy), "+", font=f, fill=INK, anchor="mm")
-            x += w + gap
-            continue
-        draw_countable(img, kind, x, y, fruit)
-        centers.append((x, y))
-        x += w + gap
-
-    for (fx, fy), label in zip(centers, chips):
-        if label:
-            draw_chip(img, fx + fruit * 0.94, fy + fruit * 0.10, 46, label)
-
-    sub_f = font(38)
-    d.text((W / 2, 448), "See addition and subtraction happen", font=sub_f,
-           fill=(34, 38, 46, 205), anchor="mm")
-
-    path = os.path.join(STORE, "feature-graphic-1024x500.png")
-    img.convert("RGB").save(path)
-    print(path)
-
-
-# -- The icon ------------------------------------------------------------------
-
-def draw_icon_content(img, cx, cy, plate_r):
-    """Plate circle plus the trio, centred at (cx, cy); plate_r in px."""
-    d = ImageDraw.Draw(img)
-    d.ellipse([cx - plate_r, cy - plate_r, cx + plate_r, cy + plate_r], fill=LINER)
-    d.ellipse(
-        [cx - plate_r, cy - plate_r, cx + plate_r, cy + plate_r],
-        outline=(226, 216, 190, 255), width=max(2, int(plate_r * 8 / 150)),
+def rounded_mask(size, ratio):
+    m = Image.new("L", (size, size), 0)
+    ImageDraw.Draw(m).rounded_rectangle(
+        [0, 0, size - 1, size - 1], radius=int(size * ratio), fill=255
     )
-    fruit = plate_r * 118 / 150
-    # Yellow ball up top, red apple lower left, orange carrot lower right,
-    # spread so the three just kiss instead of crowding.
-    draw_countable(img, "ball", cx - fruit / 2, cy - plate_r * 0.70, fruit)
-    draw_countable(img, "apple", cx - plate_r * 0.74, cy - fruit * 0.12, fruit)
-    draw_countable(img, "carrot", cx + plate_r * 0.74 - fruit / 2, cy - fruit * 0.12, fruit)
+    return m
 
 
-def rounded_bg(px, color, radius_ratio=0.20):
-    img = Image.new("RGBA", (px, px), (0, 0, 0, 0))
-    d = ImageDraw.Draw(img)
-    r = px * radius_ratio
-    d.rounded_rectangle([0, 0, px - 1, px - 1], radius=r, fill=color)
-    return img
+# -- the icons --------------------------------------------------------------------
+
+def gel_edge(img, ratio=0.205):
+    """A quiet inner highlight along the rounded edge: weight without chrome."""
+    px = img.width
+    bez = Image.new("RGBA", (px, px), (0, 0, 0, 0))
+    ImageDraw.Draw(bez).rounded_rectangle(
+        [px * 0.014] * 2 + [px * 0.986] * 2, radius=int(px * ratio),
+        outline=(255, 255, 255, 85), width=max(3, int(px * 0.007)),
+    )
+    img.alpha_composite(bez.filter(ImageFilter.GaussianBlur(max(2, px * 0.003))))
 
 
 def store_icon():
-    px = 512
-    img = rounded_bg(px, BLUE)
-    draw_icon_content(img, px / 2, px / 2 + 10, 186)
+    px = 1024
+    img = icon_bg(px)
+    paint_scene(img, px / 2, px / 2, 1.0)
+    gel_edge(img)
+    img.putalpha(rounded_mask(px, 0.21))
+    out = img.resize((512, 512), Image.LANCZOS).filter(
+        ImageFilter.UnsharpMask(radius=1.5, percent=50, threshold=2)
+    )
     path = os.path.join(STORE, "play-icon-512.png")
-    img.save(path)
+    out.save(path)
     print(path)
 
 
@@ -286,21 +137,115 @@ LAUNCHER_DENSITIES = [("mdpi", 48), ("hdpi", 72), ("xhdpi", 96), ("xxhdpi", 144)
 
 def launcher_icons():
     for name, dp in LAUNCHER_DENSITIES:
-        # Legacy: full rounded square on the candy blue.
-        img = rounded_bg(dp, BLUE, radius_ratio=0.24)
-        draw_icon_content(img, dp / 2, dp / 2 + dp * 0.02, dp * 0.36)
+        img = icon_bg(dp)
+        paint_scene(img, dp * 0.5, dp * 0.5, dp / 1024 * 1.06, sparkles=dp >= 96)
+        gel_edge(img, ratio=0.215)
+        img.putalpha(rounded_mask(dp, 0.22))
         path = os.path.join(RES, f"mipmap-{name}", "ic_launcher.png")
         img.save(path)
         print(path)
 
-        # Adaptive foreground: transparent, content inside the 66/108 safe zone.
+        # Adaptive foreground: full-bleed gradient; the scene must survive any
+        # mask, so it keeps inside the 66/108 safe circle.
         canvas = int(dp * 108 / 48)
-        fg = Image.new("RGBA", (canvas, canvas), (0, 0, 0, 0))
-        safe = canvas * 66 / 108
-        draw_icon_content(fg, canvas / 2, canvas / 2 + canvas * 0.01, safe * 0.45)
+        fg = icon_bg(canvas)
+        safe_r = canvas * 66 / 108 / 2
+        paint_scene(fg, canvas / 2, canvas / 2, safe_r * 0.94 / 474, sparkles=False)
         path = os.path.join(RES, f"mipmap-{name}", "ic_launcher_foreground.png")
         fg.save(path)
         print(path)
+
+
+# -- the feature graphic ------------------------------------------------------------
+
+def feature_ground():
+    W, H = 2048, 1000
+    img = vgrad(W, H, [(0, CREAM), (1, CREAM_DEEP)])
+    soft_ellipse(img, 300, 130, 260, 200, WHITE, 26, 90)
+    soft_ellipse(img, 1960, 900, 300, 240, WHITE, 22, 100)
+    corner_shade(img, 26)
+    rng = random.Random(11)
+    confetti(img, rng, 14, (60, 1990), (40, 150), CONFETTI, amax=58)
+    confetti(img, rng, 18, (1080, 2010), (80, 950), CONFETTI, amax=64)
+    confetti(img, rng, 10, (60, 1000), (880, 970), CONFETTI, amax=46)
+    return img
+
+
+def feature_title(img):
+    x = 112
+    size = fit_size("Count", 700, 196)
+    f_black = font("black", size)
+    d = ImageDraw.Draw(img)
+    for i, word in enumerate(("Count", "& Play")):
+        cy = 320 + i * 208
+        sticker_text(img, (x, cy), word, f_black, INK, shadow=((6, 18), 55, 10), anchor="lm")
+        bb = d.textbbox((x, cy), word, font=f_black, anchor="lm")
+        bar_col = RED if i == 0 else TEAL
+        capsule(d, (bb[0], bb[3] + 30), (bb[2], bb[3] + 30), 13, bar_col)
+    sub = font("bold", 50)
+    d.text((x + 2, 766), "See addition and subtraction happen",
+           font=sub, fill=INK + (225,), anchor="lm")
+
+
+def hero_ball(img, cx, cy, r, col):
+    soft_ellipse(img, cx, cy + r * 0.95, r * 1.02, r * 0.30, SHADOW_WARM, 65, r * 0.16)
+    place_tile(img, ball_tile(r * 2, col), cx, cy)
+
+
+def plus_sign(img, cx, cy, r, t, color):
+    soft_ellipse(img, cx + 5, cy + t * 0.35, r * 1.35, r * 0.95, SHADOW_WARM, 60, t * 0.85)
+    d = ImageDraw.Draw(img)
+    capsule(d, (cx - r, cy), (cx + r, cy), t / 2, color)
+    capsule(d, (cx, cy - r), (cx, cy + r), t / 2, color)
+
+
+def equals_sign(img, cx, cy, w, t, gap, color):
+    soft_ellipse(img, cx + 5, cy + t * 0.4, w * 0.72, gap * 0.95, SHADOW_WARM, 55, t * 0.9)
+    d = ImageDraw.Draw(img)
+    capsule(d, (cx - w / 2, cy - gap / 2), (cx + w / 2, cy - gap / 2), t / 2, color)
+    capsule(d, (cx - w / 2, cy + gap / 2), (cx + w / 2, cy + gap / 2), t / 2, color)
+
+
+def count_chip(img, cx, cy, dia, text):
+    """The game's counting chip: navy, white numeral, tiny drop."""
+    soft_ellipse(img, cx + dia * 0.05, cy + dia * 0.12, dia * 0.52, dia * 0.38, SHADOW_WARM, 80, dia * 0.10)
+    d = ImageDraw.Draw(img)
+    d.ellipse([cx - dia / 2, cy - dia / 2, cx + dia / 2, cy + dia / 2], fill=CHIP_BLUE)
+    d.text((cx, cy - dia * 0.04), text, font=font("black", dia * 0.58), fill=WHITE, anchor="mm")
+
+
+def feature_hero(img):
+    row_y, r = 330, 68
+    red1, red2 = 1164, 1314
+    teal1, teal2, teal3 = 1586, 1736, 1886
+    for n, x in enumerate((red1, red2), 1):
+        hero_ball(img, x, row_y, r, RED)
+        count_chip(img, x + r * 0.62, row_y - r * 0.62, 88, str(n))
+    plus_sign(img, 1450, row_y, 56, 34, BLUE)
+    for n, x in enumerate((teal1, teal2, teal3), 1):
+        hero_ball(img, x, row_y, r, TEAL)
+        count_chip(img, x + r * 0.62, row_y - r * 0.62, 88, str(n))
+
+    equals_sign(img, 1400, 660, 130, 34, 92, BLUE)
+    f5 = font("black", 360)
+    sticker_text(img, (1640, 654), "5", f5, RED, stroke=18,
+                 shadow=((8, 24), 70, 13), tint=darken(RED, 0.32), tint_off=(13, 15))
+
+    for sx, sy, sr, scol, sa in ((1100, 148, 26, WHITE, 165), (1956, 500, 20, YELLOW, 185),
+                                 (1200, 852, 17, WHITE, 120)):
+        place_tile(img, star4(sx, sy, sr, scol, sa), sx, sy)
+
+
+def feature_graphic():
+    img = feature_ground()
+    feature_title(img)
+    feature_hero(img)
+    out = img.resize((1024, 500), Image.LANCZOS).filter(
+        ImageFilter.UnsharpMask(radius=1.8, percent=55, threshold=2)
+    )
+    path = os.path.join(STORE, "feature-graphic-1024x500.png")
+    out.convert("RGB").save(path)
+    print(path)
 
 
 if __name__ == "__main__":
