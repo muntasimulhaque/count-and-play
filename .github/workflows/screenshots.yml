@@ -1,8 +1,8 @@
 name: Capture store screenshots
 
 # Renders REAL Play Store screenshots from the app's Compose UI on an Android
-# emulator, so the store listing always matches the shipped build (the old
-# screenshots were PIL-drawn approximations). Runs on GitHub's servers.
+# emulator, so the store listing always matches the shipped build. Runs on
+# GitHub's servers.
 #
 # Trigger manually, or automatically when the UI or the capture test changes.
 on:
@@ -40,8 +40,14 @@ jobs:
     env:
       # Matches what the app targets (compileSdk/targetSdk 37): UI must be
       # verified on the newest image it ships against, never an older one.
-      # Android 17 ships as 37.0/37.1; only 37.0 has a classic system image.
-      API_LEVEL: 37.0
+      #
+      # Android 17 is published as 37.0/37.1, not a bare 37, and only 37.0 has
+      # a classic google_apis_playstore system image. The emulator-runner
+      # normalizes its api-level input to an integer, so the platform rides on
+      # api-level: 37 while the actual image pins 37.0 through the action's
+      # dedicated system-image-api-level input.
+      API_LEVEL: 37
+      SYSTEM_IMAGE_LEVEL: 37.0
     steps:
       - name: Check out source
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -74,13 +80,14 @@ jobs:
           path: |
             ~/.android/avd/*
             ~/.android/adb*
-          key: avd-${{ env.API_LEVEL }}-${{ matrix.profile }}
+          key: avd-${{ env.SYSTEM_IMAGE_LEVEL }}-${{ matrix.profile }}
 
       - name: Create AVD and generate a snapshot to cache
         if: steps.avd-cache.outputs.cache-hit != 'true'
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
           api-level: ${{ env.API_LEVEL }}
+          system-image-api-level: ${{ env.SYSTEM_IMAGE_LEVEL }}
           target: google_apis_playstore
           arch: x86_64
           profile: ${{ matrix.profile }}
@@ -93,12 +100,13 @@ jobs:
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
           api-level: ${{ env.API_LEVEL }}
+          system-image-api-level: ${{ env.SYSTEM_IMAGE_LEVEL }}
           target: google_apis_playstore
           arch: x86_64
           profile: ${{ matrix.profile }}
           force-avd-creation: false
-          disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none
+          disable-animations: true
           script: |
             ./gradlew :app:connectedDebugAndroidTest
             # AGP copies the test's additional output off-device (before it
