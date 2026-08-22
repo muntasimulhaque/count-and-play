@@ -1,11 +1,14 @@
 package app.maqsadah.count_and_play
 
 import android.graphics.Bitmap
+import android.os.Handler
+import android.os.Looper
+import android.view.PixelCopy
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.ui.graphics.asAndroidBitmap
-import androidx.compose.ui.test.captureToImage
-import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onRoot
+import androidx.lifecycle.Lifecycle
+import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import app.maqsadah.count_and_play.copy.BnCopy
@@ -21,10 +24,11 @@ import app.maqsadah.count_and_play.host.Screen
 import app.maqsadah.count_and_play.host.UiModel
 import app.maqsadah.count_and_play.ui.GameScreen
 import java.io.File
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toPersistentList
-import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -32,10 +36,16 @@ import org.junit.runner.RunWith
  * Real Compose renders of the shipped UI, for the Play Store listing.
  *
  * These are ordinary state renders, not a live playthrough: every screen below
- * is a [UiModel] handed straight to [GameScreen]. That is only possible
- * because no composable in this app takes a ViewModel, so there is no TTS, no
- * coroutine timing and no emulator flakiness involved in capturing them, and
- * states that are awkward to reach by playing are trivial to photograph.
+ * is a [UiModel] handed straight to [GameScreen] inside a bare activity. That
+ * is only possible because no composable in this app takes a ViewModel, so
+ * there is no TTS, no coroutine timing and no emulator flakiness involved in
+ * capturing them, and states that are awkward to reach by playing are trivial
+ * to photograph.
+ *
+ * The harness deliberately avoids the compose test rule and everything under
+ * it: no touch injection and no semantics queries are needed to render and
+ * copy pixels, and dropping that machinery keeps these captures working on
+ * whatever framework image the app targets, forever.
  *
  * The PNGs are written to the directory the instrumentation reports as
  * additional test output; the screenshots workflow
@@ -45,9 +55,6 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class ScreenshotTest {
 
-    @get:Rule
-    val compose = createComposeRule()
-
     private val outDir: File by lazy {
         val path = InstrumentationRegistry.getArguments().getString("additionalTestOutputDir")
             ?: InstrumentationRegistry.getInstrumentation().targetContext.filesDir.absolutePath
@@ -55,61 +62,71 @@ class ScreenshotTest {
     }
 
     /**
-     * The rule permits exactly one `setContent` per test, so the content is
-     * mounted once and every scene is a state change pushed into it, which is
-     * also the faster way round, and only possible because the whole screen is
-     * a function of one immutable state.
+     * One activity hosts every scene: each is a state change pushed into it,
+     * which is also the faster way round, and only possible because the whole
+     * screen is a function of one immutable state.
      */
     private val scene = mutableStateOf(model(Screen.Home))
 
+    private fun launch(): ActivityScenario<ComponentActivity> {
+        val scenario = ActivityScenario.launch(ComponentActivity::class.java)
+        scenario.moveToState(Lifecycle.State.RESUMED)
+        scenario.onActivity { activity ->
+            activity.setContent { GameScreen(ui = scene.value, onChoose = {}, onTapToken = {}, onPour = {}, onHome = {}, onOpenSettings = {}, onCloseSettings = {}, onSetLanguage = {}, onToggleMute = {}) }
+        }
+        settle()
+        return scenario
+    }
+
+    private fun push(state: UiModel) {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        instrumentation.runOnMainSync { scene.value = state }
+        settle()
+    }
+
+    /** Drain the main thread, then give animations a beat to land. */
+    private fun settle() {
+        val latch = CountDownLatch(1)
+        Handler(Looper.getMainLooper()).post { latch.countDown() }
+        latch.await(5, TimeUnit.SECONDS)
+        Thread.sleep(SETTLE_MS)
+    }
+
     @Test
     fun captureStoreScreenshots() {
-        compose.setContent {
-            // No theme wrapper: GameScreen paints its own ground.
-            GameScreen(
-                ui = scene.value,
-                onChoose = {},
-                onTapToken = {},
-                onPour = {},
-                onHome = {},
-                onOpenSettings = {},
-                onCloseSettings = {},
-                onSetLanguage = {},
-                onToggleMute = {},
-            )
-        }
+        val scenario = launch()
 
         // The shelf: everything the app offers, on the very first screen.
-        shoot("01_home") { model(Screen.Home) }
+        shoot(scenario, "01_home") { model(Screen.Home) }
 
         // Mid-count: two of four tagged, so the number chips 1 and 2 show.
-        shoot("02_count") {
+        shoot(scenario, "02_count") {
             model(Screen.Count(CountState(tokens = tray(ShapeKind.APPLE, n = 4, counted = 2))))
         }
 
         // Both plates fully counted, the pour button awake.
-        shoot("03_add") { model(Screen.Add(addReady())) }
+        shoot(scenario, "03_add") { model(Screen.Add(addReady())) }
 
         // The top level's worst case on a phone: 5 + 5 counted, the button
         // awake, and room for the bowl below. Proves the trays fit together.
-        shoot("09_add_big") { model(Screen.Add(addReadyBig())) }
+        shoot(scenario, "09_add_big") { model(Screen.Add(addReadyBig())) }
 
         // The same round poured: ten in the bowl, three counted so far.
-        shoot("10_add_big_bowl") { model(Screen.Add(addPouredBig(counted = 3))) }
+        shoot(scenario, "10_add_big_bowl") { model(Screen.Add(addPouredBig(counted = 3))) }
 
         // The whole, with the parts still visible inside it: 3 + 2 = 5.
-        shoot("04_add_fact") {
+        shoot(scenario, "04_add_fact") {
             model(Screen.Add(addPoured()), flash = Flash.Add(3, 2, 5))
         }
 
         // Mid-take: two of five gone, their ghosts on the tray; the child
         // is about to count what is left.
-        shoot("05_take") {
+        shoot(scenario, "05_take") {
             model(Screen.Take(TakeState(n = 5, b = 2, tokens = bowlOfBalls(gone = 2))))
         }
 
         // The take-away fact, after counting the leftovers: 5 - 2 = 3.
-        shoot("06_take_fact") {
+        shoot(scenario, "06_take_fact") {
             model(
                 Screen.Take(TakeState(n = 5, b = 2, tokens = takeCounted())),
                 flash = Flash.Take(5, 2, 3),
@@ -117,15 +134,17 @@ class ScreenshotTest {
         }
 
         // The grown-up corner, open over the shelf.
-        shoot("07_settings") { model(Screen.Home, settingsOpen = true) }
+        shoot(scenario, "07_settings") { model(Screen.Home, settingsOpen = true) }
 
         // The same counting moment, in Bengali.
-        shoot("08_bangla") {
+        shoot(scenario, "08_bangla") {
             model(
                 Screen.Count(CountState(tokens = tray(ShapeKind.MELON, n = 4, counted = 1))),
                 copy = BnCopy,
             )
         }
+
+        scenario.close()
     }
 
     // -- Fixtures -----------------------------------------------------------
@@ -152,20 +171,6 @@ class ScreenshotTest {
             Token(id = i + 1, shape = shape, counted = i < counted, countOrder = if (i < counted) i + 1 else 0)
         }.toPersistentList()
 
-    /** 3 + 2, both plates fully counted and the button awake. */
-    private fun addReady() = AddState(
-        a = 3, b = 2,
-        plateA = persistentListOf(
-            Token(id = 1, shape = ShapeKind.APPLE, counted = true, countOrder = 1),
-            Token(id = 2, shape = ShapeKind.APPLE, counted = true, countOrder = 2),
-            Token(id = 3, shape = ShapeKind.APPLE, counted = true, countOrder = 3),
-        ),
-        plateB = persistentListOf(
-            Token(id = 4, shape = ShapeKind.CARROT, counted = true, countOrder = 1),
-            Token(id = 5, shape = ShapeKind.CARROT, counted = true, countOrder = 2),
-        ),
-    )
-
     /** A plate of [count] [shape]s, the first [counted] of them tagged. */
     private fun plate(count: Int, shape: ShapeKind, counted: Int, firstId: Int, origin: Int = 0) =
         List(count) { i ->
@@ -177,6 +182,13 @@ class ScreenshotTest {
                 origin = origin,
             )
         }.toPersistentList()
+
+    /** 3 + 2, both plates fully counted and the button awake. */
+    private fun addReady() = AddState(
+        a = 3, b = 2,
+        plateA = plate(3, ShapeKind.APPLE, counted = 3, firstId = 1),
+        plateB = plate(2, ShapeKind.CARROT, counted = 2, firstId = 4),
+    )
 
     /** 5 + 5, both plates fully counted: the widest round the app deals. */
     private fun addReadyBig() = AddState(
@@ -198,19 +210,7 @@ class ScreenshotTest {
     )
 
     /** The same 3 + 2 poured and the bowl fully counted. */
-    private fun addPoured() = AddState(
-        a = 3, b = 2,
-        plateA = persistentListOf(),
-        plateB = persistentListOf(),
-        poured = true,
-        bowl = persistentListOf(
-            Token(id = 1, shape = ShapeKind.APPLE, counted = true, countOrder = 1, origin = 1),
-            Token(id = 2, shape = ShapeKind.APPLE, counted = true, countOrder = 2, origin = 1),
-            Token(id = 3, shape = ShapeKind.APPLE, counted = true, countOrder = 3, origin = 1),
-            Token(id = 4, shape = ShapeKind.CARROT, counted = true, countOrder = 4, origin = 2),
-            Token(id = 5, shape = ShapeKind.CARROT, counted = true, countOrder = 5, origin = 2),
-        ),
-    )
+    private fun addPoured() = addPouredBig(counted = 5)
 
     /** A TAKE bowl of five balls, the first [gone] of them removed. */
     private fun bowlOfBalls(gone: Int): PersistentList<Token> =
@@ -232,16 +232,29 @@ class ScreenshotTest {
 
     // -- Capture ------------------------------------------------------------
 
-    private fun shoot(name: String, state: () -> UiModel) {
-        compose.runOnUiThread { scene.value = state() }
-        compose.waitForIdle()
-        // The flash card pops in on a bouncy spring; give it a beat to land.
-        Thread.sleep(SETTLE_MS)
-        compose.waitForIdle()
-        val bitmap = compose.onRoot().captureToImage().asAndroidBitmap()
+    private fun shoot(scenario: ActivityScenario<ComponentActivity>, name: String, state: () -> UiModel) {
+        push(state())
+        lateinit var bitmap: Bitmap
+        scenario.onActivity { activity -> bitmap = captureWindow(activity) }
         File(outDir, "$name.png").outputStream().use { out ->
             bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
         }
+    }
+
+    /** The activity's own window pixels: the truth the child actually sees. */
+    private fun captureWindow(activity: ComponentActivity): Bitmap {
+        val decor = activity.window.decorView
+        val bitmap = Bitmap.createBitmap(decor.width, decor.height, Bitmap.Config.ARGB_8888)
+        val latch = CountDownLatch(1)
+        PixelCopy.request(activity.window, bitmap, { result ->
+            if (result != PixelCopy.SUCCESS) {
+                // Software draw as the fallback path; static candy renders fine.
+                decor.draw(android.graphics.Canvas(bitmap))
+            }
+            latch.countDown()
+        }, Handler(Looper.getMainLooper()))
+        latch.await(10, TimeUnit.SECONDS)
+        return bitmap
     }
 
     private companion object {

@@ -38,7 +38,9 @@ jobs:
           - name: tablet10
             profile: pixel_c        # 2560x1800, 10-inch
     env:
-      API_LEVEL: 34
+      # Matches what the app targets (compileSdk/targetSdk 37): UI must be
+      # verified on the newest image it ships against, never an older one.
+      API_LEVEL: 37
     steps:
       - name: Check out source
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4

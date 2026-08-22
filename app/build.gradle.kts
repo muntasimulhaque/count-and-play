@@ -91,11 +91,11 @@ dependencies {
 
     testImplementation("junit:junit:4.13.2")
 
-    // Instrumented (emulator) screenshot capture — real Compose rendering.
-    androidTestImplementation(composeBom)
-    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
+    // Instrumented (emulator) screenshot capture: a bare ComponentActivity
+    // hosts each state and PixelCopy grabs the window. No compose test rule,
+    // no Espresso, no injection machinery: rendering states and copying
+    // pixels needs none of it, so captures keep working on whatever image
+    // the app targets, including Android 17 where Espresso's injector breaks.
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test:runner:1.6.2")
-    // Provides the empty ComponentActivity that createComposeRule() hosts content in.
-    debugImplementation("androidx.compose.ui:ui-test-manifest")
 }
