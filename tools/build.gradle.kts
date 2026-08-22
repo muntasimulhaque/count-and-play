@@ -39,6 +39,6 @@ tasks.register<JavaExec>("makeArt") {
     group = "tools"
     description = "Regenerate store art and launcher icons from the design system."
     classpath = sourceSets["main"].runtimeClasspath
-    mainClass = "toybox.tools.MakeArtKt"
+    mainClass = "toybox.tools.MakeArtMainKt"
     args = listOf(rootDir.absolutePath)
 }
