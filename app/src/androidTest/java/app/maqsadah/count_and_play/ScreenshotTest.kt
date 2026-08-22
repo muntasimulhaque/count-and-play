@@ -55,10 +55,17 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class ScreenshotTest {
 
-    private val outDir: File by lazy {
+    private fun outDir(): File {
         val path = InstrumentationRegistry.getArguments().getString("additionalTestOutputDir")
-            ?: InstrumentationRegistry.getInstrumentation().targetContext.filesDir.absolutePath
-        File(path).apply { mkdirs() }
+        if (path != null) {
+            val dir = File(path)
+            if (dir.isDirectory || dir.mkdirs()) return dir
+            // Cold-booted emulators can lag mounting shared storage; fall
+            // back rather than fail.
+        }
+        return File(
+            InstrumentationRegistry.getInstrumentation().targetContext.filesDir.absolutePath
+        ).apply { mkdirs() }
     }
 
     /**
@@ -69,13 +76,24 @@ class ScreenshotTest {
     private val scene = mutableStateOf(model(Screen.Home))
 
     private fun launch(): ActivityScenario<ComponentActivity> {
-        val scenario = ActivityScenario.launch(ComponentActivity::class.java)
-        scenario.moveToState(Lifecycle.State.RESUMED)
-        scenario.onActivity { activity ->
-            activity.setContent { GameScreen(ui = scene.value, onChoose = {}, onTapToken = {}, onPour = {}, onHome = {}, onOpenSettings = {}, onCloseSettings = {}, onSetLanguage = {}, onToggleMute = {}) }
+        // Right after a cold boot the package manager can briefly refuse to
+        // resolve; a short retry absorbs it without masking real breakage.
+        var lastError: RuntimeException? = null
+        repeat(3) { attempt ->
+            try {
+                val scenario = ActivityScenario.launch(ComponentActivity::class.java)
+                scenario.moveToState(Lifecycle.State.RESUMED)
+                scenario.onActivity { activity ->
+                    activity.setContent { GameScreen(ui = scene.value, onChoose = {}, onTapToken = {}, onPour = {}, onHome = {}, onOpenSettings = {}, onCloseSettings = {}, onSetLanguage = {}, onToggleMute = {}) }
+                }
+                settle()
+                return scenario
+            } catch (e: RuntimeException) {
+                lastError = e
+                Thread.sleep(5000L * (attempt + 1))
+            }
         }
-        settle()
-        return scenario
+        throw lastError ?: IllegalStateException("could not launch the host activity")
     }
 
     private fun push(state: UiModel) {
@@ -94,39 +112,40 @@ class ScreenshotTest {
 
     @Test
     fun captureStoreScreenshots() {
+        val outDir = outDir()
         val scenario = launch()
 
         // The shelf: everything the app offers, on the very first screen.
-        shoot(scenario, "01_home") { model(Screen.Home) }
+        shoot(outDir, scenario, "01_home") { model(Screen.Home) }
 
         // Mid-count: two of four tagged, so the number chips 1 and 2 show.
-        shoot(scenario, "02_count") {
+        shoot(outDir, scenario, "02_count") {
             model(Screen.Count(CountState(tokens = tray(ShapeKind.APPLE, n = 4, counted = 2))))
         }
 
         // Both plates fully counted, the pour button awake.
-        shoot(scenario, "03_add") { model(Screen.Add(addReady())) }
+        shoot(outDir, scenario, "03_add") { model(Screen.Add(addReady())) }
 
         // The top level's worst case on a phone: 5 + 5 counted, the button
         // awake, and room for the bowl below. Proves the trays fit together.
-        shoot(scenario, "09_add_big") { model(Screen.Add(addReadyBig())) }
+        shoot(outDir, scenario, "09_add_big") { model(Screen.Add(addReadyBig())) }
 
         // The same round poured: ten in the bowl, three counted so far.
-        shoot(scenario, "10_add_big_bowl") { model(Screen.Add(addPouredBig(counted = 3))) }
+        shoot(outDir, scenario, "10_add_big_bowl") { model(Screen.Add(addPouredBig(counted = 3))) }
 
         // The whole, with the parts still visible inside it: 3 + 2 = 5.
-        shoot(scenario, "04_add_fact") {
+        shoot(outDir, scenario, "04_add_fact") {
             model(Screen.Add(addPoured()), flash = Flash.Add(3, 2, 5))
         }
 
         // Mid-take: two of five gone, their ghosts on the tray; the child
         // is about to count what is left.
-        shoot(scenario, "05_take") {
+        shoot(outDir, scenario, "05_take") {
             model(Screen.Take(TakeState(n = 5, b = 2, tokens = bowlOfBalls(gone = 2))))
         }
 
         // The take-away fact, after counting the leftovers: 5 - 2 = 3.
-        shoot(scenario, "06_take_fact") {
+        shoot(outDir, scenario, "06_take_fact") {
             model(
                 Screen.Take(TakeState(n = 5, b = 2, tokens = takeCounted())),
                 flash = Flash.Take(5, 2, 3),
@@ -134,10 +153,10 @@ class ScreenshotTest {
         }
 
         // The grown-up corner, open over the shelf.
-        shoot(scenario, "07_settings") { model(Screen.Home, settingsOpen = true) }
+        shoot(outDir, scenario, "07_settings") { model(Screen.Home, settingsOpen = true) }
 
         // The same counting moment, in Bengali.
-        shoot(scenario, "08_bangla") {
+        shoot(outDir, scenario, "08_bangla") {
             model(
                 Screen.Count(CountState(tokens = tray(ShapeKind.MELON, n = 4, counted = 1))),
                 copy = BnCopy,

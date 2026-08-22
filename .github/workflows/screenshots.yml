@@ -104,6 +104,9 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none -no-snapshot
           disable-animations: true
           script: |
+            # A cold Android 17 boot reports completion before its emulated
+            # storage is mounted; wait it out or the test's output dir breaks.
+            for i in $(seq 1 60); do adb -s emulator-5554 shell ls /sdcard/Android >/dev/null 2>&1 && break; sleep 2; done
             ./gradlew :app:connectedDebugAndroidTest
             # AGP copies the test's additional output off-device (before it
             # uninstalls the app) into app/build/outputs/.../additional output.
