@@ -40,7 +40,8 @@ jobs:
     env:
       # Matches what the app targets (compileSdk/targetSdk 37): UI must be
       # verified on the newest image it ships against, never an older one.
-      API_LEVEL: 37
+      # Android 17 ships as 37.0/37.1; only 37.0 has a classic system image.
+      API_LEVEL: 37.0
     steps:
       - name: Check out source
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -83,6 +84,7 @@ jobs:
           target: google_apis
           arch: x86_64
           profile: ${{ matrix.profile }}
+          target: google_apis_playstore
           force-avd-creation: false
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none
           disable-animations: true
