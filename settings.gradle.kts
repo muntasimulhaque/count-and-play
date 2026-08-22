@@ -14,3 +14,4 @@ dependencyResolutionManagement {
 }
 rootProject.name = "count-and-play"
 include(":app")
+include(":tools")
