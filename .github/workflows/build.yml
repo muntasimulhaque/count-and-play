@@ -10,7 +10,7 @@ on:
       - "*.gradle.kts"
       - "gradle.properties"
       - "gradle/**"
-      - "tools/make_sounds.py"
+      - "tools/**"
       - ".github/workflows/build.yml"
   workflow_dispatch:
 
@@ -48,7 +48,9 @@ jobs:
       - name: Run unit tests and lint
         # Pure-JVM game-logic + language-pack tests (no device needed), plus
         # full lint so non-fatal findings surface instead of hiding forever.
-        run: ./gradlew :app:testReleaseUnitTest :app:lintRelease
+        # :tools:checkSounds pins the sound assets to their generator: any
+        # hand edit or drift fails CI before it can ride into a release.
+        run: ./gradlew :app:testReleaseUnitTest :app:lintRelease :tools:checkSounds
 
       - name: Decode signing keystore
         env:

@@ -62,9 +62,9 @@ data collection, no network access, zero permissions.
 
 Kotlin + Jetpack Compose. The counting objects are ten shapes **drawn as vector
 paths in code**, not emoji, so they are identical on every device and can never
-drift into depicting a creature. The sound effects are synthesized by
-`tools/make_sounds.py` and are deliberately inharmonic; only the success chime
-has a pitch, and it can never play twice in quick succession.
+drift into depicting a creature. The sound effects are synthesized by the `:tools:makeSounds` generator and are
+deliberately inharmonic; only the success chime has a pitch, and it can never
+play twice in quick succession.
 
 ```
 core/     pure Kotlin, zero Android imports: the rules
@@ -95,7 +95,7 @@ permissions, there is nothing for it to collect. The full policy is
 ```
 ./gradlew :app:testReleaseUnitTest      # the rules
 ./gradlew :app:assembleRelease          # R8 release (~1 MB)
-python tools/make_sounds.py             # regenerate sound assets (deterministic)
+./gradlew :tools:makeSounds             # regenerate sound assets (deterministic)
 ```
 
 Every push to `main` triggers GitHub Actions, which runs the unit tests and then
