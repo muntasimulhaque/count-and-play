@@ -39,15 +39,9 @@ import androidx.compose.ui.unit.dp
 import app.maqsadah.count_and_play.core.ShapeKind
 
 private val RimWidth = 8.dp
-private val TrayPad = 14.dp
-private val TrayGap = 10.dp
 
 // Room for two digits ("10" / "১০") at the chip's font without going oval.
 private val ChipDiameter = 30.dp
-
-// A three-year-old's finger lands with a wide margin; anything tappable gets
-// at least this much target, whatever the visible object inside it measures.
-private val HitTarget = 72.dp
 
 /**
  * One countable. Optionally on a rounded seat (the ADD bowl's part colours),
@@ -168,6 +162,11 @@ fun GhostSlot(sizeDp: Dp) {
  * The white tray the objects live on: liner inside, thick candy rim around,
  * and rows of five so the five-frame stays visible in every arrangement.
  * [count] is the number of slots shown and picks the object size.
+ *
+ * [objectSize] overrides that heuristic when the caller must fit several
+ * trays into one screen: ADD solves its plates and bowl together in
+ * [solveAddTraySizes] so the whole round always fits, and passes each tray
+ * its share.
  */
 @OptIn(ExperimentalLayoutApi::class) // the five-frame needs maxItemsInEachRow
 @Composable
@@ -175,13 +174,14 @@ fun Tray(
     rim: Color,
     count: Int,
     modifier: Modifier = Modifier,
+    objectSize: Dp? = null,
     content: @Composable (objectSize: Dp) -> Unit,
 ) {
-    val objectSize = if (count <= 5) 96.dp else 64.dp
+    val size = objectSize ?: if (count <= 5) 96.dp else 64.dp
     Box(
         modifier
             // An emptied plate must still look like a place, not vanish.
-            .sizeIn(minHeight = objectSize + TrayPad * 2)
+            .sizeIn(minHeight = size + TrayPad * 2)
             .background(Liner, RoundedCornerShape(Corner))
             .border(BorderStroke(RimWidth, rim), RoundedCornerShape(Corner))
             .padding(TrayPad),
@@ -192,7 +192,7 @@ fun Tray(
             verticalArrangement = Arrangement.spacedBy(TrayGap),
             maxItemsInEachRow = 5,
         ) {
-            content(objectSize)
+            content(size)
         }
     }
 }

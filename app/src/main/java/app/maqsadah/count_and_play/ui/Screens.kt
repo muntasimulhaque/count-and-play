@@ -9,6 +9,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -80,28 +81,41 @@ fun AddScreen(
         else -> copy.promptCount()
     }
     ActivityFrame(prompt, copy, onHome) {
-        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            PlatesRow(state, copy, onTap)
-            PourButton(
-                label = copy.promptAdd(),
-                enabled = state.platesReady && !state.poured,
-                visible = !state.poured,
-                readyState = copy.pourReadyState(),
-                notYetState = copy.pourNotYetState(),
-                onPour = onPour,
-                modifier = Modifier.align(Alignment.CenterHorizontally),
+        // Both trays are sized together against the room this box actually
+        // has, in both phases: plates counted with an empty bowl waiting, and
+        // the poured bowl counted with the emptied plates keeping their place.
+        // The sizes come from the round's numbers alone, so nothing jumps when
+        // the plates pour, and even 5 + 5 with a full ten-token bowl fits.
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            val sizes = solveAddTraySizes(
+                playWidth = maxWidth,
+                bigPlate = maxOf(state.a, state.b),
+                total = state.a + state.b,
+                availHeight = maxHeight,
             )
-            BowlTray(state, copy, onTap)
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(SectionGap)) {
+                PlatesRow(state, copy, sizes.plate, onTap)
+                PourButton(
+                    label = copy.promptAdd(),
+                    enabled = state.platesReady && !state.poured,
+                    visible = !state.poured,
+                    readyState = copy.pourReadyState(),
+                    notYetState = copy.pourNotYetState(),
+                    onPour = onPour,
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                )
+                BowlTray(state, copy, sizes.bowl, onTap)
+            }
         }
     }
 }
 
 /** The two plates side by side, each counted on its own. */
 @Composable
-private fun PlatesRow(state: AddState, copy: Copy, onTap: (Int) -> Unit) {
-    Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-        PlateTray(Blue, state.plateA, copy, Modifier.weight(1f), onTap)
-        PlateTray(Orange, state.plateB, copy, Modifier.weight(1f), onTap)
+private fun PlatesRow(state: AddState, copy: Copy, objectSize: Dp, onTap: (Int) -> Unit) {
+    Row(horizontalArrangement = Arrangement.spacedBy(PlateGap)) {
+        PlateTray(Blue, state.plateA, copy, objectSize, Modifier.weight(1f), onTap)
+        PlateTray(Orange, state.plateB, copy, objectSize, Modifier.weight(1f), onTap)
     }
 }
 
@@ -110,10 +124,11 @@ private fun PlateTray(
     rim: Color,
     tokens: List<Token>,
     copy: Copy,
+    objectSize: Dp,
     modifier: Modifier,
     onTap: (Int) -> Unit,
 ) {
-    Tray(rim, tokens.size, modifier) { size ->
+    Tray(rim, tokens.size, modifier, objectSize = objectSize) { size ->
         tokens.forEach { token ->
             key(token.id) {
                 ObjectView(
@@ -129,8 +144,8 @@ private fun PlateTray(
 }
 
 @Composable
-private fun BowlTray(state: AddState, copy: Copy, onTap: (Int) -> Unit) {
-    Tray(Green, state.bowl.size, Modifier.fillMaxWidth()) { size ->
+private fun BowlTray(state: AddState, copy: Copy, objectSize: Dp, onTap: (Int) -> Unit) {
+    Tray(Green, state.bowl.size, Modifier.fillMaxWidth(), objectSize = objectSize) { size ->
         state.bowl.forEach { token ->
             key(token.id) {
                 ObjectView(

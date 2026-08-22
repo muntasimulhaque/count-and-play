@@ -21,6 +21,10 @@ class AddTest {
             )
             assertEquals(start.a, start.plateA.size)
             assertEquals(start.b, start.plateB.size)
+            // No plate ever exceeds five: the trays are five-frames, and a
+            // bigger plate cannot fit a phone at a tappable size.
+            assertTrue("seed=$seed a=${start.a}", start.a <= 5)
+            assertTrue("seed=$seed b=${start.b}", start.b <= 5)
             // Token ids are unique across both plates.
             assertEquals(
                 start.total,

@@ -90,6 +90,13 @@ class ScreenshotTest {
         // Both plates fully counted, the pour button awake.
         shoot("03_add") { model(Screen.Add(addReady())) }
 
+        // The top level's worst case on a phone: 5 + 5 counted, the button
+        // awake, and room for the bowl below. Proves the trays fit together.
+        shoot("09_add_big") { model(Screen.Add(addReadyBig())) }
+
+        // The same round poured: ten in the bowl, three counted so far.
+        shoot("10_add_big_bowl") { model(Screen.Add(addPouredBig(counted = 3))) }
+
         // The whole, with the parts still visible inside it: 3 + 2 = 5.
         shoot("04_add_fact") {
             model(Screen.Add(addPoured()), flash = Flash.Add(3, 2, 5))
@@ -157,6 +164,37 @@ class ScreenshotTest {
             Token(id = 4, shape = ShapeKind.CARROT, counted = true, countOrder = 1),
             Token(id = 5, shape = ShapeKind.CARROT, counted = true, countOrder = 2),
         ),
+    )
+
+    /** A plate of [count] [shape]s, the first [counted] of them tagged. */
+    private fun plate(count: Int, shape: ShapeKind, counted: Int, firstId: Int, origin: Int = 0) =
+        List(count) { i ->
+            Token(
+                id = firstId + i,
+                shape = shape,
+                counted = i < counted,
+                countOrder = if (i < counted) i + 1 else 0,
+                origin = origin,
+            )
+        }.toPersistentList()
+
+    /** 5 + 5, both plates fully counted: the widest round the app deals. */
+    private fun addReadyBig() = AddState(
+        a = 5, b = 5,
+        plateA = plate(5, ShapeKind.APPLE, counted = 5, firstId = 1),
+        plateB = plate(5, ShapeKind.CARROT, counted = 5, firstId = 6),
+    )
+
+    /** 5 + 5 poured: ten in the bowl, [counted] of them tagged afresh. */
+    private fun addPouredBig(counted: Int) = AddState(
+        a = 5, b = 5,
+        plateA = persistentListOf(),
+        plateB = persistentListOf(),
+        poured = true,
+        bowl = (
+            plate(5, ShapeKind.APPLE, counted = counted.coerceAtMost(5), firstId = 1, origin = 1) +
+                plate(5, ShapeKind.CARROT, counted = (counted - 5).coerceAtLeast(0), firstId = 6, origin = 2)
+            ).toPersistentList(),
     )
 
     /** The same 3 + 2 poured and the bowl fully counted. */

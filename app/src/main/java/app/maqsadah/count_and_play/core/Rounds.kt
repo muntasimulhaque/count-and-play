@@ -47,10 +47,19 @@ object CountRound {
 }
 
 object AddRound {
+    // No plate ever exceeds five: the trays are five-frames, and the split
+    // must stay within what a phone can draw at a touch size a three-year-old
+    // can actually hit (see ui/TrayMath.kt). A 9 + 1 deal also teaches less
+    // than 5 + 5: the parts should each be countable at a glance.
+    private const val MAX_PLATE = 5
+
     fun next(level: Int, rng: Rng): AddState {
         val bounds = addTotal(level)
         val total = rng.range(bounds.first, bounds.last)
-        val a = rng.range(1, total - 1)
+        val lo = maxOf(1, total - MAX_PLATE)
+        val hi = minOf(MAX_PLATE, total - 1)
+        require(lo <= hi) { "split bounds collapsed at total $total" }
+        val a = rng.range(lo, hi)
         val b = total - a
         val all = tokens(total, rng)
         return AddState(a, b, plateA = all.take(a).toPersistentList(), plateB = all.drop(a).toPersistentList())
