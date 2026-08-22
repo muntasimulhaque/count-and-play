@@ -43,9 +43,13 @@ jobs:
       #
       # Android 17 is published as 37.0/37.1, not a bare 37. The runner must
       # be one that keeps api-level a string (older releases coerced it to an
-      # integer, which broke every package lookup) and this level has to stay
-      # quoted so YAML does not turn it into a float.
-      API_LEVEL: "37.0"
+      # integer, which broke every package lookup) and these levels have to
+      # stay quoted so YAML does not turn them into floats. The ps16k flavor
+      # is the one verified stable under the CI emulator; the plain 37.0
+      # image crashes system_server mid-run.
+      API_LEVEL: "37.1"
+      SYSTEM_IMAGE_LEVEL: "37.1"
+      TARGET_IMAGE: playstore_ps16k
     steps:
       - name: Check out source
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -85,7 +89,7 @@ jobs:
         uses: reactivecircus/android-emulator-runner@c9c93e6ba9c4194322e114c40970d5983d9a07cc # v2.38.0
         with:
           api-level: ${{ env.API_LEVEL }}
-          target: google_apis_playstore
+          target: ${{ env.TARGET_IMAGE }}
           arch: x86_64
           profile: ${{ matrix.profile }}
           force-avd-creation: false
@@ -97,7 +101,7 @@ jobs:
         uses: reactivecircus/android-emulator-runner@c9c93e6ba9c4194322e114c40970d5983d9a07cc # v2.38.0
         with:
           api-level: ${{ env.API_LEVEL }}
-          target: google_apis_playstore
+          target: ${{ env.TARGET_IMAGE }}
           arch: x86_64
           profile: ${{ matrix.profile }}
           force-avd-creation: false
