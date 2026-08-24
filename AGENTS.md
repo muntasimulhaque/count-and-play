@@ -75,6 +75,11 @@ copy/     what the words are, in English and বাংলা
 host/     ViewModel, beat performance, TTS, SoundPool, prefs
 ui/       Compose: the candy toy-box
 tools/    offline asset generators (sounds, store art): plain JVM Kotlin
+
+Outside the code, two asset homes: play-store/ holds the listing kit
+(screenshots in per-form-factor subfolders, feature graphic, store icon,
+listing text, the submission guide); docs/ holds privacy.html as served on
+GitHub Pages and the bundled font's license. Nothing else lives loose.
 ```
 
 The organising principle: **the rules are pure data and functions; Android is
@@ -225,5 +230,7 @@ paste-ready in chat (English, plain prose). Upload screenshots straight from
 what CI captured; there is no separate staging folder (the local
 `store-shots/` convention is retired; the same-named folder inside
 screenshots.yml is CI-internal scratch and unrelated). Listing text, feature
-graphic and icon live in `play-store/`. The owner uploads to Play Console and
+graphic and icon live in `play-store/`; the graphic and icon are `makeArt`
+outputs, so whenever either is regenerated, upload the new PNGs to the
+listing as well. The owner uploads to Play Console and
 pastes the notes.
