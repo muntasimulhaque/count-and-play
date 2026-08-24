@@ -150,7 +150,9 @@ when upstream stabilizes.
   Can't find service: package. Until Google's 17 graphics stack works under
   WHPX here, local verification and capture run on API 35 AVDs
   (`Pixel_4_35`, `Nexus_7_35`, `Pixel_C_35`), the same image CI uses.
-  Revisit 37 when upstream fixes the renderer.
+  The broken 37.x images and their AVDs were deleted from this machine to
+  reclaim the disk; bring them back with sdkmanager if upstream ever fixes
+  the renderer, and re-apply the data-partition fix below to any new AVD.
 - AVDs that avdmanager creates get a ~792 MB data partition, and installs fail
   with Requested internal only, but not enough space. Fix once per AVD: put
   `disk.dataPartition.size=6G` in its config.ini (not hw.diskSize, which the
@@ -167,10 +169,11 @@ when upstream stabilizes.
   the flaky package service; the streamed install does not.
 
 **Pending since the 7.5 UI work:** the committed reference screenshots under
-`play-store/screenshots/` still show the v7.4 UI. Capture the eight scenes
-(phone, 7 inch, 10 inch, up to eight per form factor for Play) on the API 35
-AVDs per the notes above, or pull them from the screenshots workflow run of
-the 7.5 push, and refresh the committed copies.
+`play-store/screenshots/` still show the v7.4 UI. The 7.5 listing was
+submitted for review with the screenshots workflow's fresh captures instead.
+Next session: pull the three form-factor artifacts from that workflow run (or
+capture the eight scenes locally on the API 35 AVDs per the notes above) and
+refresh the committed copies, so the repo's references match what ships.
 
 ## Pull before working
 
