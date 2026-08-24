@@ -140,6 +140,45 @@ two tablet AVDs). CI screenshot capture temporarily stays on API 35 because
 Google's Android 17 images do not yet boot reliably on hosted runners; revisit
 when upstream stabilizes.
 
+**Emulator notes, learned the hard way on this machine (do not re-derive):**
+
+- Both Android 17 images (37.1 ps16k and 37.0 4k) are broken on this host,
+  on every GPU mode and with memory and disk to spare: the moment an app
+  starts rendering, surfaceflinger aborts with the assertion
+  `!rcEnc->featureInfo()->hasReadColorBufferDma`, the system server falls
+  with it, and every later adb command dies with Broken pipe or
+  Can't find service: package. Until Google's 17 graphics stack works under
+  WHPX here, local verification and capture run on API 35 AVDs
+  (`Pixel_4_35`, `Nexus_7_35`, `Pixel_C_35`), the same image CI uses.
+  Revisit 37 when upstream fixes the renderer.
+- AVDs that avdmanager creates get a ~792 MB data partition, and installs fail
+  with Requested internal only, but not enough space. Fix once per AVD: put
+  `disk.dataPartition.size=6G` in its config.ini (not hw.diskSize, which the
+  emulator ignores) and delete `userdata-qemu.img*` so it is recreated.
+- Free host RAM before booting: `./gradlew --stop`, and kill leftover
+  `qemu-system-x86_64-headless.exe` processes; a starved host kills the guest's
+  system server.
+- Git Bash on Windows rewrites `/sdcard/...` arguments; export
+  `MSYS_NO_PATHCONV=1` before any adb shell command that carries one.
+- Capture without Gradle: `adb install` both APKs, then
+  `adb shell am instrument -w -e additionalTestOutputDir /sdcard/shots
+  app.maqsadah.count_and_play.twa.test/androidx.test.runner.AndroidJUnitRunner`,
+  then `adb pull /sdcard/shots`. Gradle's split APK install path trips over
+  the flaky package service; the streamed install does not.
+
+**Pending since the 7.5 UI work:** the committed reference screenshots under
+`play-store/screenshots/` still show the v7.4 UI. Capture the eight scenes
+(phone, 7 inch, 10 inch, up to eight per form factor for Play) on the API 35
+AVDs per the notes above, or pull them from the screenshots workflow run of
+the 7.5 push, and refresh the committed copies.
+
+## Pull before working
+
+The owner works from more than one machine; this checkout is only one of
+several. At the start of any session, `git fetch` and pull whatever is new
+on `main` from GitHub, and do the work on that pulled head, never on a
+stale local one.
+
 ## Commits
 
 **Never add a `Co-Authored-By: Claude` trailer, or any other AI attribution,

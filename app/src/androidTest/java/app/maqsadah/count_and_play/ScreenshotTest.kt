@@ -126,13 +126,6 @@ class ScreenshotTest {
         // Both plates fully counted, the pour button awake.
         shoot(outDir, scenario, "03_add") { model(Screen.Add(addReady())) }
 
-        // The top level's worst case on a phone: 5 + 5 counted, the button
-        // awake, and room for the bowl below. Proves the trays fit together.
-        shoot(outDir, scenario, "09_add_big") { model(Screen.Add(addReadyBig())) }
-
-        // The same round poured: ten in the bowl, three counted so far.
-        shoot(outDir, scenario, "10_add_big_bowl") { model(Screen.Add(addPouredBig(counted = 3))) }
-
         // The whole, with the parts still visible inside it: 3 + 2 = 5.
         shoot(outDir, scenario, "04_add_fact") {
             model(Screen.Add(addPoured()), flash = Flash.Add(3, 2, 5))
@@ -207,13 +200,6 @@ class ScreenshotTest {
         a = 3, b = 2,
         plateA = plate(3, ShapeKind.APPLE, counted = 3, firstId = 1),
         plateB = plate(2, ShapeKind.CARROT, counted = 2, firstId = 4),
-    )
-
-    /** 5 + 5, both plates fully counted: the widest round the app deals. */
-    private fun addReadyBig() = AddState(
-        a = 5, b = 5,
-        plateA = plate(5, ShapeKind.APPLE, counted = 5, firstId = 1),
-        plateB = plate(5, ShapeKind.CARROT, counted = 5, firstId = 6),
     )
 
     /** 5 + 5 poured: ten in the bowl, [counted] of them tagged afresh. */
