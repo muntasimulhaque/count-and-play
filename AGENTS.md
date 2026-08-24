@@ -177,11 +177,12 @@ committed references under `play-store/screenshots/` are refreshed from the
   Manual `workflow_dispatch` works too. A run takes about five minutes.
 - When the UI changes, download that run's three `store-screenshots-*`
   artifacts (`gh run download <run-id> -R muntasimulhaque/count-and-play -D
-  <dir>`; the `-R` lets this work from any directory and either machine), copy
-  them into `play-store/screenshots/` in the same session keeping the artifact
-  file names (`phone_NN_scene.png`, `tablet7_...`, `tablet10_...`), and delete
-  any scene the test no longer shoots. The references must never drift from
-  what ships.
+  <dir>`; the `-R` lets this work from any directory and either machine).
+  Each artifact's eight PNGs go into their subfolder under
+  `play-store/screenshots/` (`phone/`, `tablet7/`, `tablet10/`), renamed to
+  drop the form-factor prefix (the subfolder carries it instead of the
+  filename). Delete any scene the test no longer shoots. The references must
+  never drift from what ships.
 - Never attempt API 37 capture, locally or in CI, until Google's Android 17
   images boot reliably both under WHPX here and on hosted runners. Every
   attempt so far failed in a new way; API 35 renders the Compose UI
@@ -219,8 +220,9 @@ Bump `versionCode` +1 and `versionName` (+0.1 for small releases), push to
 
 Deliver the upload kit in one place: the AAB in `aab/`, release notes
 paste-ready in chat (English, plain prose). Upload screenshots straight from
-`play-store/screenshots/`, which the Store screenshots rule keeps identical
-to what CI captured; there is no separate staging folder (the local
+`play-store/screenshots/`, one subfolder per form factor (`phone/`,
+`tablet7/`, `tablet10/`), which the Store screenshots rule keeps identical to
+what CI captured; there is no separate staging folder (the local
 `store-shots/` convention is retired; the same-named folder inside
 screenshots.yml is CI-internal scratch and unrelated). Listing text, feature
 graphic and icon live in `play-store/`. The owner uploads to Play Console and
