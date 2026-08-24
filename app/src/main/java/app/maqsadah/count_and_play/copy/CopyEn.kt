@@ -73,6 +73,7 @@ object EnCopy : Copy {
     override fun closeLabel(): String = "Close"
     override fun soundOnLabel(): String = "Sound on"
     override fun soundOffLabel(): String = "Sound off"
+    override fun settingsTitle(): String = "Grown-ups"
 
     override fun pourReadyState(): String = "Ready"
     override fun pourNotYetState(): String = "Not yet"

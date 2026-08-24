@@ -7,12 +7,14 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The ADD layout solver's promise: on any screen a real phone or tablet has,
- * and for every round the core can deal, BOTH phases of the game fit. The
- * plates counted with an empty bowl waiting, and the poured bowl counted with
- * the emptied plates keeping their place. This is what failed in v7.3 and
- * earlier: at the top level the plates towered off-screen and the bowl was
- * pushed out of reach exactly when a child advanced.
+ * The layout solvers' promise: on any screen a real phone or tablet has, and
+ * for every round the core can deal, the trays fit, the objects stay big,
+ * and rows stay balanced (no lonely orphan row). ADD additionally must fit
+ * BOTH phases of the game: the plates counted with an empty bowl waiting,
+ * and the poured bowl counted with the emptied plates keeping their place.
+ * This is what failed in v7.3 and earlier: at the top level the plates
+ * towered off-screen and the bowl was pushed out of reach exactly when a
+ * child advanced.
  */
 class AddLayoutTest {
 
@@ -33,12 +35,11 @@ class AddLayoutTest {
     ) {
         val s = solveAddTraySizes(playWidth, bigPlate, total, availHeight)
         val room = availHeight - PourReserve - SectionGap * 2
-        val plateWidth = (playWidth - PlateGap) / 2
 
         val beforePour =
-            trayHeight(plateWidth, bigPlate, s.plate) + s.bowl + TrayPad * 2 <= room
+            trayHeight(bigPlate, s.plate, s.platePerRow) + s.bowl + TrayPad * 2 <= room
         val afterPour =
-            s.plate + TrayPad * 2 + trayHeight(playWidth, total, s.bowl, seated = true) <= room
+            s.plate + TrayPad * 2 + trayHeight(total, s.bowl, s.bowlPerRow, seated = true) <= room
         assertTrue(
             "beforePour overflows: w=$playWidth h=$availHeight plate=$bigPlate/$total " +
                 "sizes=${s.plate}/${s.bowl}",
@@ -95,14 +96,49 @@ class AddLayoutTest {
     }
 
     @Test
+    fun `rows stay balanced, never a lonely orphan`() {
+        // Every count the trays can show arranges into rows whose last row
+        // holds at least two, so no object ever sits alone under a full row.
+        for (count in 2..10) {
+            val perRow = perRowTemplate(count)
+            val lastRow = count - perRow * (rowsFor(count, perRow) - 1)
+            assertTrue("count $count leaves an orphan", lastRow >= 2)
+        }
+    }
+
+    @Test
+    fun `single trays use the room a phone offers`() {
+        // Four becomes a big line of four, five the 3+2 five-frame, ten a
+        // couple of full rows: all at sizes a small finger enjoys.
+        val four = solveTray(379.dp, 4, SingleCap)
+        assertEquals(4, four.perRow)
+        assertTrue("line of four too small: ${four.size}", four.size >= 72.dp)
+
+        val five = solveTray(379.dp, 5, SingleCap)
+        assertEquals(3, five.perRow)
+        assertTrue("five-frame too small: ${five.size}", five.size >= 96.dp)
+
+        val ten = solveTray(379.dp, 10, SingleCap)
+        assertTrue("ten too small: ${ten.size}", ten.size >= 56.dp)
+        assertEquals(3, rowsFor(10, ten.perRow))
+    }
+
+    @Test
+    fun `narrow trays fall back to narrower rows instead of tiny objects`() {
+        // A phone-width ADD plate cannot fit three touch-sized nodes in a
+        // row; it takes two per row and keeps the objects at finger size.
+        val plate = solveTray(182.dp, 3, AddCap)
+        assertEquals(2, plate.perRow)
+        assertTrue("plate objects too small: ${plate.size}", plate.size >= 64.dp)
+    }
+
+    @Test
     fun `the geometry helper agrees with itself`() {
-        // Ten seated 64 dp tokens pack into a few rows on a phone-width bowl;
-        // height grows with row count; empty trays report zero rows.
-        val width = 379.dp
-        val rows = trayRows(width, 10, 64.dp, seated = true)
-        assertTrue("expected a few packed rows, got $rows", rows in 2..4)
-        assertEquals(rows, trayRows(width, 10, 64.dp, seated = true))
-        assertTrue(trayHeight(width, 10, 64.dp, seated = true) > 64.dp * rows)
-        assertEquals(0, trayRows(width, 0, 96.dp))
+        // Ten seated 64 dp tokens in rows of four make three rows; an empty
+        // tray reports zero rows and only its floor height.
+        val rows = rowsFor(10, 4)
+        assertEquals(3, rows)
+        assertTrue(trayHeight(10, 64.dp, 4, seated = true) > 64.dp * rows)
+        assertEquals(0, rowsFor(0, 4))
     }
 }

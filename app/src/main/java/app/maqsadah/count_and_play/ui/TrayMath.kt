@@ -7,9 +7,10 @@ import androidx.compose.ui.unit.dp
  * Tray geometry, as pure arithmetic so it can be unit-tested without a device.
  *
  * ADD must fit two trays and the pour button into whatever height a phone
- * offers, in BOTH phases: plates full with an empty bowl, and the poured bowl
- * full with empty plates. [solveAddTraySizes] sizes both trays together so
- * neither phase ever overflows, on anything from a narrow phone to a tablet.
+ * offers, in BOTH phases: plates full with an empty bowl waiting, and the
+ * poured bowl full with the emptied plates keeping their place. The solvers
+ * below size every tray for its round's numbers alone, so nothing jumps when
+ * the plates pour.
  *
  * Two facts of the real layout are priced in here rather than ignored:
  *
@@ -18,6 +19,9 @@ import androidx.compose.ui.unit.dp
  *   not the drawing.
  * - A seated token (the bowl's part colours) draws a circle around itself,
  *   so its node grows past its body.
+ *
+ * Rows follow [perRowTemplate]: balanced arrangements with no lonely orphan
+ * row, so a tray of four is a line of four or a square, never three-and-one.
  */
 
 internal val TrayPad = 14.dp
@@ -29,8 +33,9 @@ internal val HitTarget = 72.dp
 /** How much a seated token's node exceeds its body. */
 internal const val SeatScale = 1.3f
 
-/** Object-size ceilings by tray crowding: few tokens stay huge, many shrink. */
-internal fun objectCap(count: Int): Dp = if (count <= 5) 96.dp else 64.dp
+/** Object-size ceilings: one-tray games may grow huge, ADD shares a screen. */
+internal val SingleCap = 128.dp
+internal val AddCap = 96.dp
 
 /** The floor below which shrinking stops entirely. */
 internal val MinObject = 24.dp
@@ -41,68 +46,91 @@ internal val MinObject = 24.dp
 internal val PourReserve = 76.dp
 internal val SectionGap = 14.dp
 internal val PlateGap = 14.dp
-internal const val MaxPlateRows = 4
-internal const val MaxBowlRows = 4
+
+/**
+ * How many objects sit in one row of a tray of [count]: balanced
+ * arrangements, never a lonely orphan row. 3 stays a line, 4 a line of four,
+ * 5 the five-frame 3+2, then 3+3, 4+3, 4+4, 5+4 and 5+5.
+ */
+internal fun perRowTemplate(count: Int): Int = when {
+    count <= 3 -> count
+    count == 4 -> 4
+    count <= 6 -> 3
+    count <= 8 -> 4
+    else -> 5
+}
+
+/** One solved tray: how big each object draws, and how many sit in a row. */
+internal data class TraySolution(val size: Dp, val perRow: Int)
 
 /** The node a token of [size] occupies: touch floor, plus seat growth. */
 internal fun nodeOf(size: Dp, seated: Boolean): Dp =
     maxOf(HitTarget, if (seated) size * SeatScale else size)
 
-/** How many objects of [size] pack into one row of a tray [width] wide. */
-private fun perRowFor(width: Dp, count: Int, size: Dp, seated: Boolean): Int {
-    val node = nodeOf(size, seated)
-    val inner = width - TrayPad * 2
-    return (((inner + TrayGap) / (node + TrayGap)).toInt()).coerceIn(1, maxOf(1, count))
-}
+internal fun rowsFor(count: Int, perRow: Int): Int =
+    if (count <= 0) 0 else (count + perRow - 1) / perRow
 
-/** Rows [count] objects of [size] fill in a tray [width] wide. */
-internal fun trayRows(width: Dp, count: Int, size: Dp, seated: Boolean = false): Int {
-    if (count <= 0) return 0
-    val perRow = perRowFor(width, count, size, seated)
-    return (count + perRow - 1) / perRow
-}
-
-/** Full rendered height of that tray, rim and padding included. */
-internal fun trayHeight(width: Dp, count: Int, size: Dp, seated: Boolean = false): Dp {
-    val rows = trayRows(width, count, size, seated)
+/** Full rendered height of a tray, rim and padding included. */
+internal fun trayHeight(count: Int, size: Dp, perRow: Int, seated: Boolean = false): Dp {
+    val rows = rowsFor(count, perRow)
     if (rows <= 0) return size + TrayPad * 2
     val node = nodeOf(size, seated)
     return node * rows + TrayGap * (rows - 1) + TrayPad * 2
 }
 
+/** The widest row of touch-sized nodes that fits a tray's inner width. */
+private fun maxPerRowFor(inner: Dp): Int =
+    ((inner + TrayGap) / (HitTarget + TrayGap)).toInt().coerceAtLeast(1)
+
 /**
- * The largest object size at most [cap] that keeps [count] objects within
- * [maxRows] rows and the whole tray inside [budget] height. Every row count
- * is tried and the biggest feasible object wins, so a few objects stay huge
- * and only genuinely crowded trays shrink.
+ * Solves one tray: the biggest object size at most [cap] whose template row
+ * (or a narrower one, on narrow trays) fits the width at touch size and the
+ * height inside [availHeight] when given. Prefers the widest balanced row,
+ * so objects stay as big as the screen truly allows.
  */
-internal fun fitTraySize(
+internal fun solveTray(
     width: Dp,
     count: Int,
     cap: Dp,
-    maxRows: Int,
-    budget: Dp,
+    availHeight: Dp? = null,
     seated: Boolean = false,
-): Dp {
-    if (count <= 0) return cap
-    var best = MinObject
-    for (rows in 1..minOf(maxRows, count)) {
-        val perRow = (count + rows - 1) / rows
-        val size = minOf(cap, (width - TrayPad * 2 - TrayGap * (perRow - 1)) / perRow)
-        if (size > best && trayHeight(width, count, size, seated) <= budget) best = size
+): TraySolution {
+    if (count <= 0) return TraySolution(cap, 1)
+    val inner = width - TrayPad * 2
+    val pref = minOf(perRowTemplate(count), maxPerRowFor(inner))
+    for (perRow in pref downTo 1) {
+        var size = minOf(cap, (inner - TrayGap * (perRow - 1)) / perRow / if (seated) SeatScale else 1f)
+        if (size < MinObject) continue
+        var node = nodeOf(size, seated)
+        if (node * perRow + TrayGap * (perRow - 1) > inner) continue
+        if (availHeight != null) {
+            val rows = rowsFor(count, perRow)
+            val nodeCap = (availHeight - TrayPad * 2 - TrayGap * (rows - 1)) / rows
+            if (nodeCap < node) {
+                node = nodeCap
+                size = minOf(size, if (seated) nodeCap / SeatScale else nodeCap)
+                if (size < MinObject) continue
+            }
+        }
+        return TraySolution(size, perRow)
     }
-    return best
+    return TraySolution(MinObject, 1)
 }
 
-/** One solved round: how big a plate token and a bowl token may draw. */
-internal data class TraySizes(val plate: Dp, val bowl: Dp)
+/** One solved ADD round: plate and bowl sizes plus their row counts. */
+internal data class TraySizes(
+    val plate: Dp,
+    val bowl: Dp,
+    val platePerRow: Int,
+    val bowlPerRow: Int,
+)
 
 /**
  * Sizes both ADD trays for a round of [bigPlate]-and-the-rest totalling
  * [total], inside [availHeight]. Both phases must fit: the plates counted
  * with an empty bowl waiting, and the poured bowl counted with the emptied
- * plates keeping their place. Prefers the largest plate size, then the
- * largest bowl; falls back to the floor sizes on a screen nothing fits.
+ * plates keeping their place. Each tray first gets its biggest solo size,
+ * then both shrink together only as much as the shared height demands.
  */
 internal fun solveAddTraySizes(
     playWidth: Dp,
@@ -112,22 +140,21 @@ internal fun solveAddTraySizes(
 ): TraySizes {
     val room = availHeight - PourReserve - SectionGap * 2
     val plateWidth = (playWidth - PlateGap) / 2
-    val bowlFloor = MinObject + TrayPad * 2
-    var best = TraySizes(MinObject, MinObject)
-    for (plateRows in MaxPlateRows downTo 1) {
-        val plate = fitTraySize(plateWidth, bigPlate, objectCap(bigPlate), plateRows, room)
-        for (bowlRows in MaxBowlRows downTo 1) {
-            val bowl = fitTraySize(playWidth, total, objectCap(total), bowlRows, room, seated = true)
-            val beforePour = trayHeight(plateWidth, bigPlate, plate) + bowl + TrayPad * 2 <= room
-            val afterPour =
-                plate + TrayPad * 2 + trayHeight(playWidth, total, bowl, seated = true) <= room
-            val better = plate > best.plate || (plate == best.plate && bowl > best.bowl)
-            if (beforePour && afterPour && better) best = TraySizes(plate, bowl)
+    val plateSol = solveTray(plateWidth, bigPlate, AddCap, room)
+    val bowlSol = solveTray(playWidth, total, AddCap, room, seated = true)
+    var scale = 1f
+    while (scale > 0.4f) {
+        val plate = plateSol.size * scale
+        val bowl = bowlSol.size * scale
+        val beforePour =
+            trayHeight(bigPlate, plate, plateSol.perRow) + bowl + TrayPad * 2 <= room
+        val afterPour =
+            plate + TrayPad * 2 + trayHeight(total, bowl, bowlSol.perRow, seated = true) <= room
+        if (beforePour && afterPour) {
+            return TraySizes(plate, bowl, plateSol.perRow, bowlSol.perRow)
         }
+        scale -= 0.05f
     }
     // Nothing fit: keep both trays presentable rather than optimal.
-    if (best.plate == MinObject && best.bowl == MinObject) {
-        return TraySizes(MinObject + TrayPad * 2, bowlFloor)
-    }
-    return best
+    return TraySizes(MinObject, MinObject, 1, 1)
 }

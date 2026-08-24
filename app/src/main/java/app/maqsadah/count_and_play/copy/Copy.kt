@@ -88,6 +88,9 @@ interface Copy {
     fun soundOnLabel(): String
     fun soundOffLabel(): String
 
+    /** The settings sheet's heading, naming who the levers belong to. */
+    fun settingsTitle(): String
+
     /** State of the pour button, announced alongside its label. */
     fun pourReadyState(): String
     fun pourNotYetState(): String

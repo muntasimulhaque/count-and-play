@@ -90,6 +90,7 @@ object BnCopy : Copy {
     override fun closeLabel(): String = "বন্ধ করুন"
     override fun soundOnLabel(): String = "শব্দ চালু"
     override fun soundOffLabel(): String = "শব্দ বন্ধ"
+    override fun settingsTitle(): String = "বড়দের জন্য"
 
     override fun pourReadyState(): String = "প্রস্তুত"
     override fun pourNotYetState(): String = "এখনো নয়"

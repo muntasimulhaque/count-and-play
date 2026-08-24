@@ -36,12 +36,14 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import app.maqsadah.count_and_play.core.ShapeKind
 
 private val RimWidth = 8.dp
 
-// Room for two digits ("10" / "১০") at the chip's font without going oval.
-private val ChipDiameter = 30.dp
+// Room for two digits ("10" / "১০") without going oval: the chip grows with
+// the object it tags, from a floor that stays legible on small trays.
+private fun chipDiameter(objectSize: Dp): Dp = maxOf(30.dp, objectSize * 0.36f)
 
 /**
  * One countable. Optionally on a rounded seat (the ADD bowl's part colours),
@@ -127,7 +129,8 @@ private fun CountableContent(shape: ShapeKind, sizeDp: Dp, seat: Color?, chip: S
             drawCountable(shape, size.minDimension, detailFor(sizeDp.value))
         }
         if (chip != null) {
-            CountChip(chip, Modifier.align(Alignment.TopEnd).offset(x = 6.dp, y = (-6).dp))
+            val dia = chipDiameter(sizeDp)
+            CountChip(chip, dia, Modifier.align(Alignment.TopEnd).offset(x = dia * 0.2f, y = -dia * 0.2f))
         }
     }
 }
@@ -138,15 +141,21 @@ private fun CountableContent(shape: ShapeKind, sizeDp: Dp, seat: Color?, chip: S
  * constraints would balloon it to fill the tray.
  */
 @Composable
-private fun CountChip(text: String, modifier: Modifier = Modifier) {
+private fun CountChip(text: String, diameter: Dp, modifier: Modifier = Modifier) {
     Box(
         modifier
-            .size(ChipDiameter)
+            .size(diameter)
             .background(ChipBlue, CircleShape)
             .padding(2.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Text(text, color = Color.White, fontSize = SizeChip, fontWeight = ToyBlack, fontFamily = ToyFont)
+        Text(
+            text,
+            color = Color.White,
+            fontSize = (diameter.value * 0.58f).sp,
+            fontWeight = ToyBlack,
+            fontFamily = ToyFont,
+        )
     }
 }
 
@@ -160,24 +169,23 @@ fun GhostSlot(sizeDp: Dp) {
 
 /**
  * The white tray the objects live on: liner inside, thick candy rim around,
- * and rows of five so the five-frame stays visible in every arrangement.
- * [count] is the number of slots shown and picks the object size.
+ * and rows packed exactly as the solver arranged them, so the balanced
+ * arrangement computed in [TrayMath] is the arrangement the child sees.
  *
- * [objectSize] overrides that heuristic when the caller must fit several
- * trays into one screen: ADD solves its plates and bowl together in
- * [solveAddTraySizes] so the whole round always fits, and passes each tray
- * its share.
+ * The caller passes a solved [layout]: COUNT and TAKE solve their single
+ * tray against the room the screen offers, and ADD solves its plates and
+ * bowl together in [solveAddTraySizes] so the whole round always fits.
  */
-@OptIn(ExperimentalLayoutApi::class) // the five-frame needs maxItemsInEachRow
+@OptIn(ExperimentalLayoutApi::class) // the arrangement needs maxItemsInEachRow
 @Composable
-fun Tray(
+internal fun Tray(
     rim: Color,
     count: Int,
+    layout: TraySolution,
     modifier: Modifier = Modifier,
-    objectSize: Dp? = null,
     content: @Composable (objectSize: Dp) -> Unit,
 ) {
-    val size = objectSize ?: if (count <= 5) 96.dp else 64.dp
+    val size = layout.size
     Box(
         modifier
             // An emptied plate must still look like a place, not vanish.
@@ -190,7 +198,7 @@ fun Tray(
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(TrayGap),
             verticalArrangement = Arrangement.spacedBy(TrayGap),
-            maxItemsInEachRow = 5,
+            maxItemsInEachRow = layout.perRow,
         ) {
             content(size)
         }

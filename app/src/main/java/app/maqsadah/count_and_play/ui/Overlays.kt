@@ -185,8 +185,17 @@ fun SettingsSheet(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Box(Modifier.fillMaxWidth()) {
+                Text(
+                    copy.settingsTitle(),
+                    Modifier.align(Alignment.Center),
+                    color = Ink.copy(alpha = 0.75f),
+                    fontSize = AdultSize,
+                    fontWeight = ToyBold,
+                    fontFamily = ToyFont,
+                )
                 CloseButton(Modifier.align(Alignment.CenterEnd), copy.closeLabel(), onCloseSettings)
             }
+            Spacer(Modifier.height(6.dp))
             LanguageRow(copy, language, onSetLanguage)
             if (!voiceAvailable) {
                 Spacer(Modifier.height(8.dp))
@@ -237,7 +246,15 @@ private fun SoundRow(copy: Copy, muted: Boolean, onToggleMute: () -> Unit) {
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        SpeakerIcon(muted, 32.dp, Ink)
+        SpeakerIcon(muted, 28.dp, Ink)
+        Text(
+            description,
+            Modifier.padding(start = 10.dp),
+            color = Ink,
+            fontSize = AdultSize,
+            fontWeight = ToyBold,
+            fontFamily = ToyFont,
+        )
     }
 }
 

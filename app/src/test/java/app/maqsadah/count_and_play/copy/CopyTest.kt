@@ -50,6 +50,7 @@ class CopyTest {
         lines += copy.closeLabel()
         lines += copy.soundOnLabel()
         lines += copy.soundOffLabel()
+        lines += copy.settingsTitle()
         lines += copy.pourReadyState()
         lines += copy.pourNotYetState()
         return lines
