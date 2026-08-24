@@ -19,18 +19,23 @@ import kotlin.math.sqrt
 
 // -- Type ----------------------------------------------------------------------
 
-private val BLACK_PATHS = listOf("C:\\Windows\\Fonts\\ariblk.ttf", "C:\\Windows\\Fonts\\seguibl.ttf")
-private val BOLD_PATHS = listOf("C:\\Windows\\Fonts\\arialbd.ttf", "C:\\Windows\\Fonts\\seguibl.ttf")
+/** The repo root the generators run from; [MakeArtMain] sets it, so the store
+ *  art can set the app's own bundled face instead of an OS default. */
+var artRoot: File = File(".")
+
+private fun fontPaths(kind: String): List<File> {
+    val bundled = if (kind == "bold") "baloo2_bold.ttf" else "baloo2_extrabold.ttf"
+    return listOf(artRoot.resolve("app/src/main/res/font/$bundled"))
+}
+
 private val fontCache = HashMap<String, Font>()
 
-/** The device's chunky faces, loaded straight from the system: the same
- *  files the Python generator used, so the lettering stays the lettering. */
+/** Baloo 2, the same bundled face the app renders, so shelf and store match. */
 fun font(kind: String, size: Int): Font {
     val key = "$kind:$size"
     fontCache[key]?.let { return it }
-    val paths = if (kind == "bold") BOLD_PATHS else BLACK_PATHS
-    val path = paths.firstOrNull { File(it).exists() } ?: error("no usable font found")
-    val f = Font.createFont(Font.TRUETYPE_FONT, File(path)).deriveFont(size.toFloat())
+    val path = fontPaths(kind).firstOrNull { it.isFile } ?: error("bundled font missing: run from the repo root")
+    val f = Font.createFont(Font.TRUETYPE_FONT, path).deriveFont(size.toFloat())
     fontCache[key] = f
     return f
 }
@@ -123,102 +128,4 @@ internal fun drawGlyphs(
     }
     g.argb(fill)
     g.fill(shape)
-}
-
-// -- Materials -------------------------------------------------------------------
-
-/** Soft radial highlight geometry: centre, radius and falloff as tile fractions. */
-private data class Gloss(val cx: Double, val cy: Double, val radius: Double, val peak: Int, val power: Double)
-
-/** A glossy toy ball: shaded sphere, soft sheen, one hot specular, rim light. */
-fun ballTile(dia: Int, base: Int): Img {
-    val d = max(4, dia)
-    val tile = img(d, d)
-    val g = graphics(tile)
-    g.clip = Ellipse2D.Double(0.0, 0.0, d.toDouble(), d.toDouble())
-    g.drawImage(vgrad(d, d, listOf(0.0 to lighten(base, 0.40), 0.55 to base, 1.0 to darken(base, 0.24))), 0, 0, null)
-    g.dispose()
-
-    for (gl in listOf(Gloss(0.40, 0.34, 0.46, 140, 1.7), Gloss(0.345, 0.27, 0.17, 235, 2.6))) {
-        val layer = img(d, d)
-        val px = IntArray(d * d)
-        for (y in 0 until d) for (x in 0 until d) {
-            val dist = sqrt((x - d * gl.cx).pow2() + (y - d * gl.cy).pow2()) / (d * gl.radius)
-            val a = ((1.0 - dist).coerceIn(0.0, 1.0).pow(gl.power) * gl.peak).roundToInt().coerceIn(0, 255)
-            px[y * d + x] = a shl 24 or 0xFFFFFF
-        }
-        layer.raster.setDataElements(0, 0, d, d, px)
-        val tg = graphics(tile)
-        tg.drawImage(layer, 0, 0, null)
-        tg.dispose()
-    }
-
-    // Rim light: the bottom crescent of the sphere, quietly lit.
-    val body = Area(Ellipse2D.Double(0.0, 0.0, d.toDouble(), d.toDouble()))
-    val shifted = Area(Ellipse2D.Double(0.0, -d * 0.05, d.toDouble(), d.toDouble()))
-    val crescent = body.apply { subtract(shifted) }
-    crescent.intersect(Area(Rectangle2D.Double(0.0, d * 0.74, d.toDouble(), d * 0.26)))
-    val coverage = rasterize(crescent, d, d)
-    val rim = img(d, d)
-    val lit = lighten(base, 0.45)
-    val rimPx = IntArray(d * d) { i ->
-        val a = (coverage[i] / 255.0 * 0.20 * 255).roundToInt().coerceIn(0, 255)
-        (a shl 24) or (lit and 0xFFFFFF)
-    }
-    rim.raster.setDataElements(0, 0, d, d, rimPx)
-    val rg = graphics(tile)
-    rg.drawImage(rim, 0, 0, null)
-    rg.dispose()
-    return tile
-}
-
-/** A white plate seen from a child's angle: lit top, shaded well, warm rim. */
-fun plateTile(rx: Double, ry: Double): Img {
-    val w = (rx * 2).toInt()
-    val h = (ry * 2).toInt()
-    val tile = img(w, h)
-    val ellipse = Ellipse2D.Double(0.0, 0.0, w.toDouble(), h.toDouble())
-    val g = graphics(tile)
-    g.clip = ellipse
-    g.drawImage(vgrad(w, h, listOf(0.0 to WHITE, 0.6 to rgb(252, 250, 245), 1.0 to rgb(233, 225, 207))), 0, 0, null)
-    g.dispose()
-
-    // Shaded well along the bottom inner edge.
-    val shiftedUp = Area(Ellipse2D.Double(0.0, -ry * 0.16, w.toDouble(), h.toDouble()))
-    val innerBottom = Area(ellipse).apply { subtract(shiftedUp) }
-    paintAreaBlurred(tile, innerBottom, rgb(198, 188, 166), 0.60, max(2.0, ry * 0.06))
-
-    // Lit lip along the top inner edge.
-    val shiftedDown = Area(Ellipse2D.Double(0.0, ry * 0.15, w.toDouble(), h.toDouble()))
-    val topLip = Area(ellipse).apply { subtract(shiftedDown) }
-    paintAreaBlurred(tile, topLip, WHITE, 0.85, max(1.0, ry * 0.03))
-    return tile
-}
-
-/** Paint [color] through [area] at [strength], softened by [blur]. */
-private fun paintAreaBlurred(dst: Img, area: Area, color: Int, strength: Double, blur: Double) {
-    val w = dst.width
-    val h = dst.height
-    val coverage = rasterize(area, w, h)
-    val layer = img(w, h)
-    val px = IntArray(w * h) { i ->
-        val a = (coverage[i] / 255.0 * strength * 255).roundToInt().coerceIn(0, 255)
-        (a shl 24) or (color and 0xFFFFFF)
-    }
-    layer.raster.setPixels(0, 0, w, h, px)
-    val g = graphics(dst)
-    g.drawImage(gaussianBlur(layer, blur), 0, 0, null)
-    g.dispose()
-}
-
-/** Fill an area into a coverage mask (0..255 per pixel), hard edges as PIL drew them. */
-private fun rasterize(area: Area, w: Int, h: Int): ByteArray {
-    val mask = BufferedImage(w, h, BufferedImage.TYPE_BYTE_GRAY)
-    val g = mask.createGraphics()
-    g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF)
-    g.fill(area)
-    g.dispose()
-    val buf = ByteArray(w * h)
-    mask.raster.getDataElements(0, 0, w, h, buf)
-    return buf
 }

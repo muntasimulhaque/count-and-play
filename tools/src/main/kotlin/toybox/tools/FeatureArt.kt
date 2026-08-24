@@ -1,131 +1,164 @@
 package toybox.tools
 
-import java.awt.geom.Ellipse2D
 import java.io.File
-import javax.imageio.ImageIO
-import kotlin.math.max
 import kotlin.random.Random
 
 /*
- * The feature graphic, staged on a 2048 x 1000 master and downscaled to the
- * store's 1024 x 500: title on a warm cream stage with confetti, and the
- * app's money shot as hero, two red balls plus three teal ones equalling a
- * giant glossy five.
+ * The feature graphic is the home screen, staged for the store: a 2048 x
+ * 1000 master downscaled to 1024 x 500. A title band on the warm cream,
+ * then the three games as the app's own candy tiles, each showing its real
+ * scene: counting with the chips on, the plates and the bowl with the parts
+ * seated inside the whole, and take-away with its ghosts. The promise line
+ * closes the band. No shadows anywhere: the white sticker keyline carries
+ * the depth, exactly as it does in the app.
  */
 
 private val CREAM = rgb(255, 246, 227)
 private val CREAM_DEEP = rgb(255, 233, 189)
 private val BLUE = rgb(28, 169, 232)
-private val CHIP_BLUE = rgb(39, 53, 122)
+private val DEEP_BLUE = rgb(11, 114, 168)
 private val RED = rgb(227, 59, 44)
-private val ORANGE = rgb(240, 106, 14)
+private val TEAL = rgb(14, 160, 174)
 private val YELLOW = rgb(250, 184, 5)
 private val GREEN = rgb(51, 168, 82)
-private val TEAL = rgb(14, 160, 174)
-private val CONFETTI_COLORS = listOf(BLUE, RED, YELLOW, GREEN, TEAL, ORANGE)
+private val ORANGE = rgb(240, 106, 14)
+private val PINK = rgb(236, 72, 153)
+private val CONFETTI_COLORS = listOf(BLUE, RED, YELLOW, GREEN, TEAL, ORANGE, PINK)
+
+/** No shadow: alpha zero keeps the sticker keyline as the only depth. */
+private val NO_SHADOW = Quad(0.0, 0.0, 0, 0.0)
 
 private fun featureGround(): Img {
     val w = 2048
     val h = 1000
     val img = vgrad(w, h, listOf(0.0 to CREAM, 1.0 to CREAM_DEEP))
-    softEllipse(img, 300.0, 130.0, 260.0, 200.0, WHITE, 26, 90.0)
-    softEllipse(img, 1960.0, 900.0, 300.0, 240.0, WHITE, 22, 100.0)
-    cornerShade(img, 26.0)
+    cornerShade(img, 12.0)
     val rng = Random(11)
-    confetti(img, rng, 14, 60 to 1990, 40 to 150, CONFETTI_COLORS, amax = 58)
-    confetti(img, rng, 18, 1080 to 2010, 80 to 950, CONFETTI_COLORS, amax = 64)
-    confetti(img, rng, 10, 60 to 1000, 880 to 970, CONFETTI_COLORS, amax = 46)
+    confetti(img, rng, 14, 60 to 1990, 30 to 120, CONFETTI_COLORS, amax = 36)
     return img
 }
 
-private fun featureTitle(img: Img) {
-    val x = 112.0
-    var size = 196
-    while (size > 20 && textAdvance("Count", font("black", size)) > 700) size -= 4
-    for ((i, word) in listOf("Count", "& Play").withIndex()) {
-        val cy = 320.0 + i * 208
-        stickerText(img, x, cy, word, "black", size, INK, shadow = Quad(6.0, 18.0, 55, 10.0), anchor = "lm")
-        val bb = textInkBounds(word, font("black", size), x, cy, "lm")
-        val barColor = if (i == 0) RED else TEAL
-        val g = graphics(img)
-        capsule(g, bb.minX, bb.maxY + 30, bb.maxX, bb.maxY + 30, 13.0, barColor)
-        g.dispose()
-    }
+private fun featureBand(img: Img) {
+    // One centred column: wordmark above, tagline below, tiles beneath.
+    val w1 = textAdvance("Count", font("black", 160))
+    val w2 = textAdvance("& Play", font("black", 160))
+    val x = 1024.0 - (w1 + 42.0 + w2) / 2
+    brandText(img, x, 168.0, "Count", 160, RED, keyline = 14.0, shadow = NO_SHADOW, anchor = "lm")
+    brandText(img, x + w1 + 42.0, 168.0, "& Play", 160, BLUE, keyline = 14.0, shadow = NO_SHADOW, anchor = "lm")
+    val tag = "See addition and subtraction happen"
+    val ta = textAdvance(tag, font("bold", 54))
+    brandText(img, 1024.0 - ta / 2, 288.0, tag, 54, DEEP_BLUE, shadow = NO_SHADOW, anchor = "lm")
+}
+
+/** One home tile: tinted liner, fat candy rim, scene inside. */
+private fun tile(img: Img, x: Double, y: Double, w: Double, h: Double, rim: Int) {
+    flatTray(img, x, y, w, h, rim, 22.0)
+    // Tint the liner with the rim, the way the home keys wear their colour.
     val g = graphics(img)
-    g.argb((225 shl 24) or (INK and 0xFFFFFF))
-    g.font = font("bold", 50)
-    val frc = g.fontRenderContext
-    val layout = java.awt.font.TextLayout("See addition and subtraction happen", g.font, frc)
-    val base = 766.0 + (layout.ascent - layout.descent) / 2.0
-    layout.draw(g, (x + 2).toFloat(), base.toFloat())
-    g.dispose()
-}
-
-/** The game's counting chip: navy, white numeral, tiny drop. */
-private fun countChip(img: Img, cx: Double, cy: Double, dia: Double, text: String) {
-    softEllipse(img, cx + dia * 0.05, cy + dia * 0.12, dia * 0.52, dia * 0.38, SHADOW_WARM, 80, dia * 0.10)
-    val g = graphics(img)
-    g.argb(CHIP_BLUE)
-    g.fill(Ellipse2D.Double(cx - dia / 2, cy - dia / 2, dia, dia))
-    g.dispose()
-    plainText(img, cx, cy - dia * 0.04, text, "black", (dia * 0.58).toInt(), WHITE)
-}
-
-private fun heroBall(img: Img, cx: Double, cy: Double, r: Double, color: Int) {
-    softEllipse(img, cx, cy + r * 0.95, r * 1.02, r * 0.30, SHADOW_WARM, 65, r * 0.16)
-    placeTile(img, ballTile((r * 2).toInt(), color), cx, cy)
-}
-
-private fun plusSign(img: Img, cx: Double, cy: Double, armR: Double, t: Double, color: Int) {
-    softEllipse(img, cx + 5, cy + t * 0.35, armR * 1.35, armR * 0.95, SHADOW_WARM, 60, t * 0.85)
-    val g = graphics(img)
-    capsule(g, cx - armR, cy, cx + armR, cy, t / 2, color)
-    capsule(g, cx, cy - armR, cx, cy + armR, t / 2, color)
-    g.dispose()
-}
-
-private fun equalsSign(img: Img, cx: Double, cy: Double, w: Double, t: Double, gap: Double, color: Int) {
-    softEllipse(img, cx + 5, cy + t * 0.4, w * 0.72, gap * 0.95, SHADOW_WARM, 55, t * 0.9)
-    val g = graphics(img)
-    capsule(g, cx - w / 2, cy - gap / 2, cx + w / 2, cy - gap / 2, t / 2, color)
-    capsule(g, cx - w / 2, cy + gap / 2, cx + w / 2, cy + gap / 2, t / 2, color)
-    g.dispose()
-}
-
-private fun featureHero(img: Img) {
-    val rowY = 330.0
-    val r = 68.0
-    val reds = listOf(1164.0, 1314.0)
-    val teals = listOf(1586.0, 1736.0, 1886.0)
-    for ((n, x) in reds.withIndex()) {
-        heroBall(img, x, rowY, r, RED)
-        countChip(img, x + r * 0.62, rowY - r * 0.62, 88.0, (n + 1).toString())
-    }
-    plusSign(img, 1450.0, rowY, 56.0, 34.0, BLUE)
-    for ((n, x) in teals.withIndex()) {
-        heroBall(img, x, rowY, r, TEAL)
-        countChip(img, x + r * 0.62, rowY - r * 0.62, 88.0, (n + 1).toString())
-    }
-
-    equalsSign(img, 1400.0, 660.0, 130.0, 34.0, 92.0, BLUE)
-    stickerText(
-        img, 1630.0, 654.0, "5", "black", 360, RED, stroke = 18,
-        shadow = Quad(8.0, 24.0, 70, 13.0),
-        tint = darken(RED, 0.32), tintOff = 13.0 to 15.0,
+    g.argb((36 shl 24) or (rim and 0xFFFFFF))
+    val corner = minOf(w, h) * 0.22 - 22.0
+    g.fill(
+        java.awt.geom.RoundRectangle2D.Double(
+            x + 22.0, y + 22.0, w - 44.0, h - 44.0,
+            maxOf(1.0, corner), maxOf(1.0, corner),
+        ),
     )
+    g.dispose()
+}
 
-    val sparkles = listOf(
-        Sparkle(1100.0, 148.0, 26.0, WHITE, 165),
-        Sparkle(1956.0, 500.0, 20.0, YELLOW, 185),
-        Sparkle(1200.0, 852.0, 17.0, WHITE, 120),
+/** COUNT: three apples, chips in tapping order. */
+private fun sceneCount(img: Img, cx: Double, cy: Double) {
+    // Five apples in the app's own 3+2 arrangement, chips in tap order.
+    val box = 150.0
+    val top = listOf(-1.0, 0.0, 1.0)
+    val bot = listOf(-0.5, 0.5)
+    var n = 1
+    for (t in top) {
+        val x = cx + t * (box + 25.0)
+        flatCountable(img, "apple", x, cy - box * 0.62, box, keyline = 8.0)
+        flatChip(img, x + box * 0.42, cy - box * 0.62 - box * 0.42, box * 0.5, n.toString())
+        n++
+    }
+    for (t in bot) {
+        val x = cx + t * (box + 25.0)
+        flatCountable(img, "apple", x, cy + box * 0.62, box, keyline = 8.0)
+        flatChip(img, x + box * 0.42, cy + box * 0.62 - box * 0.42, box * 0.5, n.toString())
+        n++
+    }
+}
+
+/** ADD: two plates above, the bowl below with the parts seated inside. */
+private fun sceneAdd(img: Img, cx: Double, cy: Double) {
+    val pw = 262.0
+    val ph = 170.0
+    val py = cy - 235.0
+    flatTray(img, cx - pw - 20.0, py, pw, ph, BLUE, 16.0)
+    flatTray(img, cx + 20.0, py, pw, ph, ORANGE, 16.0)
+    for (i in 0 until 2) flatCountable(img, "star", cx - pw - 20.0 + pw / 2 + (i - 0.5) * 100.0, py + ph / 2, 90.0, keyline = 6.0)
+    for (i in 0 until 2) flatCountable(img, "ball", cx + 20.0 + pw / 2 + (i - 0.5) * 100.0, py + ph / 2, 90.0, keyline = 6.0)
+    // The bowl: the two parts keep their seats inside the whole.
+    val bw = 540.0
+    val bh = 260.0
+    val by = cy - 65.0
+    flatTray(img, cx - bw / 2, by, bw, bh, GREEN, 16.0)
+    val box = 84.0
+    val top = listOf(-1.0, 0.0, 1.0)
+    val bot = listOf(-0.5, 0.5)
+    for (t in top) {
+        flatSeat(img, cx + t * (box + 22.0), by + bh / 2 - 48.0, box * 1.24, SEAT_A)
+        flatCountable(img, "star", cx + t * (box + 22.0), by + bh / 2 - 48.0, box)
+    }
+    for (t in bot) {
+        flatSeat(img, cx + t * (box + 22.0), by + bh / 2 + 48.0, box * 1.24, SEAT_B)
+        flatCountable(img, "ball", cx + t * (box + 22.0), by + bh / 2 + 48.0, box)
+    }
+}
+
+/** TAKE: two taken wear their numbers in their ghosts; three remain. */
+private fun sceneTake(img: Img, cx: Double, cy: Double) {
+    // Five slots, 3+2 like the app packs them: two taken wear their numbers
+    // in their ghosts, three remain to be counted.
+    val box = 140.0
+    val step = box + 25.0
+    for (i in 0 until 2) {
+        val x = cx + (i - 0.5) * step
+        ghostSlot(img, x, cy + box * 0.62, box)
+        flatChip(img, x + box * 0.42, cy + box * 0.62 - box * 0.42, box * 0.5, (i + 1).toString())
+    }
+    for (i in 0 until 3) {
+        flatCountable(img, "apple", cx + (i - 1.0) * step, cy - box * 0.62, box, keyline = 8.0)
+    }
+}
+
+/** The dashed ring an emptied slot wears in the app. */
+private fun ghostSlot(img: Img, cx: Double, cy: Double, box: Double) {
+    val g = graphics(img)
+    g.argb(rgb(183, 192, 204))
+    g.stroke = java.awt.BasicStroke(
+        (box * 0.05).toFloat(),
+        java.awt.BasicStroke.CAP_BUTT,
+        java.awt.BasicStroke.JOIN_ROUND,
+        10.0f,
+        floatArrayOf((box * 0.11).toFloat(), (box * 0.09).toFloat()),
+        0f,
     )
-    for (sp in sparkles) placeTile(img, star4(sp.x, sp.y, sp.r, sp.color, sp.alpha), sp.x, sp.y)
+    g.draw(java.awt.geom.Ellipse2D.Double(cx - box * 0.42, cy - box * 0.42, box * 0.84, box * 0.84))
+    g.dispose()
 }
 
 fun featureGraphic(root: File) {
     val img = featureGround()
-    featureTitle(img)
-    featureHero(img)
-    val out = unsharp(toRgb(resizeBicubic(img, 1024, 500)), radius = 1.8, percent = 0.55, threshold = 2.0)
+    featureBand(img)
+    val y = 330.0
+    val h = 610.0
+    val w = 608.0
+    val xs = listOf(64.0, 720.0, 1376.0)
+    val rims = listOf(BLUE, GREEN, PINK)
+    val scenes = listOf(::sceneCount, ::sceneAdd, ::sceneTake)
+    for (i in 0 until 3) {
+        tile(img, xs[i], y, w, h, rims[i])
+        scenes[i](img, xs[i] + w / 2, y + h / 2)
+    }
+    val out = toRgb(resizeBicubic(img, 1024, 500))
     savePng(out, File(root, "play-store/feature-graphic-1024x500.png"))
 }

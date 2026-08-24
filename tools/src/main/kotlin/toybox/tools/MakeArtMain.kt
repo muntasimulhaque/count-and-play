@@ -9,6 +9,7 @@ import java.io.File
 fun main(args: Array<String>) {
     val root = File(args.firstOrNull() ?: error("usage: <repo-root>"))
     require(root.resolve("settings.gradle.kts").isFile) { "not a repo root: $root" }
+    artRoot = root
     featureGraphic(root)
     storeIcon(root)
     launcherIcons(root)

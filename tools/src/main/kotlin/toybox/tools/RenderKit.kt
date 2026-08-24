@@ -191,9 +191,9 @@ fun Graphics2D.argb(color: Int) {
 }
 
 fun graphics(im: Img): Graphics2D = im.createGraphics().apply {
-    // Shapes stay hard-edged, exactly as the flat candy language wants; text
-    // is rendered anti-aliased separately in stickerText.
-    setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF)
+    // Flat candy means hard facets and no blur, not jagged pixels: edges are
+    // anti-aliased, exactly as Compose draws them on the device.
+    setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
     setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE)
 }
 
@@ -204,53 +204,11 @@ fun placeTile(dst: Img, tile: Img, cx: Double, cy: Double) {
     g.dispose()
 }
 
-/** A blurred ellipse composited at (cx, cy): shadows, glows, bokeh. */
-fun softEllipse(
-    dst: Img,
-    cx: Double,
-    cy: Double,
-    rx: Double,
-    ry: Double,
-    color: Int,
-    alpha: Int,
-    blur: Double,
-) {
-    val pad = ceil(blur * 3 + 4).toInt()
-    val w = (rx * 2).toInt() + pad * 2
-    val h = (ry * 2).toInt() + pad * 2
-    val tile = img(maxOf(w, 2), maxOf(h, 2))
-    val g = graphics(tile)
-    g.argb((alpha.coerceIn(0, 255) shl 24) or (color and 0xFFFFFF))
-    g.fill(Ellipse2D.Double(pad.toDouble(), pad.toDouble(), rx * 2, ry * 2))
-    g.dispose()
-    placeTile(dst, gaussianBlur(tile, blur), cx, cy)
-}
-
 /** A stadium-shaped stroke: line with round caps. */
 fun capsule(g: Graphics2D, x0: Double, y0: Double, x1: Double, y1: Double, r: Double, fill: Int) {
     g.argb(fill)
     g.stroke = BasicStroke((r * 2).toFloat(), BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND)
     g.draw(Line2D.Double(x0, y0, x1, y1))
-}
-
-/** A four-point twinkle as its own tile, to be placed at (cx, cy). */
-fun star4(cx: Double, cy: Double, r: Double, color: Int, alpha: Int, ratio: Double = 0.34, rot: Double = 0.0): Img {
-    val pad = ceil(r * 2 + 6).toInt()
-    val tile = img(pad, pad)
-    val g = graphics(tile)
-    val path = Path2D.Double()
-    val mid = pad / 2.0
-    for (i in 0 until 8) {
-        val ang = Math.PI / 4 * i + Math.toRadians(rot)
-        val rad = if (i % 2 == 0) r else r * ratio
-        val pt = Point2D.Double(mid + rad * cos(ang), mid + rad * sin(ang))
-        if (i == 0) path.moveTo(pt.x, pt.y) else path.lineTo(pt.x, pt.y)
-    }
-    path.closePath()
-    g.argb((alpha.coerceIn(0, 255) shl 24) or (color and 0xFFFFFF))
-    g.fill(path)
-    g.dispose()
-    return tile
 }
 
 /** Scatter small circles, pills and triangles, gently rotated. */
