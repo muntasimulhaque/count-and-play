@@ -217,8 +217,11 @@ Bump `versionCode` +1 and `versionName` (+0.1 for small releases), push to
   (three form factors, eight scenes, the Play Console maximum). Pinned to
   API 35; see Store screenshots under Build.
 
-Deliver the upload kit in one place: the AAB in `aab/`, screenshots in
-`store-shots/`, release notes paste-ready in chat (English, plain prose). Then
-refresh the committed reference copies at `play-store/screenshots/` from that
-release's artifacts. Listing text lives in `play-store/`. The owner uploads to
-Play Console and pastes the notes.
+Deliver the upload kit in one place: the AAB in `aab/`, release notes
+paste-ready in chat (English, plain prose). Upload screenshots straight from
+`play-store/screenshots/`, which the Store screenshots rule keeps identical
+to what CI captured; there is no separate staging folder (the local
+`store-shots/` convention is retired; the same-named folder inside
+screenshots.yml is CI-internal scratch and unrelated). Listing text, feature
+graphic and icon live in `play-store/`. The owner uploads to Play Console and
+pastes the notes.

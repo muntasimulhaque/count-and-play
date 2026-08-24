@@ -82,10 +82,11 @@ makes, no data collected, is exactly true of the native app)
 
 ## Screenshots
 
-All three sets live at `play-store/screenshots/`, captured by CI's
-`ScreenshotTest` whenever UI files change, and delivered fresh in
-`store-shots/` for every release. Refresh the Play listing from these
-whenever the UI changes; a Families-reviewed listing should match what ships.
+All three sets live at `play-store/screenshots/`, captured by CI whenever UI
+files change and refreshed into that same folder in the same session. Upload
+to the Play listing straight from there, in filename order (01_home first);
+a Families-reviewed listing should match what ships. There is no separate
+staging folder.
 
 ## Console questionnaires: answers
 
@@ -117,8 +118,9 @@ external links reachable by a child.
 - Production is the public track; alpha keeps running for testers. Managed
   publishing is off, so an approved release publishes itself.
 - Every release: bump versionCode and versionName, push `main`, CI signs and
-  publishes the AAB to the `latest-build` GitHub release (pull it from there),
-`gh run download` the screenshot artifacts into `store-shots/`, then Play
-Console: create the release, paste English-only notes, attach screenshots.
+  publishes the AAB to the `latest-build` GitHub release (pull it into
+  `aab/`), then Play Console: create the release, paste English-only notes,
+  attach the screenshots from `play-store/screenshots/` (already refreshed by
+  the screenshot rule; no separate download step).
 - The app is fully native and fully offline: every change, however small, needs
   a new build and a Play release. Nothing ships without it.
