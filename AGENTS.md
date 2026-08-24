@@ -134,11 +134,11 @@ An Android SDK and the Android Studio JBR are installed on the owner's machine
 (`JAVA_HOME` must point at the JBR; it is not on PATH).
 
 **Any UI change must be verified from rendered screenshot artifacts, not by
-reading code.** Standing rule: verify on the newest image the app targets, so
-UI verification runs locally on the android-37.1 AVDs (Pixel_4 phone, plus the
-two tablet AVDs). CI screenshot capture temporarily stays on API 35 because
-Google's Android 17 images do not yet boot reliably on hosted runners; revisit
-when upstream stabilizes.
+reading code.** On this machine verification runs locally on the API 35 AVDs
+(`Pixel_4_35`, `Nexus_7_35`, `Pixel_C_35`): every Android 17 image breaks
+under WHPX here (see the notes below), so the newest-image rule yields to the
+newest image that boots. CI screenshot capture stays on API 35 for the same
+reason on hosted runners; revisit when upstream stabilizes.
 
 **Emulator notes, learned the hard way on this machine (do not re-derive):**
 
@@ -168,12 +168,28 @@ when upstream stabilizes.
   then `adb pull /sdcard/shots`. Gradle's split APK install path trips over
   the flaky package service; the streamed install does not.
 
-**Pending since the 7.5 UI work:** the committed reference screenshots under
-`play-store/screenshots/` still show the v7.4 UI. The 7.5 listing was
-submitted for review with the screenshots workflow's fresh captures instead.
-Next session: pull the three form-factor artifacts from that workflow run (or
-capture the eight scenes locally on the API 35 AVDs per the notes above) and
-refresh the committed copies, so the repo's references match what ships.
+**Store screenshots come from CI, never from a hand-rolled local setup.** The
+committed references under `play-store/screenshots/` are refreshed from the
+`screenshots.yml` artifacts, not re-captured per machine:
+
+- Any push touching UI files runs `screenshots.yml` on API 35: three form
+  factors, eight scenes each (the Play Console maximum per form factor).
+  Manual `workflow_dispatch` works too. A run takes about five minutes.
+- When the UI changes, download that run's three `store-screenshots-*`
+  artifacts (`gh run download <run-id> -R muntasimulhaque/count-and-play -D
+  <dir>`; the `-R` lets this work from any directory and either machine), copy
+  them into `play-store/screenshots/` in the same session keeping the artifact
+  file names (`phone_NN_scene.png`, `tablet7_...`, `tablet10_...`), and delete
+  any scene the test no longer shoots. The references must never drift from
+  what ships.
+- Never attempt API 37 capture, locally or in CI, until Google's Android 17
+  images boot reliably both under WHPX here and on hosted runners. Every
+  attempt so far failed in a new way; API 35 renders the Compose UI
+  identically, so screenshots gain nothing from 37 but inherit its breakage.
+- The local API 35 AVD recipe above is a fallback for interactive checks only.
+  If a local capture fails twice, stop debugging the emulator and let CI do
+  it. Proven on 2026-08-24: the 7.5 run produced all 24 shots in five
+  minutes and the references were refreshed straight from its artifacts.
 
 ## Pull before working
 
@@ -198,7 +214,8 @@ Bump `versionCode` +1 and `versionName` (+0.1 for small releases), push to
   signed AAB and publishes it to the `latest-build` GitHub release. Pull the
   AAB from that release; the `builds` branch has gone stale before.
 - `screenshots.yml` captures fresh store screenshots whenever UI files change
-  (three form factors, ten scenes). Currently pinned to API 35, see Build.
+  (three form factors, eight scenes, the Play Console maximum). Pinned to
+  API 35; see Store screenshots under Build.
 
 Deliver the upload kit in one place: the AAB in `aab/`, screenshots in
 `store-shots/`, release notes paste-ready in chat (English, plain prose). Then
