@@ -157,8 +157,10 @@ private fun PlateTray(
             }
         }
         if (badge != null) {
-            // Standing plates pin their total to the corner; folded places hold it centred.
-            val alignment = if (badgeCentred) Alignment.Center else Alignment.TopEnd
+            // Standing plates pin their total to the bottom-right corner: the
+            // one spot count chips never reach (they sit at objects' top-right).
+            // Folded places hold the total centred.
+            val alignment = if (badgeCentred) Alignment.Center else Alignment.BottomEnd
             TotalBadge(badge, rim, Modifier.align(alignment).padding(10.dp))
         }
     }
