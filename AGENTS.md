@@ -194,15 +194,27 @@ committed references under `play-store/screenshots/` are refreshed from the
   identically, so screenshots gain nothing from 37 but inherit its breakage.
 - The local API 35 AVD recipe above is a fallback for interactive checks only.
   If a local capture fails twice, stop debugging the emulator and let CI do
-  it. Proven on 2026-08-24: the 7.5 run produced all 24 shots in five
-  minutes and the references were refreshed straight from its artifacts.
+  it.
+- **The refresh loop is proven drivable by hand, end to end.** On 2026-08-24
+  the 7.5 push produced all 24 shots in five minutes; on 2026-08-25 a bare
+  workflow_dispatch dry run repeated the whole thing from this machine in
+  under five minutes: gh workflow run screenshots.yml, poll gh run view
+  until completed/success, gh run download the three store-screenshots-*
+  artifacts (-R muntasimulhaque/count-and-play), copy each artifact's eight
+  PNGs into its subfolder under play-store/screenshots/ with the form-factor
+  prefix stripped. Git status is the drift check: with no UI change the
+  refreshed references must come back byte-identical, a clean tree; after a
+  real UI change the diff shows exactly the scenes that moved. Any other
+  outcome is a bug in the loop, not something to patch by hand.
 
 ## Pull before working
 
 The owner works from more than one machine; this checkout is only one of
-several. At the start of any session, `git fetch` and pull whatever is new
-on `main` from GitHub, and do the work on that pulled head, never on a
-stale local one.
+several. Reading this file is the first act of every session, and the
+second is immediate and unconditional: right after reading AGENTS.md,
+before doing anything else and without waiting to be asked, run
+`git fetch` and pull whatever is new on `main` from GitHub, then do all
+work on that pulled head, never on a stale local one.
 
 ## Commits
 
