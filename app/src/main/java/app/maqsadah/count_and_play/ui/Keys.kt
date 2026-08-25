@@ -2,6 +2,7 @@ package app.maqsadah.count_and_play.ui
 
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -20,30 +21,40 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
+/** The shared geometry of every key: one radius, one hairline. */
+private val KeyShape = RoundedCornerShape(Corner)
+
+/** Sink and shadow travel on one spring, so the depth stays coherent. */
+private val KeySpring = spring<Dp>(
+    dampingRatio = Spring.DampingRatioMediumBouncy,
+    stiffness = Spring.StiffnessMedium,
+)
+
 /**
- * A pressable toy key: a cap riding on a solid darker side edge. At rest the
- * cap sits lifted and the edge shows, so the key reads as thick; under the
- * finger the cap sinks flush and the edge disappears, so a press is felt as
- * much as seen. Solid colours only: the depth is geometry, not shadow.
+ * A pressable toy key, hung in the calm gallery: a white cap riding on a
+ * solid candy side edge. At rest the cap sits lifted and floats on its
+ * shadow; under the finger it sinks flush, the shadow vanishes and the edge
+ * disappears, so a press is felt as much as seen. Solid colours only: the
+ * depth is geometry, not a gradient.
  *
  * The lift lives inside the key's own top padding, so callers lay keys out
  * exactly like plain boxes and neighbours never jump when one sinks.
  */
 @Composable
 fun Keycap(
-    rim: Color,
     edge: Color,
-    fill: Color,
     modifier: Modifier = Modifier,
-    edgeHeight: Dp = 10.dp,
+    edgeHeight: Dp = 9.dp,
     /** True: fill whatever width the caller grants. False: hug the content. */
     stretch: Boolean = true,
     description: String? = null,
@@ -54,24 +65,19 @@ fun Keycap(
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
     val reducedMotion = rememberReducedMotion()
-    // Sinking is the only press feedback: no ripple, no dim, just the key
-    // going down under the finger and springing back up.
-    val sink by animateDpAsState(
-        targetValue = if (pressed && !reducedMotion && onClick != null) edgeHeight else 0.dp,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium,
-        ),
-        label = "keycapSink",
-    )
+    val active = pressed && !reducedMotion && onClick != null
+    val sink by animateDpAsState(if (active) edgeHeight else 0.dp, KeySpring, label = "keycapSink")
+    val lift by animateDpAsState(if (active) LiftHeld else LiftResting, KeySpring, label = "keycapLift")
     val sizeModifier = if (stretch) Modifier.fillMaxSize() else Modifier
     Box(modifier.padding(top = edgeHeight)) {
-        Box(sizeModifier.background(edge, RoundedCornerShape(Corner)))
+        // The side of the key: the hue shows exactly where the cap sits lifted.
+        Box(sizeModifier.background(edge, KeyShape))
         Box(
             sizeModifier
                 .offset(y = sink - edgeHeight)
-                .background(fill, RoundedCornerShape(Corner))
-                .border(BorderStroke(OutlineWidth, rim), RoundedCornerShape(Corner))
+                .shadow(elevation = lift, shape = KeyShape)
+                .background(Liner, KeyShape)
+                .border(BorderStroke(1.dp, Hairline), KeyShape)
                 .then(
                     if (onClick != null) {
                         Modifier.clickable(interactionSource, indication = null, onClick = onClick)
@@ -79,18 +85,36 @@ fun Keycap(
                         Modifier
                     },
                 )
-                .then(
-                    if (description != null) {
-                        Modifier.semantics {
-                            role = Role.Button
-                            contentDescription = description
-                        }
-                    } else {
-                        Modifier.semantics { role = Role.Button }
-                    },
-                ),
+                .semantics {
+                    role = Role.Button
+                    if (description != null) contentDescription = description
+                },
             contentAlignment = contentAlignment,
             content = content,
         )
     }
+}
+
+/**
+ * The quiet controls' press feedback (gear, home, close, the grown-up rows):
+ * a small sink under the finger and one light tick, no ripple anywhere.
+ * Chain it ahead of the control's own background so the whole control scales.
+ */
+@Composable
+fun Modifier.pressable(scaleDown: Float = 0.94f, onClick: () -> Unit): Modifier {
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val reducedMotion = rememberReducedMotion()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed && !reducedMotion) scaleDown else 1f,
+        animationSpec = QuietSpring,
+        label = "quietPress",
+    )
+    val tick = rememberTick()
+    return this
+        .graphicsLayer { scaleX = scale; scaleY = scale }
+        .clickable(interactionSource = interactionSource, indication = null) {
+            tick()
+            onClick()
+        }
 }

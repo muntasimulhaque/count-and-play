@@ -4,7 +4,9 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -19,6 +21,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -50,7 +53,7 @@ fun CountScreen(state: CountState, copy: Copy, onTap: (Int) -> Unit, onHome: () 
     ActivityFrame(copy.promptCount(), copy, onHome) {
         BoxWithConstraints(Modifier.fillMaxSize()) {
             val layout = solveTray(maxWidth, state.n, SingleCap, maxHeight)
-            Tray(Blue, state.n, layout, Modifier.align(Alignment.Center)) { size ->
+            Tray(state.n, layout, Modifier.align(Alignment.Center)) { size ->
                 state.tokens.forEach { token ->
                     key(token.id) {
                         ObjectView(
@@ -126,7 +129,7 @@ private val SizeEquation = 40.sp
  */
 @Composable
 private fun MainTray(state: TakeState, copy: Copy, solution: TakeSolution, onTap: (Int) -> Unit) {
-    Tray(Pink, state.n, TraySolution(solution.size, solution.mainPerRow), Modifier.fillMaxWidth()) { size ->
+    Tray(state.n, TraySolution(solution.size, solution.mainPerRow), Modifier.fillMaxWidth()) { size ->
         state.tokens.forEach { token ->
             key(token.id) {
                 if (token.gone) {
@@ -148,7 +151,12 @@ private fun MainTray(state: TakeState, copy: Copy, solution: TakeSolution, onTap
 /** The taken-away box: empty at first, then one taken piece pops in per tap, wearing its number. */
 @Composable
 private fun TakenTray(state: TakeState, copy: Copy, solution: TakeSolution) {
-    Tray(Purple, state.removed, TraySolution(solution.size, solution.takenPerRow), Modifier.fillMaxWidth()) { size ->
+    Tray(
+        state.removed,
+        TraySolution(solution.size, solution.takenPerRow),
+        Modifier.fillMaxWidth(),
+        tint = Purple,
+    ) { size ->
         state.tokens.filter { it.gone }.forEach { token ->
             key(token.id) {
                 PopIn {
@@ -185,7 +193,7 @@ private val PopInSpring = spring<Float>(
 internal fun ActivityFrame(prompt: String, copy: Copy, onHome: () -> Unit, content: @Composable BoxScope.() -> Unit) {
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
         Row(
-            Modifier.fillMaxWidth().padding(top = 6.dp),
+            Modifier.fillMaxWidth().padding(top = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             HomeButton(copy.homeLabel(), onHome)
@@ -211,14 +219,16 @@ private fun HomeButton(description: String, onHome: () -> Unit) {
     Box(
         Modifier
             .size(52.dp)
-            .clickable(remember { MutableInteractionSource() }, indication = null) { onHome() }
+            .pressable(onClick = onHome)
+            .background(Liner, CircleShape)
+            .border(BorderStroke(1.dp, Hairline), CircleShape)
             .semantics {
                 role = Role.Button
                 contentDescription = description
             },
         contentAlignment = Alignment.Center,
     ) {
-        HouseIcon(30.dp, Ink)
+        HouseIcon(28.dp, Ink.copy(alpha = 0.85f))
     }
 }
 

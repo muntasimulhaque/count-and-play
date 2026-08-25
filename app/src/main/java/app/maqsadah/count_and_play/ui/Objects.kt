@@ -30,7 +30,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -38,8 +40,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.maqsadah.count_and_play.core.ShapeKind
-
-private val RimWidth = 8.dp
 
 // Room for two digits ("10" / "১০") without going oval: the chip grows with
 // the object it tags, from a floor that stays legible on small trays.
@@ -66,6 +66,7 @@ fun ObjectView(
     onTap: (() -> Unit)? = null,
 ) {
     val reducedMotion = rememberReducedMotion()
+    val tick = rememberTick()
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
     // The press itself is the feedback: squash to 0.85 under the finger, then
@@ -89,7 +90,10 @@ fun ObjectView(
             .graphicsLayer { scaleX = scale; scaleY = scale }
             .then(
                 if (onTap != null && !gone) {
-                    Modifier.clickable(interactionSource = interactionSource, indication = null) { onTap() }
+                    Modifier.clickable(interactionSource = interactionSource, indication = null) {
+                        tick()
+                        onTap()
+                    }
                 } else {
                     Modifier
                 },
@@ -169,9 +173,11 @@ fun GhostSlot(sizeDp: Dp) {
 }
 
 /**
- * The white tray the objects live on: liner inside, thick candy rim around,
- * and rows packed exactly as the solver arranged them, so the balanced
- * arrangement computed in [TrayMath] is the arrangement the child sees.
+ * The white tray the objects live on: a liner floating on soft light, held
+ * by a hairline, its rows packed exactly as the solver arranged them, so
+ * the balanced arrangement computed in [TrayMath] is the arrangement the
+ * child sees. [tint] quietly washes a place that means something different
+ * (the TAKE taken-away box) without adding a second chrome colour.
  *
  * The caller passes a solved [layout]: COUNT and TAKE solve their single
  * tray against the room the screen offers, and ADD solves its plates and
@@ -180,19 +186,21 @@ fun GhostSlot(sizeDp: Dp) {
 @OptIn(ExperimentalLayoutApi::class) // the arrangement needs maxItemsInEachRow
 @Composable
 internal fun Tray(
-    rim: Color,
     count: Int,
     layout: TraySolution,
     modifier: Modifier = Modifier,
+    tint: Color? = null,
     content: @Composable (objectSize: Dp) -> Unit,
 ) {
     val size = layout.size
+    val ground = tint?.copy(alpha = 0.07f)?.compositeOver(Liner) ?: Liner
     Box(
         modifier
             // An emptied plate must still look like a place, not vanish.
             .sizeIn(minHeight = size + TrayPad * 2)
-            .background(Liner, RoundedCornerShape(Corner))
-            .border(BorderStroke(RimWidth, rim), RoundedCornerShape(Corner))
+            .shadow(elevation = LiftResting, shape = RoundedCornerShape(Corner), clip = false)
+            .background(ground, RoundedCornerShape(Corner))
+            .border(BorderStroke(1.dp, Hairline), RoundedCornerShape(Corner))
             .padding(TrayPad),
         contentAlignment = Alignment.Center,
     ) {

@@ -4,8 +4,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,19 +24,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.geometry.Offset
 import app.maqsadah.count_and_play.copy.Copy
 import app.maqsadah.count_and_play.core.ShapeKind
 import app.maqsadah.count_and_play.core.Skill
@@ -48,7 +45,7 @@ import app.maqsadah.count_and_play.core.Skill
 fun HomeScreen(copy: Copy, onChoose: (Skill) -> Unit, onOpenSettings: () -> Unit) {
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
         Row(
-            Modifier.fillMaxWidth().padding(top = 10.dp),
+            Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             // Mirrors the gear so the title stays optically centred and can
@@ -57,9 +54,9 @@ fun HomeScreen(copy: Copy, onChoose: (Skill) -> Unit, onOpenSettings: () -> Unit
             FitTitle(copy.homeTitle(), Modifier.weight(1f))
             GearButton(Modifier, copy.settingsLabel(), onOpenSettings)
         }
-        Tile(Skill.COUNT, Blue, BlueEdge, copy.tileCount(), Modifier.weight(1f), onChoose) { CountMini() }
-        Tile(Skill.ADD, Green, GreenEdge, copy.tileAdd(), Modifier.weight(1f), onChoose) { AddMini() }
-        Tile(Skill.TAKE, Pink, PinkEdge, copy.tileTake(), Modifier.weight(1f), onChoose) { TakeMini() }
+        Tile(Skill.COUNT, Blue, copy.tileCount(), Modifier.weight(1f), onChoose) { CountMini() }
+        Tile(Skill.ADD, Green, copy.tileAdd(), Modifier.weight(1f), onChoose) { AddMini() }
+        Tile(Skill.TAKE, Pink, copy.tileTake(), Modifier.weight(1f), onChoose) { TakeMini() }
     }
 }
 
@@ -85,10 +82,10 @@ private fun FitTitle(text: String, modifier: Modifier) {
     )
 }
 
+/** One toy key: a white cap on a candy edge, its scene centred inside. */
 @Composable
 private fun Tile(
     skill: Skill,
-    rim: Color,
     edge: Color,
     label: String,
     modifier: Modifier,
@@ -96,13 +93,16 @@ private fun Tile(
     mini: @Composable () -> Unit,
 ) {
     Keycap(
-        rim = rim,
         edge = edge,
-        fill = rim.copy(alpha = 0.16f).compositeOver(Liner),
         modifier = modifier.fillMaxWidth().padding(vertical = 7.dp),
         onClick = { onChoose(skill) },
     ) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { mini() }
+        // The scene rides a touch high so no label can ever collide with it
+        // (the ADD miniature is two rows tall on the tightest screens).
+        Box(
+            Modifier.fillMaxSize().padding(bottom = 40.dp),
+            contentAlignment = Alignment.Center,
+        ) { mini() }
         Text(
             label,
             Modifier.align(Alignment.BottomCenter).padding(bottom = 12.dp),
@@ -119,16 +119,16 @@ private fun GearButton(modifier: Modifier, description: String, onOpenSettings: 
     Box(
         modifier
             .size(48.dp)
+            .pressable(onClick = onOpenSettings)
             .background(Liner, CircleShape)
-            .border(BorderStroke(3.dp, Ink.copy(alpha = 0.14f)), CircleShape)
-            .clickable(remember { MutableInteractionSource() }, indication = null) { onOpenSettings() }
+            .border(BorderStroke(1.dp, Hairline), CircleShape)
             .semantics {
                 role = Role.Button
                 contentDescription = description
             },
         contentAlignment = Alignment.Center,
     ) {
-        GearIcon(26.dp, Ink.copy(alpha = 0.85f))
+        GearIcon(25.dp, Ink.copy(alpha = 0.65f))
     }
 }
 
@@ -161,12 +161,15 @@ private fun MiniShape(kind: ShapeKind, sizeDp: Dp) {
     Canvas(Modifier.size(sizeDp)) { drawCountable(kind, size.minDimension) }
 }
 
+/**
+ * A soft wash of the game's hue instead of a bordered box: the grouping
+ * reads at a glance while the chrome stays out of the picture's way.
+ */
 @Composable
-private fun MiniBox(rim: Color, content: @Composable () -> Unit) {
+private fun MiniPanel(rim: Color, content: @Composable () -> Unit) {
     Box(
         Modifier
-            .background(Liner, RoundedCornerShape(18.dp))
-            .border(BorderStroke(4.dp, rim), RoundedCornerShape(18.dp))
+            .background(rim.copy(alpha = 0.08f), RoundedCornerShape(CornerSmall))
             .padding(10.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -184,7 +187,7 @@ private fun MiniSeated(kind: ShapeKind, seat: Color) {
 
 @Composable
 private fun CountMini() {
-    MiniBox(Blue) {
+    MiniPanel(Blue) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             repeat(3) { MiniShape(ShapeKind.APPLE, 34.dp) }
         }
@@ -198,15 +201,15 @@ private fun AddMini() {
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            MiniBox(Blue) { MiniShape(ShapeKind.STAR, 30.dp) }
-            MiniBox(Orange) {
+            MiniPanel(Blue) { MiniShape(ShapeKind.STAR, 30.dp) }
+            MiniPanel(Orange) {
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     MiniShape(ShapeKind.BALL, 30.dp)
                     MiniShape(ShapeKind.BALL, 30.dp)
                 }
             }
         }
-        MiniBox(Green) {
+        MiniPanel(Green) {
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 MiniSeated(ShapeKind.STAR, SeatA)
                 MiniSeated(ShapeKind.BALL, SeatB)
@@ -218,7 +221,7 @@ private fun AddMini() {
 
 @Composable
 private fun TakeMini() {
-    MiniBox(Pink) {
+    MiniPanel(Pink) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             MiniShape(ShapeKind.APPLE, 34.dp)
             GhostSlot(34.dp)

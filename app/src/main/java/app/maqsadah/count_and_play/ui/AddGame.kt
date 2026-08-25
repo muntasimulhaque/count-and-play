@@ -24,6 +24,7 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.ColorMatrixColorFilter
@@ -134,7 +135,7 @@ private fun PlateTray(
     onTap: (Int) -> Unit,
 ) {
     Box(modifier) {
-        Tray(rim, tokens.size, TraySolution(objectSize, perRow), Modifier.fillMaxWidth()) { size ->
+        Tray(tokens.size, TraySolution(objectSize, perRow), Modifier.fillMaxWidth()) { size ->
             val washout = if (enabled) {
                 Modifier
             } else {
@@ -178,8 +179,9 @@ private fun TotalBadge(text: String, ring: Color, modifier: Modifier = Modifier)
         modifier
             .graphicsLayer { scaleX = scale.value; scaleY = scale.value }
             .size(56.dp)
+            .shadow(elevation = LiftHeld, shape = CircleShape, clip = false)
             .background(Liner, CircleShape)
-            .border(BorderStroke(OutlineWidth, ring), CircleShape),
+            .border(BorderStroke(4.dp, ring), CircleShape),
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -207,7 +209,7 @@ private fun flashTint(rim: Color): Color = when (rim) {
 
 @Composable
 private fun BowlTray(state: AddState, copy: Copy, layout: TraySolution, onTap: (Int) -> Unit) {
-    Tray(Green, state.bowl.size, layout, Modifier.fillMaxWidth()) { size ->
+    Tray(state.bowl.size, layout, Modifier.fillMaxWidth()) { size ->
         state.bowl.forEach { token ->
             key(token.id) {
                 ObjectView(
@@ -249,9 +251,7 @@ private fun PourButton(
     }
     if (enabled) {
         Keycap(
-            rim = Orange,
-            edge = YellowEdge,
-            fill = Yellow,
+            edge = Yellow,
             modifier = modifier,
             edgeHeight = 8.dp,
             stretch = false,
@@ -261,9 +261,9 @@ private fun PourButton(
         Box(
             modifier
                 .padding(top = 8.dp)
-                .background(Ink.copy(alpha = 0.10f), RoundedCornerShape(Corner))
+                .background(Ink.copy(alpha = 0.06f), RoundedCornerShape(Corner))
                 .border(
-                    BorderStroke(OutlineWidth, Ink.copy(alpha = 0.22f)),
+                    BorderStroke(1.dp, Hairline),
                     RoundedCornerShape(Corner),
                 )
                 .semantics {
