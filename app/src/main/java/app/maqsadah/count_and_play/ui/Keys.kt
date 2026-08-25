@@ -41,11 +41,12 @@ private val KeySpring = spring<Dp>(
 )
 
 /**
- * A pressable toy key, hung in the calm gallery: a white cap riding on a
- * solid candy side edge. At rest the cap sits lifted and floats on its
- * shadow; under the finger it sinks flush, the shadow vanishes and the edge
+ * A pressable toy key, hung in the calm gallery: a cap riding on a solid
+ * candy side edge. At rest the cap sits lifted and floats on its shadow;
+ * under the finger it sinks flush, the shadow vanishes and the edge
  * disappears, so a press is felt as much as seen. Solid colours only: the
- * depth is geometry, not a gradient.
+ * depth is geometry, not a gradient. Caps are white by default; the pour
+ * key passes [fill] to keep its candy yellow, the one coloured key left.
  *
  * The lift lives inside the key's own top padding, so callers lay keys out
  * exactly like plain boxes and neighbours never jump when one sinks.
@@ -60,6 +61,7 @@ fun Keycap(
     description: String? = null,
     onClick: (() -> Unit)? = null,
     contentAlignment: Alignment = Alignment.Center,
+    fill: Color = Liner,
     content: @Composable BoxScope.() -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -76,7 +78,7 @@ fun Keycap(
             sizeModifier
                 .offset(y = sink - edgeHeight)
                 .shadow(elevation = lift, shape = KeyShape)
-                .background(Liner, KeyShape)
+                .background(fill, KeyShape)
                 .border(BorderStroke(1.dp, Hairline), KeyShape)
                 .then(
                     if (onClick != null) {

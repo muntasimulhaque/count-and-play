@@ -32,6 +32,9 @@ val SeatA = Color(0xFFCFE9FB)
 val SeatB = Color(0xFFFDE3C4)
 val ChipBlue = Color(0xFF27357A)
 
+/** The one deep edge a coloured cap keeps: the pour key's darker yellow side. */
+val YellowEdge = Color(0xFFD19B00)
+
 // The fact card's variants of the candy hues: same families, darkened enough
 // to clear the 3:1 large-text contrast floor on the white liner. Used only on
 // the flash card, where the numerals must survive glare and low vision.

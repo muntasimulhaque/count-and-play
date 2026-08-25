@@ -251,11 +251,12 @@ private fun PourButton(
     }
     if (enabled) {
         Keycap(
-            edge = Yellow,
+            edge = YellowEdge,
             modifier = modifier,
             edgeHeight = 8.dp,
             stretch = false,
             onClick = onPour,
+            fill = Yellow,
         ) { text(true) }
     } else {
         Box(

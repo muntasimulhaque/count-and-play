@@ -204,23 +204,23 @@ class ScreenshotTest {
         doneB = true,
     )
 
-    /** 5 + 5 poured: ten in the bowl, [counted] of them tagged afresh; the
-     *  emptied plates keep their totals. */
-    private fun addPouredBig(counted: Int) = AddState(
-        a = 5, b = 5,
+    /** 3 + 2 poured: the folded plates wear 3 and 2, and the bowl of five
+     *  is fully counted in his order, each part seated on its plate colour. */
+    private fun addPoured() = AddState(
+        a = 3, b = 2,
         plateA = persistentListOf(),
         plateB = persistentListOf(),
         poured = true,
         doneA = true,
         doneB = true,
-        bowl = (
-            plate(5, ShapeKind.APPLE, counted = counted.coerceAtMost(5), firstId = 1, origin = 1) +
-                plate(5, ShapeKind.CARROT, counted = (counted - 5).coerceAtLeast(0), firstId = 6, origin = 2)
-            ).toPersistentList(),
+        bowl = listOf(
+            Token(id = 1, shape = ShapeKind.APPLE, counted = true, countOrder = 1, origin = 1),
+            Token(id = 2, shape = ShapeKind.APPLE, counted = true, countOrder = 2, origin = 1),
+            Token(id = 3, shape = ShapeKind.APPLE, counted = true, countOrder = 3, origin = 1),
+            Token(id = 4, shape = ShapeKind.CARROT, counted = true, countOrder = 4, origin = 2),
+            Token(id = 5, shape = ShapeKind.CARROT, counted = true, countOrder = 5, origin = 2),
+        ).toPersistentList(),
     )
-
-    /** The same 3 + 2 poured and the bowl fully counted. */
-    private fun addPoured() = addPouredBig(counted = 5)
 
     /** A TAKE bowl of five balls, the first [gone] of them removed. */
     private fun bowlOfBalls(gone: Int): PersistentList<Token> =
