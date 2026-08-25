@@ -23,11 +23,12 @@ class CountTest {
             assertEquals(0, end.invalidTaps)
             assertEquals((1..n).toList(), beats.sayCounts())
             // A single-object tray already said its number as the count word;
-            // bigger trays name the cardinal before the card lands.
+            // bigger trays name the cardinal before the card lands. Either way
+            // the finished count earns a plain word of praise first.
             val tail = if (n == 1) {
-                listOf(Beat.FlashCount(n), Beat.Confetti, Beat.Play(Sfx.CHIME))
+                listOf(Beat.SayPraise, Beat.FlashCount(n), Beat.Confetti, Beat.Play(Sfx.CHIME))
             } else {
-                listOf(Beat.SayCardinal(n), Beat.FlashCount(n), Beat.Confetti, Beat.Play(Sfx.CHIME))
+                listOf(Beat.SayCardinal(n), Beat.SayPraise, Beat.FlashCount(n), Beat.Confetti, Beat.Play(Sfx.CHIME))
             }
             assertEquals(tail, beats.takeLast(tail.size))
             // One TICK per tap, then the CHIME: no other sounds.

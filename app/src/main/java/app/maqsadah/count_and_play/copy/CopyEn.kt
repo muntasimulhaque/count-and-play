@@ -51,6 +51,8 @@ object EnCopy : Copy {
 
     override fun cardinal(n: Int): String = "${cap(n)}!"
 
+    override fun praise(): String = "Well done!"
+
     override fun factAdd(a: Int, b: Int, total: Int): String =
         "${cap(a)} and ${numberWord(b)} make ${numberWord(total)}!"
 
@@ -73,7 +75,6 @@ object EnCopy : Copy {
     override fun closeLabel(): String = "Close"
     override fun soundOnLabel(): String = "Sound on"
     override fun soundOffLabel(): String = "Sound off"
-    override fun settingsTitle(): String = "Grown-ups"
 
     override fun pourReadyState(): String = "Ready"
     override fun pourNotYetState(): String = "Not yet"

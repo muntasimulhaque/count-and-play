@@ -50,7 +50,7 @@ class CopyTest {
         lines += copy.closeLabel()
         lines += copy.soundOnLabel()
         lines += copy.soundOffLabel()
-        lines += copy.settingsTitle()
+        lines += copy.praise()
         lines += copy.pourReadyState()
         lines += copy.pourNotYetState()
         return lines
@@ -178,6 +178,12 @@ class CopyTest {
             assertEquals("English", copy.languageName(Language.EN))
             assertEquals("বাংলা", copy.languageName(Language.BN))
         }
+    }
+
+    @Test
+    fun praiseIsPlainAndEncouraging() {
+        assertEquals("Well done!", EnCopy.praise())
+        assertEquals("সাব্বাশ!", BnCopy.praise())
     }
 
     @Test

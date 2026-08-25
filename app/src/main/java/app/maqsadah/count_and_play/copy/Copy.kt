@@ -59,6 +59,9 @@ interface Copy {
     /** The answer to "how many", as a spoken exclamation: "Four!" */
     fun cardinal(n: Int): String
 
+    /** Short praise when a COUNT round is finished: "Well done!" / "সাব্বাশ!" */
+    fun praise(): String
+
     /**
      * The plain arithmetic fact, spoken warmly: the statement itself is better
      * praise than anything evaluative: "Three and two make five!"
@@ -87,9 +90,6 @@ interface Copy {
     fun closeLabel(): String
     fun soundOnLabel(): String
     fun soundOffLabel(): String
-
-    /** The settings sheet's heading, naming who the levers belong to. */
-    fun settingsTitle(): String
 
     /** State of the pour button, announced alongside its label. */
     fun pourReadyState(): String

@@ -20,6 +20,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.Text
@@ -181,24 +183,17 @@ fun SettingsSheet(
                 .fillMaxWidth()
                 .background(Liner, RoundedCornerShape(topStart = Corner, topEnd = Corner))
                 .clickable(remember { MutableInteractionSource() }, indication = null) { }
-                .padding(20.dp),
+                .padding(horizontal = 20.dp, vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Box(Modifier.fillMaxWidth()) {
-                Text(
-                    copy.settingsTitle(),
-                    Modifier.align(Alignment.Center),
-                    color = Ink.copy(alpha = 0.75f),
-                    fontSize = AdultSize,
-                    fontWeight = ToyBold,
-                    fontFamily = ToyFont,
-                )
+                GrabHandle(Modifier.align(Alignment.Center))
                 CloseButton(Modifier.align(Alignment.CenterEnd), copy.closeLabel(), onCloseSettings)
             }
-            Spacer(Modifier.height(6.dp))
+            Spacer(Modifier.height(18.dp))
             LanguageRow(copy, language, onSetLanguage)
             if (!voiceAvailable) {
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(10.dp))
                 Text(
                     copy.voiceMissingNote(),
                     color = Ink.copy(alpha = 0.7f),
@@ -210,6 +205,17 @@ fun SettingsSheet(
             SoundRow(copy, muted, onToggleMute)
         }
     }
+}
+
+/** The sheet's grab handle: a quiet bar that says this is a panel, not the app. */
+@Composable
+private fun GrabHandle(modifier: Modifier) {
+    Box(
+        modifier
+            .width(44.dp)
+            .height(5.dp)
+            .background(Ink.copy(alpha = 0.22f), RoundedCornerShape(3.dp)),
+    )
 }
 
 @Composable
@@ -237,24 +243,27 @@ private fun SoundRow(copy: Copy, muted: Boolean, onToggleMute: () -> Unit) {
         Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
+            .background(Color.White)
+            .border(BorderStroke(2.dp, Ink.copy(alpha = 0.2f)), RoundedCornerShape(18.dp))
             .clickable(remember { MutableInteractionSource() }, indication = null) { onToggleMute() }
             .semantics {
                 role = Role.Button
                 contentDescription = description
             }
-            .padding(vertical = 10.dp),
-        horizontalArrangement = Arrangement.Center,
+            .padding(horizontal = 18.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        SpeakerIcon(muted, 28.dp, Ink)
+        SpeakerIcon(muted, 26.dp, Ink)
         Text(
             description,
-            Modifier.padding(start = 10.dp),
+            Modifier.padding(start = 12.dp).weight(1f),
             color = Ink,
             fontSize = AdultSize,
             fontWeight = ToyBold,
             fontFamily = ToyFont,
         )
+        // A second, colour-only statement of the state: green when sound flows.
+        Box(Modifier.size(14.dp).background(if (muted) Pink else Green, CircleShape))
     }
 }
 

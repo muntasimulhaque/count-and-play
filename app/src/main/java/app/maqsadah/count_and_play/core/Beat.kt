@@ -15,6 +15,9 @@ sealed class Beat {
     /** Say the cardinal answer: how many there are in all. */
     data class SayCardinal(val n: Int) : Beat()
 
+    /** Short praise for a finished count: "Well done!" / "সাব্বাশ!" */
+    object SayPraise : Beat()
+
     /** Round-start prompt for COUNT; also opens ADD, whose first job is to count each plate. */
     object SayPromptCount : Beat()
 

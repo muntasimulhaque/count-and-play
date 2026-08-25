@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -43,8 +44,11 @@ fun Keycap(
     fill: Color,
     modifier: Modifier = Modifier,
     edgeHeight: Dp = 10.dp,
+    /** True: fill whatever width the caller grants. False: hug the content. */
+    stretch: Boolean = true,
     description: String? = null,
     onClick: (() -> Unit)? = null,
+    contentAlignment: Alignment = Alignment.Center,
     content: @Composable BoxScope.() -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -60,11 +64,11 @@ fun Keycap(
         ),
         label = "keycapSink",
     )
+    val sizeModifier = if (stretch) Modifier.fillMaxSize() else Modifier
     Box(modifier.padding(top = edgeHeight)) {
-        Box(Modifier.fillMaxSize().background(edge, RoundedCornerShape(Corner)))
+        Box(sizeModifier.background(edge, RoundedCornerShape(Corner)))
         Box(
-            Modifier
-                .fillMaxSize()
+            sizeModifier
                 .offset(y = sink - edgeHeight)
                 .background(fill, RoundedCornerShape(Corner))
                 .border(BorderStroke(OutlineWidth, rim), RoundedCornerShape(Corner))
@@ -85,6 +89,7 @@ fun Keycap(
                         Modifier.semantics { role = Role.Button }
                     },
                 ),
+            contentAlignment = contentAlignment,
             content = content,
         )
     }

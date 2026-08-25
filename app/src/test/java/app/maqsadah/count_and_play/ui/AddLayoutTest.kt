@@ -10,11 +10,10 @@ import org.junit.Test
  * The layout solvers' promise: on any screen a real phone or tablet has, and
  * for every round the core can deal, the trays fit, the objects stay big,
  * and rows stay balanced (no lonely orphan row). ADD additionally must fit
- * BOTH phases of the game: the plates counted with an empty bowl waiting,
- * and the poured bowl counted with the emptied plates keeping their place.
- * This is what failed in v7.3 and earlier: at the top level the plates
- * towered off-screen and the bowl was pushed out of reach exactly when a
- * child advanced.
+ * BOTH phases of the game: the plates counted with only the pour key waiting,
+ * and the poured bowl slid in beneath the unchanged plates. TAKE must fit its
+ * tray, the equation above it and the taken-away box below it, all at one
+ * shared object size.
  */
 class AddLayoutTest {
 
@@ -27,32 +26,45 @@ class AddLayoutTest {
         5 to 5, 5 to 10,         // level 2: balanced and lopsided extremes
     )
 
-    private fun assertBothPhasesFit(
-        playWidth: Dp,
-        bigPlate: Int,
-        total: Int,
-        availHeight: Dp,
-    ) {
+    private fun assertAddPhasesFit(playWidth: Dp, bigPlate: Int, total: Int, availHeight: Dp) {
         val s = solveAddTraySizes(playWidth, bigPlate, total, availHeight)
-        val room = availHeight - PourReserve - SectionGap * 2
 
-        val beforePour =
-            trayHeight(bigPlate, s.plate, s.platePerRow) + s.bowl + TrayPad * 2 <= room
-        val afterPour =
-            s.plate + TrayPad * 2 + trayHeight(total, s.bowl, s.bowlPerRow, seated = true) <= room
+        // Phase one always stands the full columns beside the sleeping key.
         assertTrue(
             "beforePour overflows: w=$playWidth h=$availHeight plate=$bigPlate/$total " +
                 "sizes=${s.plate}/${s.bowl}",
-            beforePour,
+            trayHeight(bigPlate, s.plate, s.platePerRow) + PourReserve <= availHeight,
         )
-        assertTrue(
-            "afterPour overflows: w=$playWidth h=$availHeight plate=$bigPlate/$total " +
-                "sizes=${s.plate}/${s.bowl}",
-            afterPour,
-        )
+        if (s.plateAfter == s.plate) {
+            // Full columns kept after the pour: the bowl slides beneath them.
+            assertTrue(
+                "afterPour overflows with standing plates: w=$playWidth h=$availHeight plate=$bigPlate/$total",
+                trayHeight(bigPlate, s.plate, s.platePerRow) + SectionGap * 2 +
+                    trayHeight(total, s.bowl, s.bowlPerRow, seated = true) <= availHeight,
+            )
+        } else {
+            // Tight screen: the poured plates fold into slim places wearing
+            // their totals, freeing their height for the bowl.
+            assertTrue(
+                "folded afterPour overflows: w=$playWidth h=$availHeight plate=$bigPlate/$total",
+                PouredPlatePlace + TrayPad * 2 + SectionGap * 2 +
+                    trayHeight(total, s.bowl, s.bowlPerRow, seated = true) <= availHeight,
+            )
+        }
         // Tokens never collapse to nothing.
         assertTrue(s.plate >= MinObject)
         assertTrue(s.bowl >= MinObject)
+    }
+
+    private fun assertTakeFits(playWidth: Dp, n: Int, gone: Int, availHeight: Dp) {
+        val s = solveTakeSizes(playWidth, n, gone, availHeight)
+        val need =
+            trayHeight(n, s.size, s.mainPerRow) + trayHeight(maxOf(gone, 1), s.size, s.takenPerRow)
+        assertTrue(
+            "take overflows: w=$playWidth h=$availHeight n=$n gone=$gone size=${s.size} need=$need",
+            need <= availHeight - TakeEqReserve - SectionGap * 2,
+        )
+        assertTrue(s.size >= MinObject)
     }
 
     @Test
@@ -65,7 +77,29 @@ class AddLayoutTest {
             411.dp to 731.dp, 480.dp to 854.dp, 600.dp to 960.dp, 800.dp to 1280.dp,
         )) {
             for ((bigPlate, total) in deals) {
-                assertBothPhasesFit(width, bigPlate, total, availHeight)
+                assertAddPhasesFit(width, bigPlate, total, availHeight)
+            }
+        }
+    }
+
+    @Test
+    fun `every take round fits tray equation and taken box on common screens`() {
+        for ((width, availHeight) in listOf(360.dp to 640.dp, 393.dp to 675.dp, 600.dp to 960.dp)) {
+            for ((n, b) in listOf(3 to 1, 5 to 2, 5 to 3, 10 to 1, 10 to 3)) {
+                for (gone in 0..b) assertTakeFits(width, n, gone, availHeight)
+            }
+        }
+    }
+
+    @Test
+    fun `squat and tall screens alike keep both phases fitted`() {
+        // 520 dp is about as short as a real 16:10-and-taller phone gets; the
+        // 360x480 rectangle below it is a tablet-aspect relic no child holds.
+        for (availHeight in 520..800 step 20) {
+            for (width in listOf(360.dp, 411.dp)) {
+                for ((bigPlate, total) in deals) {
+                    assertAddPhasesFit(width, bigPlate, total, availHeight.dp)
+                }
             }
         }
     }
@@ -75,6 +109,8 @@ class AddLayoutTest {
         val s = solveAddTraySizes(240.dp, 5, 10, 400.dp)
         assertTrue(s.plate >= MinObject)
         assertTrue(s.bowl >= MinObject)
+        val t = solveTakeSizes(240.dp, 10, 3, 400.dp)
+        assertTrue(t.size >= MinObject)
     }
 
     @Test
@@ -85,14 +121,27 @@ class AddLayoutTest {
     }
 
     @Test
-    fun `more room never shrinks the trays`() {
-        var last = solveAddTraySizes(411.dp, 5, 10, 500.dp)
-        for (availHeight in 520..760 step 20) {
-            val next = solveAddTraySizes(411.dp, 5, 10, availHeight.dp)
-            assertTrue("plate shrank at $availHeight", next.plate >= last.plate)
-            assertTrue("bowl shrank at $availHeight", next.bowl >= last.bowl)
-            last = next
+    fun `roomy screens keep the poured columns at full size`() {
+        for ((width, availHeight) in listOf(411.dp to 731.dp, 600.dp to 960.dp, 800.dp to 1280.dp)) {
+            for ((bigPlate, total) in deals) {
+                val s = solveAddTraySizes(width, bigPlate, total, availHeight)
+                assertEquals(
+                    "w=$width h=$availHeight deal=$bigPlate+$total folded the plates",
+                    s.plate,
+                    s.plateAfter,
+                )
+            }
         }
+    }
+
+    @Test
+    fun `tight phones fold the poured plates only when physics demands`() {
+        val s = solveAddTraySizes(360.dp, 5, 10, 640.dp)
+        assertTrue(s.plateAfter <= PouredPlatePlace)
+        assertTrue(
+            s.plateAfter + TrayPad * 2 + SectionGap * 2 +
+                trayHeight(10, s.bowl, s.bowlPerRow, seated = true) <= 640.dp,
+        )
     }
 
     @Test

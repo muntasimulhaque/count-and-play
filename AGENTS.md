@@ -56,12 +56,18 @@ Three games, each a huge picture button on the home screen; from there the app
 guides, and difficulty adapts invisibly *inside* a game.
 
 - **Count them:** tap the objects in any order; each tap leaves a numbered
-  chip in HIS order and the voice says its number.
-- **Put together:** he counts each plate on its own, taps the big button to
-  pour them into one bowl, then counts the whole; the parts keep their
-  coloured seats inside it.
-- **Take away:** he taps the asked number out (each taken piece wears its
-  number as it sinks into its ghost), then he counts what is left himself.
+  chip in HIS order and the voice says its number. Finishing the count earns a
+  plain Well done! (সাব্বাশ) before the numeral lands.
+- **Put together:** the LEFT plate is counted first, the right one asleep in
+  washed-out grey until then, so two columns can never mix into one count. A
+  finished plate wears its total as a candy badge that stays on through the
+  pour. Then the big centred button pours them into one bowl below, and he
+  counts the whole; the parts keep their coloured seats inside it, and the
+  plates keep their place (standing at full size where the screen allows,
+  folded into slim badge strips on tight phones).
+- **Take away:** the ask hangs above the tray as numerals (5 − 1); he taps the
+  asked number out and each taken piece moves down into an empty taken box
+  wearing its take-away number; then he counts what is left himself.
 
 Every round ends with the fact arriving huge on screen (`3 + 2 = 5`) while the
 voice says it, then confetti. There is no menu beyond the three pictures, no
@@ -121,7 +127,10 @@ playable in plain JVM tests and store screenshots render straight from state.
 - **Subtraction stays visible:** taken objects wear their take-away number in
   ghost holes; "left" is a quantity you can see, not a disappearing act.
 - **Symbols arrive at the moment of the fact**, never earlier, never as
-  chrome. Praise the mathematics, not the child.
+  chrome. Praise the mathematics, not the child. (One owner's exception,
+  deliberate: a finished COUNT speaks a plain Well done / সাব্বাশ, because his
+  son asked where the encouragement went. The facts themselves still speak
+  for themselves.)
 - Re-taps are recorded, never punished: hesitation is diagnostic, the ladder
   eases, it never scolds.
 
@@ -139,11 +148,16 @@ An Android SDK and the Android Studio JBR are installed on the owner's machine
 (`JAVA_HOME` must point at the JBR; it is not on PATH).
 
 **Any UI change must be verified from rendered screenshot artifacts, not by
-reading code.** On this machine verification runs locally on the API 35 AVDs
-(`Pixel_4_35`, `Nexus_7_35`, `Pixel_C_35`): every Android 17 image breaks
-under WHPX here (see the notes below), so the newest-image rule yields to the
-newest image that boots. CI screenshot capture stays on API 35 for the same
-reason on hosted runners; revisit when upstream stabilizes.
+reading code, and those artifacts come from CI.** The loop is: push (any UI
+push triggers screenshots.yml), wait the ~five minutes, download the three
+store-screenshots-* artifacts, refresh play-store/screenshots/, and read the
+PNGs on all three form factors. Do not boot a local emulator to pre-check UI
+work; the local API 35 AVD recipe below exists only as an emergency fallback
+for when CI itself cannot answer (e.g. iterating on capture machinery), and
+if a local capture fails twice, stop debugging the emulator and let CI do it.
+Capture is pinned to API 35 because both Android 17 images break under WHPX
+here and on hosted runners alike (see the emulator notes); API 35 renders the
+Compose UI identically, so nothing is lost.
 
 **Emulator notes, learned the hard way on this machine (do not re-derive):**
 

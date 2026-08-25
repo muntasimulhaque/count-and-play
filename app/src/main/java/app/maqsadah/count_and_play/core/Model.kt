@@ -49,6 +49,9 @@ data class CountState(
                 add(Beat.SayCardinal(n))
             }
             if (k == n) {
+                // The finished count earns its own plain word of praise; the
+                // numeral card lands while it is spoken.
+                add(Beat.SayPraise)
                 add(Beat.FlashCount(n))
                 add(Beat.Confetti)
                 add(Beat.Play(Sfx.CHIME))
@@ -64,11 +67,14 @@ data class CountState(
 /**
  * ADD, in three phases the child drives himself:
  * 1. COUNT THE PARTS: each plate is counted on its own, one counting word per
- *    tap, chips in his tap order; finishing a plate says its cardinal. The
- *    plates may be counted in any order, even interleaved, and each keeps its
- *    own count.
+ *    tap, chips in his tap order; finishing a plate says its cardinal and pops
+ *    the plate's total onto the plate itself. The LEFT plate must be counted
+ *    out first; the right plate sleeps (shown washed-out) until then, so two
+ *    columns can never be mixed into one count.
  * 2. POUR: once both plates are counted the button wakes; tapping it pours
- *    everyone into the bowl, each part keeping its plate's colour.
+ *    everyone into the bowl, each part keeping its plate's colour. The plates
+ *    stay exactly as they were, now wearing their totals; only the objects
+ *    move down into the bowl that appears beneath them.
  * 3. COUNT THE WHOLE: the bowl is counted afresh, one word per tap, and the
  *    last tap lands the fact: a and b make total.
  * Re-taps are recorded as struggles and change nothing.
@@ -80,6 +86,10 @@ data class AddState(
     val plateB: PersistentList<Token>,
     val bowl: PersistentList<Token> = persistentListOf(),
     val poured: Boolean = false,
+    /** Plate A fully counted: its total may be worn, and plate B wakes. Survives the pour. */
+    val doneA: Boolean = false,
+    /** Plate B fully counted: its total may be worn. Survives the pour. */
+    val doneB: Boolean = false,
     val invalidTaps: Int = 0,
 ) {
     val total: Int get() = a + b
@@ -117,11 +127,17 @@ data class AddState(
         val inA = plateA.any { it.id == id }
         val token = plateA.find { it.id == id } ?: plateB.find { it.id == id } ?: return struggle()
         if (token.counted) return struggle()
+        // The right plate is asleep until the left one has been counted out;
+        // a tap there answers with the soft tick and records the reach, but
+        // never counts.
+        if (!inA && !doneA) return asleep()
         val plateSize = if (inA) a else b
         val k = (if (inA) countedA else countedB) + 1
         val next = copy(
             plateA = plateA.map { if (it.id == id) it.copy(counted = true, countOrder = k) else it }.toPersistentList(),
             plateB = plateB.map { if (it.id == id) it.copy(counted = true, countOrder = k) else it }.toPersistentList(),
+            doneA = doneA || (inA && k == plateSize),
+            doneB = doneB || (!inA && k == plateSize),
         )
         val beats = buildList {
             add(Beat.Play(Sfx.TICK))
@@ -133,6 +149,10 @@ data class AddState(
         }
         return next to beats
     }
+
+    /** A touch on the sleeping plate: heard softly, remembered, not counted. */
+    private fun asleep(): Pair<AddState, List<Beat>> =
+        copy(invalidTaps = invalidTaps + 1) to listOf(Beat.Play(Sfx.TICK))
 
     private fun tapBowl(id: Int): Pair<AddState, List<Beat>> {
         val token = bowl.find { it.id == id } ?: return struggle()

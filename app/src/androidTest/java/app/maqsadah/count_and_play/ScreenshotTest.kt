@@ -195,19 +195,24 @@ class ScreenshotTest {
             )
         }.toPersistentList()
 
-    /** 3 + 2, both plates fully counted and the button awake. */
+    /** 3 + 2, both plates fully counted (their totals worn) and the button awake. */
     private fun addReady() = AddState(
         a = 3, b = 2,
         plateA = plate(3, ShapeKind.APPLE, counted = 3, firstId = 1),
         plateB = plate(2, ShapeKind.CARROT, counted = 2, firstId = 4),
+        doneA = true,
+        doneB = true,
     )
 
-    /** 5 + 5 poured: ten in the bowl, [counted] of them tagged afresh. */
+    /** 5 + 5 poured: ten in the bowl, [counted] of them tagged afresh; the
+     *  emptied plates keep their totals. */
     private fun addPouredBig(counted: Int) = AddState(
         a = 5, b = 5,
         plateA = persistentListOf(),
         plateB = persistentListOf(),
         poured = true,
+        doneA = true,
+        doneB = true,
         bowl = (
             plate(5, ShapeKind.APPLE, counted = counted.coerceAtMost(5), firstId = 1, origin = 1) +
                 plate(5, ShapeKind.CARROT, counted = (counted - 5).coerceAtLeast(0), firstId = 6, origin = 2)

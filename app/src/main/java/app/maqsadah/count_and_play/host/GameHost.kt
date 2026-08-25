@@ -209,6 +209,7 @@ class GameHost(application: Application) : AndroidViewModel(application) {
             }
             is Beat.SayCount -> say(copy.numberWord(beat.n))
             is Beat.SayCardinal -> say(copy.cardinal(beat.n))
+            is Beat.SayPraise -> say(copy.praise())
             is Beat.SayPromptCount -> say(copy.promptCount())
             is Beat.SayPromptAdd -> say(copy.promptAdd())
             is Beat.SayPromptAll -> say(copy.promptAll())

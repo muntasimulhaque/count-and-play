@@ -6,11 +6,11 @@ import androidx.compose.ui.unit.dp
 /**
  * Tray geometry, as pure arithmetic so it can be unit-tested without a device.
  *
- * ADD must fit two trays and the pour button into whatever height a phone
- * offers, in BOTH phases: plates full with an empty bowl waiting, and the
- * poured bowl full with the emptied plates keeping their place. The solvers
- * below size every tray for its round's numbers alone, so nothing jumps when
- * the plates pour.
+ * ADD must fit the plates in BOTH phases of its game: counted alone with only
+ * the pour key waiting, then poured, when the bowl slides in beneath the
+ * unchanged plates. TAKE must fit its tray, the equation above it and the
+ * taken-away box below it. The solvers below size every tray for its round's
+ * numbers alone, so nothing overlaps at any deal a child can be given.
  *
  * Two facts of the real layout are priced in here rather than ignored:
  *
@@ -40,12 +40,15 @@ internal val AddCap = 96.dp
 /** The floor below which shrinking stops entirely. */
 internal val MinObject = 24.dp
 
-// -- Shared layout measures for the ADD column -------------------------------
+// -- Shared layout measures for the game columns ------------------------------
 
-/** Vertical room the pour button reserves, invisible spacer included. */
+/** Vertical room the pour button reserves while asleep or awake. */
 internal val PourReserve = 76.dp
 internal val SectionGap = 14.dp
 internal val PlateGap = 14.dp
+
+/** Vertical room the take-away equation reserves above the trays. */
+internal val TakeEqReserve = 56.dp
 
 /**
  * How many objects sit in one row of a tray of [count]: balanced
@@ -79,7 +82,7 @@ internal fun trayHeight(count: Int, size: Dp, perRow: Int, seated: Boolean = fal
 }
 
 /** The widest row of touch-sized nodes that fits a tray's inner width. */
-private fun maxPerRowFor(inner: Dp): Int =
+internal fun maxPerRowFor(inner: Dp): Int =
     ((inner + TrayGap) / (HitTarget + TrayGap)).toInt().coerceAtLeast(1)
 
 /**
@@ -117,20 +120,32 @@ internal fun solveTray(
     return TraySolution(MinObject, 1)
 }
 
-/** One solved ADD round: plate and bowl sizes plus their row counts. */
+/** One solved ADD round: plate and bowl sizes plus their row counts.
+ *
+ *  [plate] sizes phase one. [plateAfter] sizes the poured plates' places:
+ *  usually equal to [plate] (the columns stand unchanged beneath the bowl);
+ *  on screens too squat to hold both full columns and the bowl, it is the
+ *  slim strip height the folded plates keep, wearing their totals.
+ */
 internal data class TraySizes(
     val plate: Dp,
+    val plateAfter: Dp,
     val bowl: Dp,
     val platePerRow: Int,
     val bowlPerRow: Int,
 )
 
+/** The object size that defines a folded plate's slim post-pour place. */
+internal val PouredPlatePlace = 56.dp
+
 /**
- * Sizes both ADD trays for a round of [bigPlate]-and-the-rest totalling
- * [total], inside [availHeight]. Both phases must fit: the plates counted
- * with an empty bowl waiting, and the poured bowl counted with the emptied
- * plates keeping their place. Each tray first gets its biggest solo size,
- * then both shrink together only as much as the shared height demands.
+ * Sizes one ADD round. The plates are solved first against the room minus
+ * the pour key; the bowl is solved to sit beneath them. First choice: the
+ * very columns the child counted stay standing, unchanged, with the bowl
+ * slid in underneath. Only when the screen is too squat for that do the
+ * poured plates fold into slim places wearing their totals, freeing their
+ * height for the bowl: the child asked for the post-pour screen to take
+ * whatever shape necessity demands, and this is that shape.
  */
 internal fun solveAddTraySizes(
     playWidth: Dp,
@@ -138,23 +153,55 @@ internal fun solveAddTraySizes(
     total: Int,
     availHeight: Dp,
 ): TraySizes {
-    val room = availHeight - PourReserve - SectionGap * 2
+    val room = availHeight
     val plateWidth = (playWidth - PlateGap) / 2
-    val plateSol = solveTray(plateWidth, bigPlate, AddCap, room)
-    val bowlSol = solveTray(playWidth, total, AddCap, room, seated = true)
+    val plateSol = solveTray(plateWidth, bigPlate, AddCap, room - PourReserve)
+    val bowlSeed = solveTray(playWidth, total, AddCap, room - PourReserve - SectionGap * 2, seated = true)
     var scale = 1f
     while (scale > 0.4f) {
         val plate = plateSol.size * scale
-        val bowl = bowlSol.size * scale
-        val beforePour =
-            trayHeight(bigPlate, plate, plateSol.perRow) + bowl + TrayPad * 2 <= room
+        val bowl = bowlSeed.size * scale
         val afterPour =
-            plate + TrayPad * 2 + trayHeight(total, bowl, bowlSol.perRow, seated = true) <= room
-        if (beforePour && afterPour) {
-            return TraySizes(plate, bowl, plateSol.perRow, bowlSol.perRow)
+            trayHeight(bigPlate, plate, plateSol.perRow) + SectionGap * 2 +
+                trayHeight(total, bowl, bowlSeed.perRow, seated = true) <= room
+        if (afterPour) {
+            return TraySizes(plateSol.size, plate, bowl, plateSol.perRow, bowlSeed.perRow)
         }
         scale -= 0.05f
     }
-    // Nothing fit: keep both trays presentable rather than optimal.
-    return TraySizes(MinObject, MinObject, 1, 1)
+    // Tight screen: fold the poured plates, and let the bowl breathe.
+    val bowlSol = solveTray(playWidth, total, AddCap, room - PouredPlatePlace - TrayPad * 2 - SectionGap * 2, seated = true)
+    return TraySizes(plateSol.size, PouredPlatePlace, bowlSol.size, plateSol.perRow, bowlSol.perRow)
+}
+
+/** One solved TAKE round: one object size shared by both trays, so a token keeps its figure when it moves down. */
+internal data class TakeSolution(
+    val size: Dp,
+    val mainPerRow: Int,
+    val takenPerRow: Int,
+)
+
+/**
+ * Sizes a TAKE round: the main tray above, the equation between prompt and
+ * play, and the taken-away box below. Both trays share one object size, so
+ * a token that moves down never changes shape mid-flight.
+ */
+internal fun solveTakeSizes(
+    playWidth: Dp,
+    n: Int,
+    gone: Int,
+    availHeight: Dp,
+): TakeSolution {
+    val gt = maxOf(gone, 1) // an empty taken box still claims one row of place
+    val takenPerRow = perRowTemplate(gt).coerceAtMost(maxPerRowFor(playWidth - TrayPad * 2))
+    val room = availHeight - TakeEqReserve - SectionGap * 2
+    val mainSol = solveTray(playWidth, n, SingleCap, room - trayHeight(gt, MinObject, takenPerRow))
+    var scale = 1f
+    while (scale > 0.4f) {
+        val s = mainSol.size * scale
+        val need = trayHeight(n, s, mainSol.perRow) + trayHeight(gt, s, takenPerRow)
+        if (need <= room) return TakeSolution(s, mainSol.perRow, takenPerRow)
+        scale -= 0.05f
+    }
+    return TakeSolution(MinObject, 1, 1)
 }

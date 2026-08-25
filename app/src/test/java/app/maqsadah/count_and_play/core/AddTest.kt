@@ -69,7 +69,7 @@ class AddTest {
     }
 
     @Test
-    fun plates_may_be_counted_interleaved_each_keeps_its_own_count() {
+    fun the_left_plate_must_finish_before_the_right_wakes() {
         val start = AddState(
             a = 3,
             b = 2,
@@ -83,21 +83,31 @@ class AddTest {
                 Token(5, ShapeKind.BALL),
             ),
         )
-        // A, B, A, B, A: there is no correct order to break.
-        var s = start
-        val counts = mutableListOf<Int>()
-        for (id in listOf(1, 4, 2, 5, 3)) {
-            val (next, beats) = s.onTap(id)
-            s = next
-            counts += beats.sayCounts()
-        }
-        assertEquals(listOf(1, 1, 2, 2, 3), counts)
-        assertTrue(s.platesReady)
-        assertFalse(s.poured)
-        assertFalse(s.done)
+        // A tap on the sleeping right plate is heard softly, recorded, and
+        // counts nothing: the columns are counted one at a time.
+        val (locked, lockedBeats) = start.onTap(4)
+        assertEquals(1, locked.invalidTaps)
+        assertEquals(listOf(Sfx.TICK), lockedBeats.sfx())
+        assertTrue(locked.plateB.none { it.counted })
+
+        // Counting the left plate out unlocks the right one; each keeps its own count.
+        var s = locked
+        for (id in listOf(1, 2, 3)) s = s.onTap(id).first
+        assertTrue(s.doneA)
+        assertFalse(s.doneB)
+        assertFalse(s.platesReady)
+        val (unlocked, beats) = s.onTap(4)
+        assertEquals(listOf(1), beats.sayCounts())
+        assertEquals(listOf(Sfx.TICK), beats.sfx())
+
         // Chips follow each plate's own tap order.
-        assertEquals(listOf(1, 2, 3), s.plateA.map { it.countOrder })
-        assertEquals(listOf(1, 2), s.plateB.map { it.countOrder })
+        var end = unlocked
+        for (id in listOf(5)) end = end.onTap(id).first
+        assertEquals(listOf(1, 2, 3), end.plateA.map { it.countOrder })
+        assertEquals(listOf(1, 2), end.plateB.map { it.countOrder })
+        assertTrue(end.doneA)
+        assertTrue(end.doneB)
+        assertTrue(end.platesReady)
     }
 
     @Test
@@ -130,6 +140,7 @@ class AddTest {
         val (afterA, beatsA) = start.onTap(1)
         assertEquals(listOf(1), beatsA.sayCounts())
         assertTrue(beatsA.none { it is Beat.SayCardinal })
+        assertTrue(afterA.doneA)
         val (afterB, beatsB) = afterA.onTap(2)
         assertEquals(listOf(1), beatsB.sayCounts())
         assertTrue(beatsB.none { it is Beat.SayCardinal })
@@ -148,6 +159,9 @@ class AddTest {
         assertTrue(poured.poured)
         assertEquals(start.total, poured.bowl.size)
         assertTrue(poured.plateA.isEmpty() && poured.plateB.isEmpty())
+        // The plates' finished totals survive the pour: they stay worn on the
+        // emptied plates while the objects live in the bowl below.
+        assertTrue(poured.doneA && poured.doneB)
         // Everyone starts uncounted again: the whole is counted afresh.
         assertTrue(poured.bowl.none { it.counted })
         assertTrue(poured.bowl.all { it.countOrder == 0 })

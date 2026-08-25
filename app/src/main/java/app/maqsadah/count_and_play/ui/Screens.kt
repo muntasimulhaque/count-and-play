@@ -1,9 +1,10 @@
 package app.maqsadah.count_and_play.ui
 
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -18,9 +19,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -32,19 +33,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import app.maqsadah.count_and_play.copy.Copy
-import app.maqsadah.count_and_play.core.AddState
 import app.maqsadah.count_and_play.core.CountState
 import app.maqsadah.count_and_play.core.TakeState
-import app.maqsadah.count_and_play.core.Token
 
 @Composable
 fun CountScreen(state: CountState, copy: Copy, onTap: (Int) -> Unit, onHome: () -> Unit) {
@@ -70,195 +68,121 @@ fun CountScreen(state: CountState, copy: Copy, onTap: (Int) -> Unit, onHome: () 
 }
 
 @Composable
-fun AddScreen(
-    state: AddState,
-    copy: Copy,
-    onTap: (Int) -> Unit,
-    onPour: () -> Unit,
-    onHome: () -> Unit,
-) {
-    // The title follows the phase: count the plates, pour, count the whole.
-    val prompt = when {
-        state.poured -> copy.promptAll()
-        state.platesReady -> copy.promptAdd()
-        else -> copy.promptCount()
-    }
-    ActivityFrame(prompt, copy, onHome) {
-        // Both trays are sized together against the room this box actually
-        // has, in both phases: plates counted with an empty bowl waiting, and
-        // the poured bowl counted with the emptied plates keeping their place.
-        // The sizes come from the round's numbers alone, so nothing jumps when
-        // the plates pour, and even 5 + 5 with a full ten-token bowl fits.
-        BoxWithConstraints(Modifier.fillMaxSize()) {
-            val sizes = solveAddTraySizes(
-                playWidth = maxWidth,
-                bigPlate = maxOf(state.a, state.b),
-                total = state.a + state.b,
-                availHeight = maxHeight,
-            )
-            Column(
-                Modifier.align(Alignment.Center).fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(SectionGap),
-            ) {
-                PlatesRow(state, copy, sizes, onTap)
-                PourButton(
-                    label = copy.promptAdd(),
-                    enabled = state.platesReady && !state.poured,
-                    visible = !state.poured,
-                    notYetState = copy.pourNotYetState(),
-                    onPour = onPour,
-                    modifier = Modifier.align(Alignment.CenterHorizontally),
-                )
-                BowlTray(state, copy, TraySolution(sizes.bowl, sizes.bowlPerRow), onTap)
-            }
-        }
-    }
-}
-
-/** The two plates side by side, each counted on its own. */
-@Composable
-private fun PlatesRow(state: AddState, copy: Copy, sizes: TraySizes, onTap: (Int) -> Unit) {
-    Row(horizontalArrangement = Arrangement.spacedBy(PlateGap)) {
-        PlateTray(Blue, state.plateA, copy, TraySolution(sizes.plate, sizes.platePerRow), Modifier.weight(1f), onTap)
-        PlateTray(Orange, state.plateB, copy, TraySolution(sizes.plate, sizes.platePerRow), Modifier.weight(1f), onTap)
-    }
-}
-
-@Composable
-private fun PlateTray(
-    rim: Color,
-    tokens: List<Token>,
-    copy: Copy,
-    layout: TraySolution,
-    modifier: Modifier,
-    onTap: (Int) -> Unit,
-) {
-    Tray(rim, tokens.size, layout, modifier) { size ->
-        tokens.forEach { token ->
-            key(token.id) {
-                ObjectView(
-                    shape = token.shape,
-                    sizeDp = size,
-                    chip = if (token.counted) copy.digits(token.countOrder) else null,
-                    label = copy.objectLabel(token.shape.name, if (token.counted) token.countOrder else 0),
-                    onTap = { onTap(token.id) },
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun BowlTray(state: AddState, copy: Copy, layout: TraySolution, onTap: (Int) -> Unit) {
-    Tray(Green, state.bowl.size, layout, Modifier.fillMaxWidth()) { size ->
-        state.bowl.forEach { token ->
-            key(token.id) {
-                ObjectView(
-                    shape = token.shape,
-                    sizeDp = size,
-                    chip = if (token.counted) copy.digits(token.countOrder) else null,
-                    // Each part keeps its plate's colour under it in the bowl.
-                    seat = if (token.origin == 1) SeatA else SeatB,
-                    label = copy.objectLabel(token.shape.name, if (token.counted) token.countOrder else 0),
-                    onTap = { onTap(token.id) },
-                )
-            }
-        }
-    }
-}
-
-/**
- * The pour button: the one big yellow key of the game. Asleep (washed out,
- * untappable) until both plates are counted; then it wakes as a pressable
- * key and waits for the child's finger. After the pour it stays composed as
- * invisible reserved space, so the bowl never jumps when the button leaves.
- */
-@Composable
-private fun PourButton(
-    label: String,
-    enabled: Boolean,
-    visible: Boolean,
-    notYetState: String,
-    onPour: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val text = @Composable { awake: Boolean ->
-        Text(
-            label,
-            Modifier.padding(horizontal = 28.dp, vertical = 12.dp),
-            color = if (awake) Ink else Ink.copy(alpha = 0.55f),
-            fontSize = SizeLabel,
-            fontWeight = ToyBlack,
-            fontFamily = ToyFont,
-        )
-    }
-    when {
-        !visible ->
-            // Invisible spacer with no semantics: nothing for a screen reader
-            // to land on, but the layout keeps the key's height, lift included.
-            Box(
-                modifier
-                    .graphicsLayer { alpha = 0f }
-                    .clearAndSetSemantics { }
-                    .padding(top = 8.dp)
-                    .background(Ink.copy(alpha = 0.10f), RoundedCornerShape(Corner)),
-                contentAlignment = Alignment.Center,
-            ) { text(false) }
-        enabled ->
-            Keycap(
-                rim = Orange,
-                edge = YellowEdge,
-                fill = Yellow,
-                modifier = modifier,
-                edgeHeight = 8.dp,
-                onClick = onPour,
-            ) { text(true) }
-        else ->
-            Box(
-                modifier
-                    .padding(top = 8.dp)
-                    .background(Ink.copy(alpha = 0.10f), RoundedCornerShape(Corner))
-                    .border(BorderStroke(OutlineWidth, Ink.copy(alpha = 0.22f)), RoundedCornerShape(Corner))
-                    .semantics {
-                        role = Role.Button
-                        stateDescription = notYetState
-                    },
-                contentAlignment = Alignment.Center,
-            ) { text(false) }
-    }
-}
-
-@Composable
 fun TakeScreen(state: TakeState, copy: Copy, onTap: (Int) -> Unit, onHome: () -> Unit) {
     // Once the asked number is out, the question becomes "how many are left?".
     val prompt = if (state.removalDone) copy.promptLeft() else copy.promptTake(state.b)
     ActivityFrame(prompt, copy, onHome) {
         BoxWithConstraints(Modifier.fillMaxSize()) {
-            val layout = solveTray(maxWidth, state.n, SingleCap, maxHeight)
-            Tray(Pink, state.n, layout, Modifier.align(Alignment.Center)) { size ->
-                state.tokens.forEach { token ->
-                    // One node per slot across the whole round: a taken token sinks
-                    // into its ghost inside the very same composable that was
-                    // tappable, so focus and identity never reset mid-round.
-                    key(token.id) {
-                        ObjectView(
-                            shape = token.shape,
-                            sizeDp = size,
-                            gone = token.gone,
-                            chip = if (token.countOrder > 0) copy.digits(token.countOrder) else null,
-                            label = copy.objectLabel(token.shape.name, token.countOrder),
-                            onTap = if (token.gone) null else ({ onTap(token.id) }),
-                        )
-                    }
+            val solution = solveTakeSizes(maxWidth, state.n, state.removed, maxHeight)
+            Column(
+                Modifier.align(Alignment.Center).fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(SectionGap),
+            ) {
+                TakeEquation(state, copy, Modifier.align(Alignment.CenterHorizontally))
+                MainTray(state, copy, solution, onTap)
+                TakenTray(state, copy, solution)
+            }
+        }
+    }
+}
+
+/** The ask itself, in numerals: 5 − 1 hangs above the tray it describes. */
+@Composable
+private fun TakeEquation(state: TakeState, copy: Copy, modifier: Modifier = Modifier) {
+    Row(
+        modifier,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            copy.digits(state.n),
+            color = FlashBlue,
+            fontSize = SizeEquation,
+            fontWeight = ToyBlack,
+            fontFamily = ToyFont,
+        )
+        Text(
+            "\u2212",
+            Modifier.padding(horizontal = 10.dp),
+            color = Ink,
+            fontSize = SizeEquation * 0.62f,
+            fontWeight = ToyBlack,
+            fontFamily = ToyFont,
+        )
+        Text(
+            copy.digits(state.b),
+            color = FlashPink,
+            fontSize = SizeEquation,
+            fontWeight = ToyBlack,
+            fontFamily = ToyFont,
+        )
+    }
+}
+
+private val SizeEquation = 40.sp
+
+/**
+ * The whole bowl of n slots. A taken token leaves a dashed ghost behind, so
+ * the original five still reads as five; what is gone is visible below.
+ */
+@Composable
+private fun MainTray(state: TakeState, copy: Copy, solution: TakeSolution, onTap: (Int) -> Unit) {
+    Tray(Pink, state.n, TraySolution(solution.size, solution.mainPerRow), Modifier.fillMaxWidth()) { size ->
+        state.tokens.forEach { token ->
+            key(token.id) {
+                if (token.gone) {
+                    GhostSlot(size)
+                } else {
+                    ObjectView(
+                        shape = token.shape,
+                        sizeDp = size,
+                        chip = if (token.countOrder > 0) copy.digits(token.countOrder) else null,
+                        label = copy.objectLabel(token.shape.name, token.countOrder),
+                        onTap = { onTap(token.id) },
+                    )
                 }
             }
         }
     }
 }
 
+/** The taken-away box: empty at first, then one taken piece pops in per tap, wearing its number. */
+@Composable
+private fun TakenTray(state: TakeState, copy: Copy, solution: TakeSolution) {
+    Tray(Purple, state.removed, TraySolution(solution.size, solution.takenPerRow), Modifier.fillMaxWidth()) { size ->
+        state.tokens.filter { it.gone }.forEach { token ->
+            key(token.id) {
+                PopIn {
+                    ObjectView(
+                        shape = token.shape,
+                        sizeDp = size,
+                        chip = copy.digits(token.countOrder),
+                        label = copy.objectLabel(token.shape.name, token.countOrder),
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** A taken piece lands in the lower box with a springy pop; reduced motion snaps. */
+@Composable
+private fun PopIn(content: @Composable () -> Unit) {
+    val reducedMotion = rememberReducedMotion()
+    val scale = remember { Animatable(if (reducedMotion) 1f else 0.3f) }
+    LaunchedEffect(reducedMotion) {
+        if (!reducedMotion && scale.value < 1f) scale.animateTo(1f, PopInSpring)
+    }
+    Box(Modifier.graphicsLayer { scaleX = scale.value; scaleY = scale.value }) { content() }
+}
+
+private val PopInSpring = spring<Float>(
+    dampingRatio = Spring.DampingRatioMediumBouncy,
+    stiffness = Spring.StiffnessMedium,
+)
+
 /** Prompt on top, play in the middle, and always a small house top-left. */
 @Composable
-private fun ActivityFrame(prompt: String, copy: Copy, onHome: () -> Unit, content: @Composable BoxScope.() -> Unit) {
+internal fun ActivityFrame(prompt: String, copy: Copy, onHome: () -> Unit, content: @Composable BoxScope.() -> Unit) {
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
         Row(
             Modifier.fillMaxWidth().padding(top = 6.dp),

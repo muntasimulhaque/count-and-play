@@ -62,6 +62,7 @@ fun ObjectView(
     seat: Color? = null,
     gone: Boolean = false,
     label: String? = null,
+    modifier: Modifier = Modifier,
     onTap: (() -> Unit)? = null,
 ) {
     val reducedMotion = rememberReducedMotion()
@@ -83,7 +84,7 @@ fun ObjectView(
         }
     }
     Box(
-        modifier = Modifier
+        modifier = modifier
             .sizeIn(minWidth = HitTarget, minHeight = HitTarget)
             .graphicsLayer { scaleX = scale; scaleY = scale }
             .then(
