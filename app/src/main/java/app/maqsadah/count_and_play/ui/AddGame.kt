@@ -1,8 +1,11 @@
 package app.maqsadah.count_and_play.ui
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -16,10 +19,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -29,10 +32,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.ColorMatrixColorFilter
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.role
-import androidx.compose.ui.semantics.stateDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -68,8 +67,8 @@ fun AddScreen(
             ) {
                 PlatesRow(state, copy, sizes, onTap)
                 if (state.poured) {
-                    // The bowl slides in beneath the unchanged plates; the key is gone.
-                    BowlTray(state, copy, TraySolution(sizes.bowl, sizes.bowlPerRow), onTap)
+                    // The bowl rises in beneath the unchanged plates; the key is gone.
+                    RiseIn { BowlTray(state, copy, TraySolution(sizes.bowl, sizes.bowlPerRow), onTap) }
                 } else {
                     PourButton(
                         label = copy.promptAdd(),
@@ -227,9 +226,10 @@ private fun BowlTray(state: AddState, copy: Copy, layout: TraySolution, onTap: (
 }
 
 /**
- * The pour button: the one big yellow key of the game. Asleep (washed out,
- * untappable) until both plates are counted; then it wakes as a pressable
- * key sized to its words, centred, waiting for the child's finger.
+ * The pour button: the one big yellow key of the game. It sleeps washed out
+ * until both plates are counted, then wakes in place: the fill blooms to
+ * candy yellow, the edge deepens and the key becomes pressable, one morph,
+ * never a swap. A key that comes alive reads as alive.
  */
 @Composable
 private fun PourButton(
@@ -239,39 +239,26 @@ private fun PourButton(
     onPour: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val text = @Composable { awake: Boolean ->
+    val wake = 300
+    val edge by animateColorAsState(if (enabled) YellowEdge else Ink.copy(alpha = 0.22f), tween(wake), label = "pourEdge")
+    val fill by animateColorAsState(if (enabled) Yellow else Liner, tween(wake), label = "pourFill")
+    val inkAlpha by animateFloatAsState(if (enabled) 1f else 0.55f, tween(wake), label = "pourInk")
+    Keycap(
+        edge = edge,
+        modifier = modifier,
+        edgeHeight = 8.dp,
+        stretch = false,
+        onClick = if (enabled) onPour else null,
+        fill = fill,
+        stateDescription = if (enabled) null else notYetState,
+    ) {
         Text(
             label,
             Modifier.padding(horizontal = 28.dp, vertical = 12.dp),
-            color = if (awake) Ink else Ink.copy(alpha = 0.55f),
+            color = Ink.copy(alpha = inkAlpha),
             fontSize = SizeLabel,
             fontWeight = ToyBlack,
             fontFamily = ToyFont,
         )
-    }
-    if (enabled) {
-        Keycap(
-            edge = YellowEdge,
-            modifier = modifier,
-            edgeHeight = 8.dp,
-            stretch = false,
-            onClick = onPour,
-            fill = Yellow,
-        ) { text(true) }
-    } else {
-        Box(
-            modifier
-                .padding(top = 8.dp)
-                .background(Ink.copy(alpha = 0.06f), RoundedCornerShape(Corner))
-                .border(
-                    BorderStroke(1.dp, Hairline),
-                    RoundedCornerShape(Corner),
-                )
-                .semantics {
-                    role = Role.Button
-                    stateDescription = notYetState
-                },
-            contentAlignment = Alignment.Center,
-        ) { text(false) }
     }
 }

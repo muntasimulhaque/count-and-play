@@ -2,6 +2,7 @@ package app.maqsadah.count_and_play.ui
 
 import android.provider.Settings
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -12,6 +13,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 
 /**
  * True when the device has animations switched off system-wide (animator
@@ -35,6 +38,73 @@ fun rememberReducedMotion(): Boolean {
 internal val QuietSpring = spring<Float>(
     dampingRatio = Spring.DampingRatioMediumBouncy,
     stiffness = Spring.StiffnessMediumLow,
+)
+
+/** The beat between siblings in a staggered cascade reveal. */
+internal const val StaggerStep = 70
+
+/**
+ * Rises in with a fade: for a surface that arrives as a whole, such as the
+ * bowl sliding in beneath the plates after the pour. Skipped under reduced
+ * motion.
+ */
+@Composable
+fun RiseIn(distance: Dp = 36.dp, content: @Composable () -> Unit) {
+    val reducedMotion = rememberReducedMotion()
+    val rise = remember { Animatable(if (reducedMotion) 1f else 0f) }
+    LaunchedEffect(reducedMotion) {
+        if (!reducedMotion && rise.value < 1f) {
+            rise.animateTo(1f, tween(durationMillis = 320, easing = FastOutSlowInEasing))
+        }
+    }
+    Box(
+        Modifier.graphicsLayer {
+            alpha = rise.value
+            translationY = (1f - rise.value) * distance.toPx()
+        },
+    ) { content() }
+}
+
+/**
+ * One sibling of a staggered cascade: pops in a beat after its predecessors,
+ * so a row of glyphs reads left to right the way the voice says it.
+ */
+@Composable
+fun StaggerIn(index: Int, content: @Composable () -> Unit) {
+    val reducedMotion = rememberReducedMotion()
+    val appear = remember { Animatable(if (reducedMotion) 1f else 0f) }
+    LaunchedEffect(reducedMotion) {
+        if (!reducedMotion && appear.value < 1f) {
+            appear.animateTo(
+                1f,
+                tween(durationMillis = 220, delayMillis = index * StaggerStep, easing = FastOutSlowInEasing),
+            )
+        }
+    }
+    Box(
+        Modifier.graphicsLayer {
+            alpha = appear.value
+            val s = 0.7f + 0.3f * appear.value
+            scaleX = s
+            scaleY = s
+        },
+    ) { content() }
+}
+
+/** A taken piece or a fresh chip lands with a springy pop; reduced motion snaps. */
+@Composable
+internal fun PopIn(content: @Composable () -> Unit) {
+    val reducedMotion = rememberReducedMotion()
+    val scale = remember { Animatable(if (reducedMotion) 1f else 0.3f) }
+    LaunchedEffect(reducedMotion) {
+        if (!reducedMotion && scale.value < 1f) scale.animateTo(1f, PopInSpring)
+    }
+    Box(Modifier.graphicsLayer { scaleX = scale.value; scaleY = scale.value }) { content() }
+}
+
+private val PopInSpring = spring<Float>(
+    dampingRatio = Spring.DampingRatioMediumBouncy,
+    stiffness = Spring.StiffnessMedium,
 )
 
 /**

@@ -1,14 +1,16 @@
 package app.maqsadah.count_and_play.ui
 
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -24,9 +26,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.key
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
@@ -34,7 +34,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -172,40 +171,43 @@ private fun TakenTray(state: TakeState, copy: Copy, solution: TakeSolution) {
     }
 }
 
-/** A taken piece lands in the lower box with a springy pop; reduced motion snaps. */
-@Composable
-private fun PopIn(content: @Composable () -> Unit) {
-    val reducedMotion = rememberReducedMotion()
-    val scale = remember { Animatable(if (reducedMotion) 1f else 0.3f) }
-    LaunchedEffect(reducedMotion) {
-        if (!reducedMotion && scale.value < 1f) scale.animateTo(1f, PopInSpring)
-    }
-    Box(Modifier.graphicsLayer { scaleX = scale.value; scaleY = scale.value }) { content() }
-}
-
-private val PopInSpring = spring<Float>(
-    dampingRatio = Spring.DampingRatioMediumBouncy,
-    stiffness = Spring.StiffnessMedium,
-)
-
 /** Prompt on top, play in the middle, and always a small house top-left. */
 @Composable
 internal fun ActivityFrame(prompt: String, copy: Copy, onHome: () -> Unit, content: @Composable BoxScope.() -> Unit) {
+    val reducedMotion = rememberReducedMotion()
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
         Row(
             Modifier.fillMaxWidth().padding(top = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             HomeButton(copy.homeLabel(), onHome)
-            Text(
-                prompt,
-                Modifier.weight(1f),
-                textAlign = TextAlign.Center,
-                color = Ink,
-                fontSize = SizePrompt,
-                fontWeight = ToyBold,
-                fontFamily = ToyFont,
-            )
+            // The ask cross-fades when the game's phase rewrites it, so the
+            // words trade places gently instead of hard-swapping mid-play.
+            AnimatedContent(
+                targetState = prompt,
+                transitionSpec = {
+                    if (reducedMotion) {
+                        fadeIn(snap()) togetherWith fadeOut(snap())
+                    } else {
+                        (
+                            fadeIn(tween(durationMillis = 180)) +
+                                slideInVertically(tween(durationMillis = 180)) { it / 3 }
+                            ) togetherWith fadeOut(tween(durationMillis = 120))
+                    }
+                },
+                label = "prompt",
+                modifier = Modifier.weight(1f),
+            ) { text ->
+                Text(
+                    text,
+                    Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center,
+                    color = Ink,
+                    fontSize = SizePrompt,
+                    fontWeight = ToyBold,
+                    fontFamily = ToyFont,
+                )
+            }
             // Mirrors the home button so the prompt stays optically centred and
             // can never slide underneath it, whatever the screen width or font.
             Spacer(Modifier.width(52.dp))

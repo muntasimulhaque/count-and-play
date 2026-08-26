@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -59,6 +60,8 @@ fun Keycap(
     /** True: fill whatever width the caller grants. False: hug the content. */
     stretch: Boolean = true,
     description: String? = null,
+    /** Spoken state when the key is present but asleep ("not yet"). */
+    stateDescription: String? = null,
     onClick: (() -> Unit)? = null,
     contentAlignment: Alignment = Alignment.Center,
     fill: Color = Liner,
@@ -90,6 +93,7 @@ fun Keycap(
                 .semantics {
                     role = Role.Button
                     if (description != null) contentDescription = description
+                    if (stateDescription != null) this.stateDescription = stateDescription
                 },
             contentAlignment = contentAlignment,
             content = content,

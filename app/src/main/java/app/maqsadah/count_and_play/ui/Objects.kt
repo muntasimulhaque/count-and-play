@@ -27,6 +27,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -135,7 +136,13 @@ private fun CountableContent(shape: ShapeKind, sizeDp: Dp, seat: Color?, chip: S
         }
         if (chip != null) {
             val dia = chipDiameter(sizeDp)
-            CountChip(chip, dia, Modifier.align(Alignment.TopEnd).offset(x = dia * 0.2f, y = -dia * 0.2f))
+            // The chip lands with its own little pop: his tap made a number
+            // exist, and the number celebrates that too.
+            key(chip) {
+                PopIn {
+                    CountChip(chip, dia, Modifier.align(Alignment.TopEnd).offset(x = dia * 0.2f, y = -dia * 0.2f))
+                }
+            }
         }
     }
 }

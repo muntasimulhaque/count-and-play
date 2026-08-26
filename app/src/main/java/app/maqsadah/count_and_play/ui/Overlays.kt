@@ -1,8 +1,6 @@
 package app.maqsadah.count_and_play.ui
 
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -23,7 +21,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
@@ -37,14 +34,14 @@ import app.maqsadah.count_and_play.host.Flash
 /**
  * The big numeral moment after a round completes: the arithmetic itself is
  * the praise, so the card shows nothing else. The scrim fades up while the
- * card pops from 0.6 to full, so arrival has one motion, not two. The card
- * is a polite live region, so a screen reader announces the fact too.
+ * card rises, and the glyphs cascade left to right the way the voice reads
+ * the fact. The card is a polite live region, so a screen reader announces
+ * the fact too.
  */
 @Composable
 fun FlashOverlay(flash: Flash, copy: Copy) {
     val reducedMotion = rememberReducedMotion()
     val scrim = remember { Animatable(if (reducedMotion) 1f else 0f) }
-    val scale = remember { Animatable(if (reducedMotion) 1f else 0.6f) }
     LaunchedEffect(flash, reducedMotion) {
         if (reducedMotion) {
             scrim.snapTo(1f)
@@ -53,28 +50,19 @@ fun FlashOverlay(flash: Flash, copy: Copy) {
             scrim.animateTo(1f, tween(durationMillis = 220))
         }
     }
-    LaunchedEffect(flash, reducedMotion) {
-        if (!reducedMotion && scale.value < 1f) scale.animateTo(1f, PopSpring)
-    }
     Box(
         Modifier.fillMaxSize().background(Color.White.copy(alpha = 0.45f * scrim.value)),
         contentAlignment = Alignment.Center,
     ) {
-        FactCard(flash, copy, Modifier.graphicsLayer { scaleX = scale.value; scaleY = scale.value })
+        RiseIn(24.dp) { FactCard(flash, copy) }
     }
 }
 
-/** The pop the fact card lands with. */
-private val PopSpring = spring<Float>(
-    dampingRatio = Spring.DampingRatioMediumBouncy,
-    stiffness = Spring.StiffnessLow,
-)
-
 /** The fact itself, on a floating white card: no ribbon, no border colour. */
 @Composable
-private fun FactCard(flash: Flash, copy: Copy, modifier: Modifier = Modifier) {
+private fun FactCard(flash: Flash, copy: Copy) {
     Column(
-        modifier
+        Modifier
             .semantics { liveRegion = LiveRegionMode.Polite }
             .shadow(elevation = LiftRaised, shape = RoundedCornerShape(Corner), clip = false)
             .background(Liner, RoundedCornerShape(Corner))
@@ -82,26 +70,32 @@ private fun FactCard(flash: Flash, copy: Copy, modifier: Modifier = Modifier) {
             .padding(horizontal = 36.dp, vertical = 26.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        when (flash) {
-            is Flash.Count -> Numeral(copy.digits(flash.n), Ink, SizeFlash)
-            is Flash.Add -> FactRow(
-                glyphs = digitsOf(flash.a) + digitsOf(flash.b) + digitsOf(flash.total),
-            ) { size ->
-                Numeral(copy.digits(flash.a), FlashBlue, size)
-                Operator("+", size)
-                Numeral(copy.digits(flash.b), FlashOrange, size)
-                Operator("=", size)
-                Numeral(copy.digits(flash.total), FlashGreen, size)
-            }
-            is Flash.Take -> FactRow(
-                glyphs = digitsOf(flash.n) + digitsOf(flash.b) + digitsOf(flash.left),
-            ) { size ->
-                Numeral(copy.digits(flash.n), FlashBlue, size)
-                Operator("\u2212", size)
-                Numeral(copy.digits(flash.b), FlashPink, size)
-                Operator("=", size)
-                Numeral(copy.digits(flash.left), FlashGreen, size)
-            }
+        FactContent(flash, copy)
+    }
+}
+
+/** The fact's glyphs, each arriving a beat after its predecessor. */
+@Composable
+private fun FactContent(flash: Flash, copy: Copy) {
+    when (flash) {
+        is Flash.Count -> StaggerIn(0) { Numeral(copy.digits(flash.n), Ink, SizeFlash) }
+        is Flash.Add -> FactRow(
+            glyphs = digitsOf(flash.a) + digitsOf(flash.b) + digitsOf(flash.total),
+        ) { size ->
+            StaggerIn(0) { Numeral(copy.digits(flash.a), FlashBlue, size) }
+            StaggerIn(1) { Operator("+", size) }
+            StaggerIn(2) { Numeral(copy.digits(flash.b), FlashOrange, size) }
+            StaggerIn(3) { Operator("=", size) }
+            StaggerIn(4) { Numeral(copy.digits(flash.total), FlashGreen, size) }
+        }
+        is Flash.Take -> FactRow(
+            glyphs = digitsOf(flash.n) + digitsOf(flash.b) + digitsOf(flash.left),
+        ) { size ->
+            StaggerIn(0) { Numeral(copy.digits(flash.n), FlashBlue, size) }
+            StaggerIn(1) { Operator("\u2212", size) }
+            StaggerIn(2) { Numeral(copy.digits(flash.b), FlashPink, size) }
+            StaggerIn(3) { Operator("=", size) }
+            StaggerIn(4) { Numeral(copy.digits(flash.left), FlashGreen, size) }
         }
     }
 }
