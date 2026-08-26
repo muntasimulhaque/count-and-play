@@ -42,11 +42,11 @@ object EnCopy : Copy {
     override fun tileAdd(): String = "Put together"
     override fun tileTake(): String = "Take away"
 
-    override fun promptCount(): String = "Tap each one and count!"
-    override fun promptAdd(): String = "Put them together!"
-    override fun promptTake(b: Int): String = "Take away ${numberWord(b)}!"
+    override fun promptCount(): String = "Tap and count"
+    override fun promptAdd(): String = "Put them together"
+    override fun promptTake(b: Int): String = "Take away ${numberWord(b)}"
 
-    override fun promptAll(): String = "Count them all!"
+    override fun promptAll(): String = "Count them all"
     override fun promptLeft(): String = "How many are left?"
 
     override fun cardinal(n: Int): String = "${cap(n)}!"

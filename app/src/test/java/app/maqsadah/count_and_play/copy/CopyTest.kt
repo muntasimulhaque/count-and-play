@@ -120,10 +120,10 @@ class CopyTest {
         assertEquals("Count them", EnCopy.tileCount())
         assertEquals("Put together", EnCopy.tileAdd())
         assertEquals("Take away", EnCopy.tileTake())
-        assertEquals("Tap each one and count!", EnCopy.promptCount())
-        assertEquals("Put them together!", EnCopy.promptAdd())
-        assertEquals("Take away two!", EnCopy.promptTake(2))
-        assertEquals("Count them all!", EnCopy.promptAll())
+        assertEquals("Tap and count", EnCopy.promptCount())
+        assertEquals("Put them together", EnCopy.promptAdd())
+        assertEquals("Take away two", EnCopy.promptTake(2))
+        assertEquals("Count them all", EnCopy.promptAll())
         assertEquals("How many are left?", EnCopy.promptLeft())
         assertEquals("Four!", EnCopy.cardinal(4))
         assertEquals("Three and two make five!", EnCopy.factAdd(3, 2, 5))
@@ -163,10 +163,10 @@ class CopyTest {
 
     @Test
     fun bengaliTemplatedLinesKeepTheOldVoice() {
-        assertEquals("ট্যাপ করে গুনো!", BnCopy.promptCount())
-        assertEquals("একসাথে করো!", BnCopy.promptAdd())
-        assertEquals("দুইটি বাদ দাও!", BnCopy.promptTake(2))
-        assertEquals("সবগুলো গুনো!", BnCopy.promptAll())
+        assertEquals("ট্যাপ করে গুনো", BnCopy.promptCount())
+        assertEquals("একসাথে করো", BnCopy.promptAdd())
+        assertEquals("দুইটি বাদ দাও", BnCopy.promptTake(2))
+        assertEquals("সবগুলো গুনো", BnCopy.promptAll())
         assertEquals("কতগুলো রইলো?", BnCopy.promptLeft())
         assertEquals("তিন যোগ দুই হয় পাঁচ!", BnCopy.factAdd(3, 2, 5))
         assertEquals("পাঁচ বিয়োগ দুই হয় তিন!", BnCopy.factTake(5, 2, 3))
@@ -184,6 +184,23 @@ class CopyTest {
     fun praiseIsPlainAndEncouraging() {
         assertEquals("Well done!", EnCopy.praise())
         assertEquals("সাব্বাশ!", BnCopy.praise())
+    }
+
+    /** The prompts render on screen: they stay calm, no exclamation marks. */
+    @Test
+    fun onScreenPromptsNeverShout() {
+        for (copy in packs) {
+            val prompts = buildList {
+                add(copy.promptCount())
+                add(copy.promptAdd())
+                add(copy.promptAll())
+                add(copy.promptLeft())
+                for (b in 1..10) add(copy.promptTake(b))
+            }
+            for (prompt in prompts) {
+                assertFalse("'!' in '$prompt'", prompt.contains('!'))
+            }
+        }
     }
 
     @Test

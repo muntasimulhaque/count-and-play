@@ -42,12 +42,12 @@ private val KeySpring = spring<Dp>(
 )
 
 /**
- * A pressable toy key, hung in the calm gallery: a cap riding on a solid
- * candy side edge. At rest the cap sits lifted and floats on its shadow;
- * under the finger it sinks flush, the shadow vanishes and the edge
+ * A pressable toy key, hung in the calm gallery: a white cap riding on a
+ * neutral sand side edge. At rest the cap sits lifted and floats on its
+ * shadow; under the finger it sinks flush, the shadow vanishes and the edge
  * disappears, so a press is felt as much as seen. Solid colours only: the
- * depth is geometry, not a gradient. Caps are white by default; the pour
- * key passes [fill] to keep its candy yellow, the one coloured key left.
+ * depth is geometry, not a gradient. Caps are white; [fill] overrides. Keys
+ * FLOAT, wells (see Objects) hold.
  *
  * The lift lives inside the key's own top padding, so callers lay keys out
  * exactly like plain boxes and neighbours never jump when one sinks.
@@ -73,9 +73,10 @@ fun Keycap(
     val active = pressed && !reducedMotion && onClick != null
     val sink by animateDpAsState(if (active) edgeHeight else 0.dp, KeySpring, label = "keycapSink")
     val lift by animateDpAsState(if (active) LiftHeld else LiftResting, KeySpring, label = "keycapLift")
+    val tick = rememberTick()
     val sizeModifier = if (stretch) Modifier.fillMaxSize() else Modifier
     Box(modifier.padding(top = edgeHeight)) {
-        // The side of the key: the hue shows exactly where the cap sits lifted.
+        // The side of the key: the neutral sand shows exactly where the cap sits lifted.
         Box(sizeModifier.background(edge, KeyShape))
         Box(
             sizeModifier
@@ -85,7 +86,10 @@ fun Keycap(
                 .border(BorderStroke(1.dp, Hairline), KeyShape)
                 .then(
                     if (onClick != null) {
-                        Modifier.clickable(interactionSource, indication = null, onClick = onClick)
+                        Modifier.clickable(interactionSource, indication = null) {
+                            tick()
+                            onClick()
+                        }
                     } else {
                         Modifier
                     },

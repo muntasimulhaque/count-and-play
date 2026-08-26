@@ -123,7 +123,7 @@ class ScreenshotTest {
             model(Screen.Count(CountState(tokens = tray(ShapeKind.APPLE, n = 4, counted = 2))))
         }
 
-        // Both plates fully counted, the pour button awake.
+        // Both plates fully counted, the sleeping bowl awake beneath them.
         shoot(outDir, scenario, "03_add") { model(Screen.Add(addReady())) }
 
         // The whole, with the parts still visible inside it: 3 + 2 = 5.

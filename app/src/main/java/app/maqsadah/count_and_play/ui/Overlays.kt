@@ -23,6 +23,8 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.TextUnit
@@ -58,12 +60,25 @@ fun FlashOverlay(flash: Flash, copy: Copy) {
     }
 }
 
-/** The fact itself, on a floating white card: no ribbon, no border colour. */
+/**
+ * The fact itself, on a floating white card: no ribbon, no border colour.
+ * To a screen reader it is one thing only: the spoken fact sentence ("three
+ * and two make five"), not four bare glyphs. The polite live region keeps
+ * the announcement automatic.
+ */
 @Composable
 private fun FactCard(flash: Flash, copy: Copy) {
+    val spoken = when (flash) {
+        is Flash.Count -> copy.cardinal(flash.n)
+        is Flash.Add -> copy.factAdd(flash.a, flash.b, flash.total)
+        is Flash.Take -> copy.factTake(flash.n, flash.b, flash.left)
+    }
     Column(
         Modifier
-            .semantics { liveRegion = LiveRegionMode.Polite }
+            .clearAndSetSemantics {
+                contentDescription = spoken
+                liveRegion = LiveRegionMode.Polite
+            }
             .shadow(elevation = LiftRaised, shape = RoundedCornerShape(Corner), clip = false)
             .background(Liner, RoundedCornerShape(Corner))
             .border(BorderStroke(1.dp, Hairline), RoundedCornerShape(Corner))

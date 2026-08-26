@@ -54,9 +54,9 @@ fun HomeScreen(copy: Copy, onChoose: (Skill) -> Unit, onOpenSettings: () -> Unit
             FitTitle(copy.homeTitle(), Modifier.weight(1f))
             GearButton(Modifier, copy.settingsLabel(), onOpenSettings)
         }
-        Tile(Skill.COUNT, Blue, copy.tileCount(), Modifier.weight(1f), onChoose) { CountMini() }
-        Tile(Skill.ADD, Green, copy.tileAdd(), Modifier.weight(1f), onChoose) { AddMini() }
-        Tile(Skill.TAKE, Pink, copy.tileTake(), Modifier.weight(1f), onChoose) { TakeMini() }
+        Tile(Skill.COUNT, copy.tileCount(), Modifier.weight(1f), onChoose) { CountMini() }
+        Tile(Skill.ADD, copy.tileAdd(), Modifier.weight(1f), onChoose) { AddMini() }
+        Tile(Skill.TAKE, copy.tileTake(), Modifier.weight(1f), onChoose) { TakeMini() }
     }
 }
 
@@ -82,18 +82,17 @@ private fun FitTitle(text: String, modifier: Modifier) {
     )
 }
 
-/** One toy key: a white cap on a candy edge, its scene centred inside. */
+/** One toy key: a white cap on the neutral sand edge, its scene centred inside. */
 @Composable
 private fun Tile(
     skill: Skill,
-    edge: Color,
     label: String,
     modifier: Modifier,
     onChoose: (Skill) -> Unit,
     mini: @Composable () -> Unit,
 ) {
     Keycap(
-        edge = edge,
+        edge = EdgeNeutral,
         modifier = modifier.fillMaxWidth().padding(vertical = 7.dp),
         onClick = { onChoose(skill) },
     ) {

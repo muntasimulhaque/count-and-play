@@ -59,11 +59,11 @@ object BnCopy : Copy {
     // register, so picture and voice say the same thing inside the game.
     override fun tileTake(): String = "বাদ করি"
 
-    override fun promptCount(): String = "ট্যাপ করে গুনো!"
-    override fun promptAdd(): String = "একসাথে করো!"
-    override fun promptTake(b: Int): String = "${numberWord(b)}টি বাদ দাও!"
+    override fun promptCount(): String = "ট্যাপ করে গুনো"
+    override fun promptAdd(): String = "একসাথে করো"
+    override fun promptTake(b: Int): String = "${numberWord(b)}টি বাদ দাও"
 
-    override fun promptAll(): String = "সবগুলো গুনো!"
+    override fun promptAll(): String = "সবগুলো গুনো"
     override fun promptLeft(): String = "কতগুলো রইলো?"
 
     override fun cardinal(n: Int): String = "${numberWord(n)}!"

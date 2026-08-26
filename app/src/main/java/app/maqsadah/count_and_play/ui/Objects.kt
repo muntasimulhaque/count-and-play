@@ -31,7 +31,12 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.graphicsLayer
@@ -181,11 +186,52 @@ fun GhostSlot(sizeDp: Dp) {
 }
 
 /**
- * The white tray the objects live on: a liner floating on soft light, held
- * by a hairline, its rows packed exactly as the solver arranged them, so
- * the balanced arrangement computed in [TrayMath] is the arrangement the
- * child sees. [tint] quietly washes a place that means something different
- * (the TAKE taken-away box) without adding a second chrome colour.
+ * A pressed-well surface: warm paper fill under an inner top shadow, hairline
+ * rim, one tight contact shadow. Wells HOLD, unlike keys that float: they sit
+ * flush in the ground like the trays they are, and light from above lands on
+ * their far rim, quietly darkening just the inside top edge.
+ */
+@Composable
+internal fun WellSurface(
+    tint: Color?,
+    modifier: Modifier = Modifier,
+    contentAlignment: Alignment = Alignment.Center,
+    content: @Composable BoxScope.() -> Unit,
+) {
+    val fill = tint?.copy(alpha = 0.07f)?.compositeOver(WellFill) ?: WellFill
+    Box(
+        modifier
+            .shadow(elevation = ContactShadow, shape = RoundedCornerShape(Corner), clip = false)
+            .background(fill, RoundedCornerShape(Corner))
+            .drawBehind {
+                val bandPx = InnerRimDepth.toPx().coerceAtMost(size.height)
+                drawRoundRect(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(Ink.copy(alpha = 0.06f), Color.Transparent),
+                        startY = 0f,
+                        endY = bandPx,
+                    ),
+                    topLeft = Offset.Zero,
+                    size = Size(size.width, bandPx),
+                    cornerRadius = CornerRadius(Corner.toPx()),
+                )
+            }
+            .border(BorderStroke(1.dp, Hairline), RoundedCornerShape(Corner)),
+        contentAlignment = contentAlignment,
+        content = content,
+    )
+}
+
+/** How far down inside a well the caught light fades out. */
+private val InnerRimDepth = 10.dp
+
+/**
+ * The white tray the objects live on: a WELL pressed into the paper (see
+ * [WellSurface] for the material), its rows packed exactly as the solver
+ * arranged them, so the balanced arrangement computed in [TrayMath] is the
+ * arrangement the child sees. [tint] quietly washes a place that means
+ * something different (the TAKE taken-away box) without adding a second
+ * chrome colour.
  *
  * The caller passes a solved [layout]: COUNT and TAKE solve their single
  * tray against the room the screen offers, and ADD solves its plates and
@@ -201,18 +247,13 @@ internal fun Tray(
     content: @Composable (objectSize: Dp) -> Unit,
 ) {
     val size = layout.size
-    val ground = tint?.copy(alpha = 0.07f)?.compositeOver(Liner) ?: Liner
-    Box(
-        modifier
-            // An emptied plate must still look like a place, not vanish.
-            .sizeIn(minHeight = size + TrayPad * 2)
-            .shadow(elevation = LiftResting, shape = RoundedCornerShape(Corner), clip = false)
-            .background(ground, RoundedCornerShape(Corner))
-            .border(BorderStroke(1.dp, Hairline), RoundedCornerShape(Corner))
-            .padding(TrayPad),
-        contentAlignment = Alignment.Center,
+    WellSurface(
+        tint,
+        // An emptied plate must still look like a place, not vanish.
+        modifier.sizeIn(minHeight = size + TrayPad * 2),
     ) {
         FlowRow(
+            Modifier.padding(TrayPad),
             horizontalArrangement = Arrangement.spacedBy(TrayGap),
             verticalArrangement = Arrangement.spacedBy(TrayGap),
             maxItemsInEachRow = layout.perRow,

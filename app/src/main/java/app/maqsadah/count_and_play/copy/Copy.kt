@@ -45,12 +45,19 @@ interface Copy {
      * Instructions, one per activity. Fixed phrasings, never varied: a 3-year-old
      * wants the same words every time, because that is how it becomes a routine
      * he can predict and eventually stop needing.
+     *
+     * These four render on screen as well as being spoken, so they carry no
+     * exclamation marks: the calm line is the confident one. Spoken-only lines
+     * (praise, cardinals, facts) keep theirs for voice intonation alone.
+     * The vocabulary is deliberately tiny and repeats across games (tap,
+     * count, together, take away, left): repetition is how these become the
+     * first words he reads.
      */
     fun promptCount(): String
     fun promptAdd(): String
     fun promptTake(b: Int): String
 
-    /** ADD, after the pour: the whole is counted afresh: "Count them all!" */
+    /** ADD, after the pour: the whole is counted afresh: "Count them all". */
     fun promptAll(): String
 
     /** TAKE, once the asked number is gone: "How many are left?" */

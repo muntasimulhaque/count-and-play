@@ -10,10 +10,11 @@ import org.junit.Test
  * The layout solvers' promise: on any screen a real phone or tablet has, and
  * for every round the core can deal, the trays fit, the objects stay big,
  * and rows stay balanced (no lonely orphan row). ADD additionally must fit
- * BOTH phases of the game: the plates counted with only the pour key waiting,
- * and the poured bowl slid in beneath the unchanged plates. TAKE must fit its
- * tray, the equation above it and the taken-away box below it, all at one
- * shared object size.
+ * BOTH phases of the game: the plates counted with the sleeping bowl waiting
+ * beneath them, and the poured bowl that either already occupied those
+ * seats (roomy screens: nothing moves but the pieces) or rose in after the
+ * plates folded (tight screens). TAKE must fit its tray, the equation above
+ * it and the taken-away box below it, all at one shared object size.
  */
 class AddLayoutTest {
 
@@ -29,12 +30,21 @@ class AddLayoutTest {
     private fun assertAddPhasesFit(playWidth: Dp, bigPlate: Int, total: Int, availHeight: Dp) {
         val s = solveAddTraySizes(playWidth, bigPlate, total, availHeight)
 
-        // Phase one always stands the full columns beside the sleeping key.
+        // Phase one always stands the full columns beside the sleeping bowl.
         assertTrue(
             "beforePour overflows: w=$playWidth h=$availHeight plate=$bigPlate/$total " +
                 "sizes=${s.plate}/${s.bowl}",
-            trayHeight(bigPlate, s.plate, s.platePerRow) + PourReserve <= availHeight,
+            trayHeight(bigPlate, s.plate, s.platePerRow) + s.bowlBefore <= availHeight,
         )
+        if (s.bowlInPlace) {
+            // The sleeping bowl reserves its full seated height: the seats he
+            // counts the plates beside are exactly the seats the pour fills.
+            assertEquals(
+                "in-place bowl reserve is not the bowl's own height",
+                trayHeight(total, s.bowl, s.bowlPerRow, seated = true),
+                s.bowlBefore,
+            )
+        }
         if (s.plateAfter == s.plate) {
             // Full columns kept after the pour: the bowl slides beneath them.
             assertTrue(

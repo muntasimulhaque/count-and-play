@@ -14,14 +14,29 @@ import app.maqsadah.count_and_play.R
  * quiet instead: a warm paper ground, white surfaces that float on soft light,
  * and a hairline wherever an edge needs holding. Depth comes from shadow and
  * geometry, never from a gradient or a blur.
+ *
+ * The material system, one sentence: KEYS float (they are pressed), WELLS hold
+ * (they are reached into), CARDS interrupt (the fact card arrives over all).
  */
 val Ground = Color(0xFFF6F2EA)
-/** Every surface a finger meets: trays, tiles, cards, sheets. */
+/** Every surface a finger presses: home tiles, sheets. */
 val Liner = Color(0xFFFFFFFF)
+/**
+ * Every surface that HOLDS something: trays, plates, the bowl, the taken box.
+ * Pressed paper rather than floating liner: slightly deeper than the ground,
+ * so it reads as recessed, not stacked.
+ */
+val WellFill = Color(0xFFF0EBE1)
 val Ink = Color(0xFF22262E)
 
 /** The whisper-thin line that holds a white edge against the paper ground. */
 val Hairline = Color(0x1422262E)
+/**
+ * The key's side, wherever a cap rides: warm sand, darker than the ground,
+ * carrying no hue of its own. The games are told apart by their objects,
+ * never by trim.
+ */
+val EdgeNeutral = Color(0xFFDDD3C0)
 val Blue = Color(0xFF1CA9E8)
 val Orange = Color(0xFFF7941D)
 val Green = Color(0xFF33A852)
@@ -31,9 +46,6 @@ val Yellow = Color(0xFFFBBF24)
 val SeatA = Color(0xFFCFE9FB)
 val SeatB = Color(0xFFFDE3C4)
 val ChipBlue = Color(0xFF27357A)
-
-/** The one deep edge a coloured cap keeps: the pour key's darker yellow side. */
-val YellowEdge = Color(0xFFD19B00)
 
 // The fact card's variants of the candy hues: same families, darkened enough
 // to clear the 3:1 large-text contrast floor on the white liner. Used only on
@@ -47,13 +59,15 @@ val FlashPink = Color(0xFFC2266F)
 val Corner = 28.dp
 
 /**
- * How high the white surfaces hover. Trays and tiles ride mid-lift; cards
- * that interrupt (the fact card, the sheet) float higher; the key-cap's
- * own shadow is driven by its press state in [Keys].
+ * How high the white surfaces hover. Keys ride mid-lift; cards that interrupt
+ * (the fact card, the sheet) float higher; wells sit flush with only a contact
+ * shadow. The key-cap's own shadow is driven by its press state in [Keys].
  */
 val LiftResting = 6.dp
 val LiftHeld = 2.dp
 val LiftRaised = 12.dp
+/** The shadow a well casts where it meets the paper: tight, not hovering. */
+val ContactShadow = 1.dp
 
 /**
  * Baloo 2, bundled for the Latin script so the toy-box reads identically on

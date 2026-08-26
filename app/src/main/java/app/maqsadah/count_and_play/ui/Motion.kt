@@ -3,6 +3,7 @@ package app.maqsadah.count_and_play.ui
 import android.provider.Settings
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -106,6 +107,50 @@ private val PopInSpring = spring<Float>(
     dampingRatio = Spring.DampingRatioMediumBouncy,
     stiffness = Spring.StiffnessMedium,
 )
+
+/** How far above its seat a pouring piece starts its drop. */
+internal val FallDistance = 56.dp
+
+/** The squash a landed piece recovers from, as a fraction of its height. */
+private const val LandSquash = 0.16f
+
+private val LandSpring = spring<Float>(
+    dampingRatio = Spring.DampingRatioMediumBouncy,
+    stiffness = Spring.StiffnessMedium,
+)
+
+/**
+ * Falls into its seat under gravity: the drop accelerates (position goes with
+ * t squared, the way falling actually works), the piece squashes on impact
+ * and springs back to rest. Each sibling in the pour is delayed a beat, so
+ * the bowl fills as a cascade rather than a swap. Reduced motion seats the
+ * piece instantly: the pour is a courtesy of motion, never a requirement.
+ */
+@Composable
+internal fun FallIn(index: Int, content: @Composable () -> Unit) {
+    val reducedMotion = rememberReducedMotion()
+    val fall = remember { Animatable(if (reducedMotion) 1f else 0f) }
+    val land = remember { Animatable(1f) }
+    LaunchedEffect(reducedMotion) {
+        if (reducedMotion) {
+            fall.snapTo(1f)
+            land.snapTo(1f)
+        } else {
+            fall.animateTo(1f, tween(durationMillis = 300, delayMillis = index * 45, easing = LinearEasing))
+            land.snapTo(0f)
+            land.animateTo(1f, LandSpring)
+        }
+    }
+    Box(
+        Modifier.graphicsLayer {
+            val t = fall.value
+            translationY = -(1f - t * t) * FallDistance.toPx()
+            val miss = 1f - land.value
+            scaleX = 1f + 0.10f * miss
+            scaleY = 1f - LandSquash * miss
+        },
+    ) { content() }
+}
 
 /**
  * Fades its content up from nothing, once, over about a third of a second.

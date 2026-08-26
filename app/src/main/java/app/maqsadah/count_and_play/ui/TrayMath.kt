@@ -42,8 +42,8 @@ internal val MinObject = 24.dp
 
 // -- Shared layout measures for the game columns ------------------------------
 
-/** Vertical room the pour button reserves while asleep or awake. */
-internal val PourReserve = 76.dp
+/** Vertical room the sleeping bowl strip reserves before the pour. */
+internal val BowlAsleepReserve = 76.dp
 internal val SectionGap = 14.dp
 internal val PlateGap = 14.dp
 
@@ -126,6 +126,14 @@ internal fun solveTray(
  *  usually equal to [plate] (the columns stand unchanged beneath the bowl);
  *  on screens too squat to hold both full columns and the bowl, it is the
  *  slim strip height the folded plates keep, wearing their totals.
+ *
+ *  [bowlBefore] is the height the bowl reserves in phase one, while it is
+ *  still asleep. When the screen is roomy it is the bowl's full seated
+ *  height and [bowlInPlace] is true: the empty seats he sees while counting
+ *  the plates are exactly the seats the pieces land in on the pour, so
+ *  nothing on screen moves but the pieces. On tight screens it is a slim
+ *  strip (the bowl-as-destination still present, just folded), and the bowl
+ *  arrives full-size only with the pour.
  */
 internal data class TraySizes(
     val plate: Dp,
@@ -133,19 +141,22 @@ internal data class TraySizes(
     val bowl: Dp,
     val platePerRow: Int,
     val bowlPerRow: Int,
+    val bowlBefore: Dp,
+    val bowlInPlace: Boolean,
 )
 
 /** The object size that defines a folded plate's slim post-pour place. */
 internal val PouredPlatePlace = 56.dp
 
 /**
- * Sizes one ADD round. The plates are solved first against the room minus
- * the pour key; the bowl is solved to sit beneath them. First choice: the
- * very columns the child counted stay standing, unchanged, with the bowl
- * slid in underneath. Only when the screen is too squat for that do the
- * poured plates fold into slim places wearing their totals, freeing their
- * height for the bowl: the child asked for the post-pour screen to take
- * whatever shape necessity demands, and this is that shape.
+ * Sizes one ADD round. The bowl is the pour's destination, so it is on
+ * screen from the first frame: asleep beneath the plates, waking when both
+ * are counted. The solver's first choice is therefore also the quietest
+ * layout: plates and the full-size bowl fit together from the start, the
+ * plates never resize, and the pour moves pieces, not furniture. Only when
+ * the screen is too squat for that do the sleeping bowl fold into a slim
+ * strip for phase one, the poured plates fold into slim places wearing
+ * their totals, and the bowl take the freed height.
  */
 internal fun solveAddTraySizes(
     playWidth: Dp,
@@ -155,23 +166,20 @@ internal fun solveAddTraySizes(
 ): TraySizes {
     val room = availHeight
     val plateWidth = (playWidth - PlateGap) / 2
-    val plateSol = solveTray(plateWidth, bigPlate, AddCap, room - PourReserve)
-    val bowlSeed = solveTray(playWidth, total, AddCap, room - PourReserve - SectionGap * 2, seated = true)
+    val plateSol = solveTray(plateWidth, bigPlate, AddCap, room - BowlAsleepReserve)
+    val bowlSeed = solveTray(playWidth, total, AddCap, room - BowlAsleepReserve - SectionGap * 2, seated = true)
     var scale = 1f
     while (scale > 0.4f) {
         val plate = plateSol.size * scale
         val bowl = bowlSeed.size * scale
-        val afterPour =
-            trayHeight(bigPlate, plate, plateSol.perRow) + SectionGap * 2 +
-                trayHeight(total, bowl, bowlSeed.perRow, seated = true) <= room
-        if (afterPour) {
-            return TraySizes(plateSol.size, plate, bowl, plateSol.perRow, bowlSeed.perRow)
+        val bowlFull = trayHeight(total, bowl, bowlSeed.perRow, seated = true)
+        if (trayHeight(bigPlate, plate, plateSol.perRow) + SectionGap * 2 + bowlFull <= room) {
+            return TraySizes(plate, plate, bowl, plateSol.perRow, bowlSeed.perRow, bowlFull, true)
         }
         scale -= 0.05f
     }
-    // Tight screen: fold the poured plates, and let the bowl breathe.
     val bowlSol = solveTray(playWidth, total, AddCap, room - PouredPlatePlace - TrayPad * 2 - SectionGap * 2, seated = true)
-    return TraySizes(plateSol.size, PouredPlatePlace, bowlSol.size, plateSol.perRow, bowlSol.perRow)
+    return TraySizes(plateSol.size, PouredPlatePlace, bowlSol.size, plateSol.perRow, bowlSol.perRow, BowlAsleepReserve, false)
 }
 
 /** One solved TAKE round: one object size shared by both trays, so a token keeps its figure when it moves down. */
