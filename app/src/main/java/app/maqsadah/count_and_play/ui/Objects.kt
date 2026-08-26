@@ -137,10 +137,11 @@ private fun CountableContent(shape: ShapeKind, sizeDp: Dp, seat: Color?, chip: S
         if (chip != null) {
             val dia = chipDiameter(sizeDp)
             // The chip lands with its own little pop: his tap made a number
-            // exist, and the number celebrates that too.
+            // exist, and the number celebrates that too. The pop wraps the
+            // chip from outside, so the chip keeps its top-right seat.
             key(chip) {
-                PopIn {
-                    CountChip(chip, dia, Modifier.align(Alignment.TopEnd).offset(x = dia * 0.2f, y = -dia * 0.2f))
+                PopIn(Modifier.align(Alignment.TopEnd).offset(x = dia * 0.2f, y = -dia * 0.2f)) {
+                    CountChip(chip, dia)
                 }
             }
         }

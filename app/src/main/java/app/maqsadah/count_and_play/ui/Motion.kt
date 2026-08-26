@@ -93,13 +93,13 @@ fun StaggerIn(index: Int, content: @Composable () -> Unit) {
 
 /** A taken piece or a fresh chip lands with a springy pop; reduced motion snaps. */
 @Composable
-internal fun PopIn(content: @Composable () -> Unit) {
+internal fun PopIn(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
     val reducedMotion = rememberReducedMotion()
     val scale = remember { Animatable(if (reducedMotion) 1f else 0.3f) }
     LaunchedEffect(reducedMotion) {
         if (!reducedMotion && scale.value < 1f) scale.animateTo(1f, PopInSpring)
     }
-    Box(Modifier.graphicsLayer { scaleX = scale.value; scaleY = scale.value }) { content() }
+    Box(modifier.graphicsLayer { scaleX = scale.value; scaleY = scale.value }) { content() }
 }
 
 private val PopInSpring = spring<Float>(
