@@ -17,6 +17,7 @@ import kotlin.random.Random
 private val GROUND = rgb(246, 242, 234)
 private val GROUND_DEEP = rgb(237, 231, 219)
 private val BLUE = rgb(28, 169, 232)
+private val DEEP_BLUE = rgb(11, 114, 168)
 private val RED = rgb(227, 59, 44)
 private val TEAL = rgb(14, 160, 174)
 private val YELLOW = rgb(250, 184, 5)
@@ -24,9 +25,6 @@ private val GREEN = rgb(51, 168, 82)
 private val ORANGE = rgb(240, 106, 14)
 private val PINK = rgb(236, 72, 153)
 private val CONFETTI_COLORS = listOf(BLUE, RED, YELLOW, GREEN, TEAL, ORANGE, PINK)
-
-/** The muted ink for the promise line, quiet against the paper. */
-private val TAG_INK = mix(INK, GROUND, 0.35)
 
 /** No shadow: alpha zero keeps the quiet surfaces as the only depth. */
 private val NO_SHADOW = Quad(0.0, 0.0, 0, 0.0)
@@ -43,15 +41,16 @@ private fun featureGround(): Img {
 
 private fun featureBand(img: Img) {
     // One centred column: wordmark above, tagline below, tiles beneath. The
-    // wordmark is ink: in the calm gallery the color lives in the toys.
+    // wordmark keeps its candy two-tone sticker lettering: this is a kids'
+    // app, and the title gets to be as playful as the toys beneath it.
     val w1 = textAdvance("Count", font("black", 160))
     val w2 = textAdvance("& Play", font("black", 160))
     val x = 1024.0 - (w1 + 42.0 + w2) / 2
-    brandText(img, x, 168.0, "Count", 160, INK, anchor = "lm")
-    brandText(img, x + w1 + 42.0, 168.0, "& Play", 160, INK, anchor = "lm")
+    brandText(img, x, 168.0, "Count", 160, RED, keyline = 14.0, shadow = NO_SHADOW, anchor = "lm")
+    brandText(img, x + w1 + 42.0, 168.0, "& Play", 160, BLUE, keyline = 14.0, shadow = NO_SHADOW, anchor = "lm")
     val tag = "See addition and subtraction happen"
     val ta = textAdvance(tag, font("bold", 54))
-    brandText(img, 1024.0 - ta / 2, 288.0, tag, 54, TAG_INK, shadow = NO_SHADOW, anchor = "lm")
+    brandText(img, 1024.0 - ta / 2, 288.0, tag, 54, DEEP_BLUE, shadow = NO_SHADOW, anchor = "lm")
 }
 
 /** A soft blurred warm rounded-rect shadow under a floating card. */
