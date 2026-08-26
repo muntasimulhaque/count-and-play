@@ -23,7 +23,7 @@ internal val BALL_C = FlatColors(rgb(14, 160, 174), rgb(4, 82, 90), rgb(68, 192,
 internal val CARROT_C = FlatColors(rgb(240, 106, 14), rgb(138, 58, 5), rgb(255, 148, 64))
 
 internal val CHIP_BLUE = rgb(39, 53, 122)
-internal val LINER = rgb(251, 251, 249)
+internal val LINER = rgb(255, 255, 255)
 internal val RIM_BLUE = rgb(28, 169, 232)
 internal val RIM_GREEN = rgb(51, 168, 82)
 internal val SEAT_A = rgb(207, 233, 251)
@@ -170,27 +170,6 @@ fun flatSeat(dst: Img, cx: Double, cy: Double, dia: Double, seat: Int) {
     val g = graphics(dst)
     g.argb(seat)
     g.fill(Ellipse2D.Double(cx - dia / 2, cy - dia / 2, dia, dia))
-    g.dispose()
-}
-
-/**
- * The white tray: liner fill, fat candy rim, one rounded rectangle. The rim
- * is stroked centred on the inset so the whole tray stays inside its box.
- */
-fun flatTray(dst: Img, x: Double, y: Double, w: Double, h: Double, rim: Int, rimWidth: Double) {
-    val corner = minOf(w, h) * 0.22
-    val g = graphics(dst)
-    // Two nested fills, not a stroke: the rim is the outer round rect itself,
-    // the liner the same shape inset, so no stroke geometry can leak a halo.
-    g.argb(rim)
-    g.fill(RoundRectangle2D.Double(x, y, w, h, corner, corner))
-    g.argb(LINER)
-    g.fill(
-        RoundRectangle2D.Double(
-            x + rimWidth, y + rimWidth, w - rimWidth * 2, h - rimWidth * 2,
-            maxOf(1.0, corner - rimWidth), maxOf(1.0, corner - rimWidth),
-        ),
-    )
     g.dispose()
 }
 
