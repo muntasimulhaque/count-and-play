@@ -43,10 +43,11 @@ class AddTest {
             if (start.b > 1) assertTrue(beats.contains(Beat.SayCardinal(start.b)))
             assertTrue(beats.contains(Beat.SayPromptAdd))
             assertTrue(beats.contains(Beat.SayPromptAll))
+            // The card lands as the fact begins, never after it is spoken.
             assertEquals(
                 listOf(
-                    Beat.SayFactAdd(start.a, start.b, start.total),
                     Beat.FlashAdd(start.a, start.b, start.total),
+                    Beat.SayFactAdd(start.a, start.b, start.total),
                     Beat.Confetti,
                     Beat.Play(Sfx.CHIME),
                 ),

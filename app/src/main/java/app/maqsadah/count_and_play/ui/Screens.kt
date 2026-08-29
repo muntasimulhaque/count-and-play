@@ -1,6 +1,7 @@
 package app.maqsadah.count_and_play.ui
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -26,6 +27,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,7 +36,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
@@ -71,8 +75,13 @@ fun CountScreen(state: CountState, copy: Copy, onTap: (Int) -> Unit, onHome: () 
 
 @Composable
 fun TakeScreen(state: TakeState, copy: Copy, onTap: (Int) -> Unit, onHome: () -> Unit) {
-    // Once the asked number is out, the question becomes "how many are left?".
-    val prompt = if (state.removalDone) copy.promptLeft() else copy.promptTake(state.b)
+    // The ask follows the phases: count the whole tray, take b away, count
+    // what is left. The subtraction ask waits until the whole is counted.
+    val prompt = when {
+        !state.totalDone -> copy.promptCount()
+        state.removalDone -> copy.promptLeft()
+        else -> copy.promptTake(state.b)
+    }
     ActivityFrame(prompt, copy, onHome) {
         BoxWithConstraints(Modifier.fillMaxSize()) {
             val solution = solveTakeSizes(maxWidth, state.n, state.removed, maxHeight)
@@ -88,11 +97,22 @@ fun TakeScreen(state: TakeState, copy: Copy, onTap: (Int) -> Unit, onHome: () ->
     }
 }
 
-/** The ask itself, in numerals: 5 − 1 hangs above the tray it describes. */
+/** The ask itself, in numerals: 5 − 1 hangs above the tray it describes. It
+ *  holds its place invisibly until the whole has been counted, then fades up:
+ *  the layout never jumps, and the symbols arrive only with the act they
+ *  name, never before the child has counted what they are about to act on. */
 @Composable
 private fun TakeEquation(state: TakeState, copy: Copy, modifier: Modifier = Modifier) {
+    val reducedMotion = rememberReducedMotion()
+    val shown by animateFloatAsState(
+        targetValue = if (state.totalDone) 1f else 0f,
+        animationSpec = if (reducedMotion) snap() else tween(durationMillis = 260),
+        label = "takeEq",
+    )
     Row(
-        modifier,
+        modifier
+            .graphicsLayer { alpha = shown }
+            .then(if (state.totalDone) Modifier else Modifier.clearAndSetSemantics { }),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(

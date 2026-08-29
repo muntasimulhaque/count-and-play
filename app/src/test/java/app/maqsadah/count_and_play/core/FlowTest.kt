@@ -17,8 +17,11 @@ class FlowTest {
             else (plateA + plateB).first { !it.counted }.id
         }
         is Round.IsTake -> with(round.state) {
-            if (removalDone) tokens.first { !it.gone && !it.counted }.id
-            else tokens.first { !it.gone }.id
+            when {
+                !totalDone -> tokens.first { !it.counted }.id
+                !removalDone -> tokens.first { !it.gone }.id
+                else -> tokens.first { !it.gone && !it.counted }.id
+            }
         }
     }
 
@@ -114,12 +117,15 @@ class FlowTest {
     }
 
     @Test
-    fun nextRound_says_the_take_prompt_for_the_new_round() {
+    fun nextRound_opens_the_take_round_by_counting_the_whole() {
         var session = startSession(Skill.TAKE, seed = 5L)
         session = playToDone(session)
         val (next, startBeats) = session.nextRound()
         val state = (next.round as Round.IsTake).state
-        assertEquals(listOf(Beat.SayPromptTake(state.b)), startBeats)
+        // The subtraction ask is not the opener any more: the whole tray is
+        // counted first, and the ask arrives when that count completes.
+        assertEquals(listOf(Beat.SayPromptCount), startBeats)
+        assertFalse(state.totalDone)
     }
 
     @Test
@@ -215,8 +221,8 @@ class FlowTest {
         assertEquals(1, end.left)
         assertEquals(
             listOf(
-                Beat.SayFactTake(4, 3, 1),
                 Beat.FlashTake(4, 3, 1),
+                Beat.SayFactTake(4, 3, 1),
                 Beat.Confetti,
                 Beat.Play(Sfx.CHIME),
             ),

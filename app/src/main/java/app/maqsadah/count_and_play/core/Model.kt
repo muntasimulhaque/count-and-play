@@ -41,6 +41,9 @@ data class CountState(
         val k = tokens.count { it.counted } + 1
         val updated = tokens.map { if (it.id == id) it.copy(counted = true, countOrder = k) else it }
         val beats = buildList {
+            // The total lands with the last tap itself, never a few words
+            // later: he sees the sum the instant he finishes counting.
+            if (k == n) add(Beat.FlashCount(n))
             add(Beat.Play(Sfx.TICK))
             add(Beat.SayCount(k))
             // A single-object tray would say its number twice back to back;
@@ -49,10 +52,9 @@ data class CountState(
                 add(Beat.SayCardinal(n))
             }
             if (k == n) {
-                // The finished count earns its own plain word of praise; the
-                // numeral card lands while it is spoken.
+                // The finished count earns its own plain word of praise,
+                // spoken over the card.
                 add(Beat.SayPraise)
-                add(Beat.FlashCount(n))
                 add(Beat.Confetti)
                 add(Beat.Play(Sfx.CHIME))
             }
@@ -76,7 +78,7 @@ data class CountState(
  *    stay exactly as they were, now wearing their totals; only the objects
  *    move down into the bowl that appears beneath them.
  * 3. COUNT THE WHOLE: the bowl is counted afresh, one word per tap, and the
- *    last tap lands the fact: a and b make total.
+ *    last tap lands the card while the voice says the fact: a and b make total.
  * Re-taps are recorded as struggles and change nothing.
  */
 data class AddState(
@@ -165,8 +167,9 @@ data class AddState(
             add(Beat.Play(Sfx.TICK))
             add(Beat.SayCount(k))
             if (next.done) {
-                add(Beat.SayFactAdd(a, b, total))
+                // The card lands as the fact begins, never after it is spoken.
                 add(Beat.FlashAdd(a, b, total))
+                add(Beat.SayFactAdd(a, b, total))
                 add(Beat.Confetti)
                 add(Beat.Play(Sfx.CHIME))
             }
@@ -179,11 +182,15 @@ data class AddState(
 }
 
 /**
- * TAKE, in two phases the child drives himself:
- * 1. TAKE AWAY: each tap removes one token: THUD, its take-away number, and
+ * TAKE, in three phases the child drives himself:
+ * 1. COUNT THE WHOLE: the tray is counted first, one word per tap, chips in
+ *    his tap order; the last tap names the total and asks the subtraction.
+ *    The ask hangs as numerals (n − b) only from here on: symbols arrive
+ *    with the act they name, never earlier.
+ * 2. TAKE AWAY: each tap removes one token: THUD, its take-away number, and
  *    the token sinks into its ghost wearing that number. The b-th removal
  *    asks how many are left.
- * 2. COUNT THE LEFT: the child counts the leftovers himself, one word per
+ * 3. COUNT THE LEFT: the child counts the leftovers himself, one word per
  *    tap, chips in his tap order; the last one lands the fact: n take away b
  *    leaves left.
  * Re-taps and ghost taps are recorded as struggles and change nothing.
@@ -192,6 +199,8 @@ data class TakeState(
     val n: Int,
     val b: Int,
     val tokens: PersistentList<Token>,
+    /** The whole tray has been counted and the take-away ask is up. */
+    val totalDone: Boolean = false,
     val invalidTaps: Int = 0,
 ) {
     val removed: Int get() = tokens.count { it.gone }
@@ -199,12 +208,38 @@ data class TakeState(
 
     /** The asked number is out: time to count what is left. */
     val removalDone: Boolean get() = removed == b
-    val done: Boolean get() = removalDone && tokens.all { it.gone || it.counted }
+    val done: Boolean get() = totalDone && removalDone && tokens.all { it.gone || it.counted }
 
     fun onTap(id: Int): Pair<TakeState, List<Beat>> {
         val token = tokens.find { it.id == id }
         if (token == null || token.gone || token.counted || done) return struggle()
-        return if (removalDone) countLeft(id) else remove(id)
+        return when {
+            !totalDone -> countTotal(id)
+            !removalDone -> remove(id)
+            else -> countLeft(id)
+        }
+    }
+
+    private fun countTotal(id: Int): Pair<TakeState, List<Beat>> {
+        val k = tokens.count { it.counted } + 1
+        val counted = tokens.map { if (it.id == id) it.copy(counted = true, countOrder = k) else it }
+        val beats = buildList {
+            add(Beat.Play(Sfx.TICK))
+            add(Beat.SayCount(k))
+            // The count word already IS the cardinal on a one-token tray; a
+            // tray that small never deals here, but the guard costs nothing.
+            if (k == n && n > 1) add(Beat.SayCardinal(n))
+            if (k == n) add(Beat.SayPromptTake(b))
+        }
+        // The whole is known: the chips hand their numbers back, so the take
+        // and the left count can each wear their own, exactly as the ADD bowl
+        // resets when everyone pours.
+        val updated = if (k == n) {
+            counted.map { it.copy(counted = false, countOrder = 0) }
+        } else {
+            counted
+        }
+        return copy(tokens = updated.toPersistentList(), totalDone = totalDone || k == n) to beats
     }
 
     private fun remove(id: Int): Pair<TakeState, List<Beat>> {
@@ -215,7 +250,7 @@ data class TakeState(
             add(Beat.SayCount(k))
             if (k == b) add(Beat.SayPromptLeft)
         }
-        return TakeState(n, b, updated.toPersistentList(), invalidTaps) to beats
+        return copy(tokens = updated.toPersistentList()) to beats
     }
 
     private fun countLeft(id: Int): Pair<TakeState, List<Beat>> {
@@ -225,13 +260,14 @@ data class TakeState(
             add(Beat.Play(Sfx.TICK))
             add(Beat.SayCount(k))
             if (k == left) {
-                add(Beat.SayFactTake(n, b, left))
+                // The card lands as the fact begins, never after it is spoken.
                 add(Beat.FlashTake(n, b, left))
+                add(Beat.SayFactTake(n, b, left))
                 add(Beat.Confetti)
                 add(Beat.Play(Sfx.CHIME))
             }
         }
-        return TakeState(n, b, updated.toPersistentList(), invalidTaps) to beats
+        return copy(tokens = updated.toPersistentList()) to beats
     }
 
     private fun struggle(): Pair<TakeState, List<Beat>> =

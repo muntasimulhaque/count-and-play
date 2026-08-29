@@ -42,6 +42,8 @@ val Orange = Color(0xFFF7941D)
 val Green = Color(0xFF33A852)
 val Purple = Color(0xFF8B5CF6)
 val Pink = Color(0xFFEC4899)
+/** Off, when a state needs stating next to Green's on: the sound switch. */
+val Red = Color(0xFFEF4444)
 val Yellow = Color(0xFFFBBF24)
 val SeatA = Color(0xFFCFE9FB)
 val SeatB = Color(0xFFFDE3C4)

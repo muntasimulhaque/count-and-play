@@ -46,11 +46,17 @@ fun AddState.playOut(rng: Rng): Pair<AddState, List<Beat>> {
     return state to beats
 }
 
-/** Removes the first [TakeState.b] tokens, then counts what is left, in order. */
+/** Plays a full TAKE round the way a child who follows along would: count
+ *  the whole tray, remove the first [TakeState.b] tokens, count what is left. */
 fun TakeState.playOut(): Pair<TakeState, List<Beat>> {
     var state = this
     val beats = mutableListOf<Beat>()
-    for (token in tokens.take(b)) {
+    for (token in tokens) {
+        val (next, more) = state.onTap(token.id)
+        state = next
+        beats += more
+    }
+    for (token in state.tokens.take(b)) {
         val (next, more) = state.onTap(token.id)
         state = next
         beats += more

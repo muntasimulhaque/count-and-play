@@ -8,7 +8,7 @@ import org.junit.Test
 class TakeTest {
 
     @Test
-    fun round_start_says_the_take_prompt_and_numbers_respect_bounds() {
+    fun round_start_opens_with_counting_the_whole_and_numbers_respect_bounds() {
         for (seed in 1L..50L) for (level in 0..2) {
             val rng = SeededRng(seed)
             val state = TakeRound.next(level, rng)
@@ -17,12 +17,14 @@ class TakeTest {
             assertTrue("seed=$seed b=${state.b} n=${state.n}", state.b < state.n)
             assertEquals(state.n, state.tokens.size)
             assertEquals(0, state.removed)
-            assertEquals(listOf(Beat.SayPromptTake(state.b)), Round.IsTake(state).startBeats())
+            // The subtraction ask waits until the whole tray has been counted.
+            assertFalse(state.totalDone)
+            assertEquals(listOf(Beat.SayPromptCount), Round.IsTake(state).startBeats())
         }
     }
 
     @Test
-    fun take_away_counts_each_removal_then_the_child_counts_what_is_left() {
+    fun count_the_whole_take_it_away_then_count_what_is_left() {
         for (seed in 1L..50L) {
             val rng = SeededRng(seed)
             val start = TakeRound.next(2, rng) // level 2 lets b reach 3
@@ -34,23 +36,30 @@ class TakeTest {
             assertEquals(0, end.invalidTaps)
             assertEquals(b, end.removed)
             assertEquals(n - b, end.left)
-            // The removals count 1..b, then the leftovers count 1..left.
-            assertEquals((1..b).toList() + (1..(n - b)).toList(), beats.sayCounts())
-            // THUDs for the taken, TICKs for the counted, one CHIME.
-            assertEquals(List(b) { Sfx.THUD } + List(n - b) { Sfx.TICK } + Sfx.CHIME, beats.sfx())
+            // Three separate counts, in order: the whole 1..n, the removals
+            // 1..b, the leftovers 1..left.
+            assertEquals((1..n).toList() + (1..b).toList() + (1..(n - b)).toList(), beats.sayCounts())
+            // TICKs for the whole, THUDs for the taken, TICKs for the left,
+            // then one CHIME: the sfx order alone proves the phase order.
+            assertEquals(
+                List(n) { Sfx.TICK } + List(b) { Sfx.THUD } + List(n - b) { Sfx.TICK } + Sfx.CHIME,
+                beats.sfx(),
+            )
+            // The subtraction ask comes right after the whole is counted,
+            // its cardinal named first (n is never 1 at any level).
+            val takeAt = beats.indexOf(Beat.SayPromptTake(b))
+            assertTrue(takeAt > 0)
+            assertEquals(Beat.SayCardinal(n), beats[takeAt - 1])
+            assertEquals(Beat.SayCount(n), beats[takeAt - 2])
             // The ask to count the rest comes right after the last removal.
             val promptAt = beats.indexOf(Beat.SayPromptLeft)
-            assertTrue(promptAt > 0)
+            assertTrue(promptAt > takeAt)
             assertEquals(Beat.SayCount(b), beats[promptAt - 1])
-            // No leftover is counted before the last removal THUD.
-            assertTrue(
-                beats.lastIndexOf(Beat.Play(Sfx.THUD)) <
-                    beats.indexOfFirst { it is Beat.Play && it.sfx == Sfx.TICK },
-            )
+            // The card lands as the fact begins, never after it is spoken.
             assertEquals(
                 listOf(
-                    Beat.SayFactTake(n, b, n - b),
                     Beat.FlashTake(n, b, n - b),
+                    Beat.SayFactTake(n, b, n - b),
                     Beat.Confetti,
                     Beat.Play(Sfx.CHIME),
                 ),
@@ -61,6 +70,17 @@ class TakeTest {
             assertEquals((1..(n - b)).toList(), end.tokens.filter { !it.gone }.map { it.countOrder })
             assertTrue(end.tokens.all { it.gone || it.counted })
         }
+    }
+
+    @Test
+    fun removal_waits_until_the_whole_has_been_counted() {
+        val start = TakeRound.next(0, SeededRng(5))
+        val (after, beats) = start.onTap(start.tokens.first().id)
+        // The first tap counts, it does not remove: no THUD, nothing gone.
+        assertFalse(after.totalDone)
+        assertFalse(after.tokens.first().gone)
+        assertEquals(1, after.tokens.first().countOrder)
+        assertEquals(listOf(Sfx.TICK), beats.sfx())
     }
 
     @Test
@@ -78,6 +98,8 @@ class TakeTest {
     fun after_b_removed_taps_count_the_leftovers_instead_of_removing() {
         val start = TakeRound.next(1, SeededRng(11))
         var s = start
+        for (token in start.tokens) s = s.onTap(token.id).first // count the whole
+        assertTrue(s.totalDone)
         for (token in start.tokens.take(start.b)) s = s.onTap(token.id).first
         assertTrue(s.removalDone)
         assertFalse(s.done)
@@ -95,5 +117,25 @@ class TakeTest {
         assertEquals(1, again.invalidTaps)
         assertTrue(noBeats.isEmpty())
         assertEquals(counted.tokens, again.tokens)
+    }
+
+    @Test
+    fun finishing_the_whole_count_hands_the_chips_back_and_asks_the_subtraction() {
+        val start = TakeRound.next(1, SeededRng(7))
+        var s = start
+        var finishBeats = emptyList<Beat>()
+        for (token in start.tokens) {
+            val (next, beats) = s.onTap(token.id)
+            s = next
+            finishBeats = beats
+        }
+        // The count completed: the take-away ask is spoken over the reset.
+        assertTrue(s.totalDone)
+        assertEquals(Beat.SayPromptTake(s.b), finishBeats.last())
+        // Every chip handed its number back, so the take and the left count
+        // can each wear their own.
+        assertTrue(s.tokens.none { it.counted })
+        assertTrue(s.tokens.all { it.countOrder == 0 })
+        assertEquals(0, s.removed)
     }
 }

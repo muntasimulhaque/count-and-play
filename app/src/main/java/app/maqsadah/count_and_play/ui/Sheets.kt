@@ -216,8 +216,9 @@ private fun SoundRow(copy: Copy, muted: Boolean, onToggleMute: () -> Unit) {
             fontWeight = ToyBold,
             fontFamily = ToyFont,
         )
-        // A second, colour-only statement of the state: green when sound flows.
-        Box(Modifier.size(14.dp).background(if (muted) Pink else Green, CircleShape))
+        // A second, colour-only statement of the state: green when sound
+        // flows, red when it is switched off.
+        Box(Modifier.size(14.dp).background(if (muted) Red else Green, CircleShape))
     }
 }
 
@@ -369,7 +370,7 @@ private fun SpeakerIcon(muted: Boolean, size: Dp, color: Color) {
         }
         drawPath(body, color)
         if (muted) {
-            drawLine(Pink, Offset(w * 0.60f, h * 0.30f), Offset(w * 0.95f, h * 0.70f), w * 0.10f, StrokeCap.Round)
+            drawLine(Red, Offset(w * 0.60f, h * 0.30f), Offset(w * 0.95f, h * 0.70f), w * 0.10f, StrokeCap.Round)
         } else {
             drawArc(
                 color, -50f, 100f, false,

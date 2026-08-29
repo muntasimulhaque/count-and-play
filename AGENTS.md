@@ -56,17 +56,21 @@ Three games, each a huge picture button on the home screen; from there the app
 guides, and difficulty adapts invisibly *inside* a game.
 
 - **Count them:** tap the objects in any order; each tap leaves a numbered
-  chip in HIS order and the voice says its number. Finishing the count earns a
-  plain Well done! (সাব্বাশ) before the numeral lands.
+  chip in HIS order and the voice says its number. The total lands as a huge
+  numeral the moment the last object is counted, not a few words later, with
+  a plain Well done! (সাব্বাশ) spoken over it.
 - **Put together:** the LEFT plate is counted first, the right one asleep in
   washed-out grey until then, so two columns can never mix into one count. A
   finished plate wears its total as a candy badge that stays on through the
   pour. Then the big centred button pours them into one bowl below, and he
   counts the whole; the parts keep their coloured seats inside it, and the
   plates keep their place (standing at full size where the screen allows,
-  folded into slim badge strips on tight phones).
-- **Take away:** the ask hangs above the tray as numerals (5 − 1); he taps the
-  asked number out and each taken piece moves down into an empty taken box
+  folded into slim badge strips on tight phones). When both plates are
+  counted, the bowl itself wears the words Put them together, so the cue to
+  pour lives where the finger goes and never depends on the voice.
+- **Take away:** he counts the whole tray first, exactly as in Count them;
+  only then does the ask hang above the tray as numerals (5 − 1), and he taps
+  the asked number out, each taken piece moving down into an empty taken box
   wearing its take-away number; then he counts what is left himself.
 
 Every round ends with the fact arriving huge on screen (`3 + 2 = 5`) while the

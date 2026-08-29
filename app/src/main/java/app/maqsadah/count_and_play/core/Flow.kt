@@ -27,7 +27,9 @@ sealed class Round {
     data class IsTake(val state: TakeState) : Round() {
         override val done: Boolean get() = state.done
         override val invalidTaps: Int get() = state.invalidTaps
-        override fun startBeats(): List<Beat> = listOf(Beat.SayPromptTake(state.b))
+        // TAKE opens by counting the whole tray; the subtraction ask is a
+        // beat inside the round, spoken when that count completes.
+        override fun startBeats(): List<Beat> = listOf(Beat.SayPromptCount)
     }
 }
 

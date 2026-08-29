@@ -131,22 +131,23 @@ class ScreenshotTest {
             model(Screen.Add(addPoured()), flash = Flash.Add(3, 2, 5))
         }
 
-        // Mid-take: two of five gone, their ghosts on the tray; the child
-        // is about to count what is left.
+        // Mid-take: the whole was counted, two of five gone, their ghosts on
+        // the tray; the child is about to count what is left.
         shoot(outDir, scenario, "05_take") {
-            model(Screen.Take(TakeState(n = 5, b = 2, tokens = bowlOfBalls(gone = 2))))
+            model(Screen.Take(TakeState(n = 5, b = 2, tokens = bowlOfBalls(gone = 2), totalDone = true)))
         }
 
         // The take-away fact, after counting the leftovers: 5 - 2 = 3.
         shoot(outDir, scenario, "06_take_fact") {
             model(
-                Screen.Take(TakeState(n = 5, b = 2, tokens = takeCounted())),
+                Screen.Take(TakeState(n = 5, b = 2, tokens = takeCounted(), totalDone = true)),
                 flash = Flash.Take(5, 2, 3),
             )
         }
 
-        // The grown-up corner, open over the shelf.
-        shoot(outDir, scenario, "07_settings") { model(Screen.Home, settingsOpen = true) }
+        // The grown-up corner, open over the shelf: shown muted, so the
+        // sound switch's red off-state is on the record.
+        shoot(outDir, scenario, "07_settings") { model(Screen.Home, settingsOpen = true, muted = true) }
 
         // The same counting moment, in Bengali.
         shoot(outDir, scenario, "08_bangla") {
@@ -166,11 +167,12 @@ class ScreenshotTest {
         screen: Screen,
         copy: Copy = EnCopy,
         settingsOpen: Boolean = false,
+        muted: Boolean = false,
         flash: Flash? = null,
     ) = UiModel(
         screen = screen,
         copy = copy,
-        muted = false,
+        muted = muted,
         settingsOpen = settingsOpen,
         firstRun = false,
         flash = flash,
