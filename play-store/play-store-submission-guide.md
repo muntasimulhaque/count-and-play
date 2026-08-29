@@ -37,8 +37,12 @@ the PNGs by hand.
 **Short description** (80 chars max):
 
 ```
-See addition and subtraction happen. Count, pour, take away. No ads, offline.
+See addition and subtraction happen. Count objects, pour them, take them away.
 ```
+
+Purely descriptive on purpose: the short-description guideline rejects
+keywords that indicate price or promotion (free, no ads, best, sale),
+so the no-ads and offline facts live in the full description only.
 
 **Full description**:
 
