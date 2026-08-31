@@ -117,7 +117,7 @@ private fun VoiceNote(copy: Copy) {
     Text(
         copy.voiceMissingNote(),
         color = Ink.copy(alpha = 0.7f),
-        fontSize = 13.sp,
+        fontSize = 14.sp,
         fontFamily = ToyFont,
     )
 }

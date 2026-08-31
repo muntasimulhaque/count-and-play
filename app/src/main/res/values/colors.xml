@@ -3,7 +3,7 @@
     <!-- The resting ground, so the very first frame is already the app's world
          rather than a blue flash the Compose surface then replaces. Each
          activity repaints this from its own colour once one is chosen. -->
-    <color name="tabletop">#FDF2D2</color>
+    <color name="tabletop">#F6F2EA</color>
     <color name="tray">#FFFFFF</color>
     <color name="tray_rim">#F0B32B</color>
     <!-- The adaptive icon's background: the candy blue the foreground trio

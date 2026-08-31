@@ -18,6 +18,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.activity.compose.BackHandler
 import androidx.compose.ui.Modifier
 import app.maqsadah.count_and_play.copy.BnCopy
 import app.maqsadah.count_and_play.copy.Copy
@@ -91,6 +93,7 @@ private fun Stage(
     onToggleMute: () -> Unit,
     onCloseSettings: () -> Unit,
 ) {
+    BackStack(ui, onCloseSettings, actions.home)
     PlayRoutes(ui, actions)
     ui.flash?.let { flash -> FlashOverlay(flash = flash, copy = ui.copy) }
     // Confetti above the fact card's scrim: the paper falls in front of
@@ -186,3 +189,15 @@ private fun SettingsLayer(
  * identity of the copy pack.
  */
 private fun languageOf(copy: Copy): Language = if (copy is BnCopy) Language.BN else Language.EN
+
+/**
+ * The back gesture resolves one level at a time, so a stray swipe from a
+ * round lands on the shelf instead of leaving the app: the settings sheet
+ * closes first, then the round returns home. On the shelf nothing is
+ * enabled, so the system's own exit takes over.
+ */
+@Composable
+private fun BackStack(ui: UiModel, onCloseSettings: () -> Unit, onHome: () -> Unit) {
+    BackHandler(enabled = ui.settingsOpen) { onCloseSettings() }
+    BackHandler(enabled = !ui.settingsOpen && ui.screen.route != Route.Home) { onHome() }
+}
