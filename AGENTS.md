@@ -213,6 +213,7 @@ committed references under `play-store/screenshots/` are refreshed from the
 - The local API 35 AVD recipe above is a fallback for interactive checks only.
   If a local capture fails twice, stop debugging the emulator and let CI do
   it.
+- **Byte-level noise is not drift.** On 2026-08-31 a no-UI-change refresh came back dirty on phone only: a few percent of pixels differed by one step in 255, zero pixels at a 2 percent tolerance, and the diff image was blank. That is emulator rasterization noise, not a UI change (a real change shows on all form factors with visible deltas). When a refresh is dirty, compare with a small fuzz tolerance first: zero differing pixels at 2 percent means noise, safe to commit with a note in the message; real pixels mean a real change, find it before committing.
 - **The refresh loop is proven drivable by hand, end to end.** On 2026-08-24
   the 7.5 push produced all 24 shots in five minutes; on 2026-08-25 a bare
   workflow_dispatch dry run repeated the whole thing from this machine in
