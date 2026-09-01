@@ -46,7 +46,6 @@ class SoundBoard(context: Context) {
         }
         loaded = mapOf(
             Sfx.TICK to pool.load(app, R.raw.sfx_tick, 1),
-            Sfx.CLINK to pool.load(app, R.raw.sfx_clink, 1),
             Sfx.THUD to pool.load(app, R.raw.sfx_thud, 1),
             Sfx.CHIME to pool.load(app, R.raw.sfx_chime, 1),
             Sfx.RUSTLE to pool.load(app, R.raw.sfx_rustle, 1),
@@ -81,7 +80,6 @@ class SoundBoard(context: Context) {
     /** Effects duck under the voice so a number word is never masked. */
     private fun volumeOf(sfx: Sfx) = when (sfx) {
         Sfx.TICK -> 0.85f
-        Sfx.CLINK -> 0.70f
         Sfx.THUD -> 0.75f
         Sfx.CHIME -> 0.80f
         Sfx.RUSTLE -> 0.60f

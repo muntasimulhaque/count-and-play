@@ -1,25 +1,18 @@
 package toybox.tools
 
 import java.awt.BasicStroke
-import java.awt.Font
 import java.awt.Graphics2D
 import java.awt.RenderingHints
-import java.awt.font.TextLayout
 import java.awt.geom.AffineTransform
-import java.awt.geom.Area
 import java.awt.geom.Ellipse2D
 import java.awt.geom.Line2D
 import java.awt.geom.Path2D
-import java.awt.geom.Point2D
 import java.awt.geom.RoundRectangle2D
 import java.io.File
 import javax.imageio.ImageIO
 import kotlin.math.abs
-import kotlin.math.ceil
-import kotlin.math.cos
 import kotlin.math.floor
 import kotlin.math.roundToInt
-import kotlin.math.sin
 import kotlin.math.sqrt
 import kotlin.random.Random
 

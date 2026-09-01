@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.activity.compose.BackHandler
 import androidx.compose.ui.Modifier
 import app.maqsadah.count_and_play.copy.BnCopy

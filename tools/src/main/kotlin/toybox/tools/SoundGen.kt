@@ -7,22 +7,22 @@ import kotlin.io.path.absolutePathString
 import kotlin.io.path.outputStream
 
 /**
- * The app's six sound effects, synthesized to spec: tiny, license-free, and
+ * The app's four sound effects, synthesized to spec: tiny, license-free, and
  * deterministic down to the byte (the noise layers draw from a ported
  * CPython RNG, so regenerating rewrites nothing).
  *
  * The religious constraint is a design input here, not an afterthought: there
- * is no music in this app. Five of the six sounds are deliberately inharmonic:
- * noise bursts and damped non-integer partials, so they read as physical
- * events (wood, cloth, a landing) rather than as notes. Only [chime] has a
- * pitch, it is a single struck bell, and the app never plays it twice inside
- * 1200 ms, because two pitched notes in sequence make an interval and
+ * is no music in this app. Three of the four sounds are deliberately
+ * inharmonic: noise bursts and damped non-integer partials, so they read as
+ * physical events (wood, cloth, a landing) rather than as notes. Only [chime]
+ * has a pitch, it is a single struck bell, and the app never plays it twice
+ * inside 1200 ms, because two pitched notes in sequence make an interval and
  * intervals are where melody starts.
  */
 object SoundGen {
 
     private const val RATE = 44100
-    private val NAMES = listOf("sfx_tick", "sfx_thud", "sfx_rustle", "sfx_hollow", "sfx_clink", "sfx_chime")
+    private val NAMES = listOf("sfx_tick", "sfx_thud", "sfx_rustle", "sfx_chime")
 
     // -- DSP ------------------------------------------------------------------
 
@@ -90,7 +90,7 @@ object SoundGen {
     private fun applyEnv(samples: DoubleArray, env: DoubleArray): DoubleArray =
         DoubleArray(samples.size) { samples[it] * env[it] }
 
-    // -- The six sounds ---------------------------------------------------------
+    // -- The four sounds --------------------------------------------------------
 
     /** 60 ms: a soft dry wooden tap. Every count-tap. Must feel instant. */
     private fun tick(rng: CpythonRandom): DoubleArray {
@@ -122,22 +122,6 @@ object SoundGen {
             out[i] = layer[i] * wobble
         }
         return applyEnv(out, envelope(n, 0.010, 0.150, curve = 2.5))
-    }
-
-    /** 80 ms: a knock on an empty box. The sound of "that did nothing". */
-    private fun hollow(rng: CpythonRandom): DoubleArray {
-        val n = (0.080 * RATE).toInt()
-        val box = partials(n, doubleArrayOf(232.0, 351.0, 508.0), doubleArrayOf(0.030, 0.018, 0.010), doubleArrayOf(1.0, 0.5, 0.22))
-        return applyEnv(mix(box, lowpass(noise(n, rng), 1800.0) * 0.18), envelope(n, 0.0008, 0.028, curve = 4.0))
-    }
-
-    /** 200 ms: one pebble into a glass jar. Bright, but deliberately inharmonic. */
-    private fun clink(rng: CpythonRandom): DoubleArray {
-        val n = (0.200 * RATE).toInt()
-        // Ratios 1 : 2.76 : 5.40 are the classic inharmonic bar partials: bright
-        // and glassy, but not a pitch you could hum.
-        val glass = partials(n, doubleArrayOf(1180.0, 3257.0, 6372.0), doubleArrayOf(0.055, 0.030, 0.016), doubleArrayOf(1.0, 0.42, 0.16))
-        return applyEnv(mix(glass, highpass(noise(n, rng), 3000.0) * 0.12), envelope(n, 0.0005, 0.060, curve = 3.5))
     }
 
     /** 450 ms: one soft struck bell. The only pitched sound in the app. */
@@ -208,8 +192,6 @@ object SoundGen {
         write(outDir, "sfx_tick", tick(rng), peak = 0.55)
         write(outDir, "sfx_thud", thud(rng), peak = 0.75)
         write(outDir, "sfx_rustle", rustle(rng), peak = 0.55)
-        write(outDir, "sfx_hollow", hollow(rng), peak = 0.50)
-        write(outDir, "sfx_clink", clink(rng), peak = 0.62)
         write(outDir, "sfx_chime", chime(), peak = 0.70)
     }
 
@@ -237,7 +219,7 @@ object SoundGen {
             for (line in bad) println("MISMATCH: $line")
             1
         } else {
-            println("All six sound assets match a fresh regeneration.")
+            println("All four sound assets match a fresh regeneration.")
             0
         }
     }

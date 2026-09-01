@@ -1,7 +1,5 @@
 package app.maqsadah.count_and_play.copy
 
-import kotlinx.collections.immutable.toPersistentList
-
 /** English: short, warm, toddler-directed. */
 object EnCopy : Copy {
 

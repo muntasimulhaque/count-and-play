@@ -1,13 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- The resting ground, so the very first frame is already the app's world
-         rather than a blue flash the Compose surface then replaces. Each
-         activity repaints this from its own colour once one is chosen. -->
+         rather than a blue flash the Compose surface then replaces. -->
     <color name="tabletop">#F6F2EA</color>
-    <color name="tray">#FFFFFF</color>
-    <color name="tray_rim">#F0B32B</color>
-    <!-- The adaptive icon's background: the candy blue the foreground trio
-         is drawn on. Matched to tools/make_art.py, which regenerates the
+    <!-- The adaptive icon's background: the warm cream the foreground trio
+         is drawn on. Matched to :tools makeArt, which regenerates the
          launcher PNGs and the store icon. -->
     <color name="ic_launcher_background">#FFF6E3</color>
 </resources>

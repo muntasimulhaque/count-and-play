@@ -19,7 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -67,7 +67,7 @@ fun HomeScreen(copy: Copy, onChoose: (Skill) -> Unit, onOpenSettings: () -> Unit
  */
 @Composable
 private fun FitTitle(text: String, modifier: Modifier) {
-    var sizeSp by remember(text) { mutableStateOf(SizeTitle.value) }
+    var sizeSp by remember(text) { mutableFloatStateOf(SizeTitle.value) }
     Text(
         text,
         modifier,

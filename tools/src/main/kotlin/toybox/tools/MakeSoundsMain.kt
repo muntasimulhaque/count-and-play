@@ -5,7 +5,7 @@ import java.nio.file.Path
 import kotlin.system.exitProcess
 
 /**
- * Entry point: `:tools:makeSounds` regenerates the six WAVs in place;
+ * Entry point: `:tools:makeSounds` regenerates the four WAVs in place;
  * `:tools:checkSounds` byte-compares them against a fresh regeneration.
  */
 fun main(args: Array<String>) {

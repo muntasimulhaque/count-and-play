@@ -1,11 +1,8 @@
 package toybox.tools
 
 import java.awt.BasicStroke
-import java.awt.Font
-import java.awt.Graphics2D
 import java.awt.geom.Ellipse2D
 import java.awt.geom.Path2D
-import java.awt.geom.RoundRectangle2D
 
 /*
  * The store art draws the app's own objects: the exact bodies, facets and

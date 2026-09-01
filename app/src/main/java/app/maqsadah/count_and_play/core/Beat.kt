@@ -1,7 +1,7 @@
 package app.maqsadah.count_and_play.core
 
 /** Sound effects the host can play. */
-enum class Sfx { TICK, CLINK, THUD, CHIME, RUSTLE }
+enum class Sfx { TICK, THUD, CHIME, RUSTLE }
 
 /**
  * Everything the core can ask the host to do, in order. Pure data: no speech

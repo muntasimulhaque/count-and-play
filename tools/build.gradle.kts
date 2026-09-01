@@ -21,7 +21,7 @@ kotlin {
 
 tasks.register<JavaExec>("makeSounds") {
     group = "tools"
-    description = "Regenerate the six sound assets in app/src/main/res/raw."
+    description = "Regenerate the four sound assets in app/src/main/res/raw."
     classpath = sourceSets["main"].runtimeClasspath
     mainClass = "toybox.tools.MakeSoundsMainKt"
     args = listOf(rootDir.absolutePath)
