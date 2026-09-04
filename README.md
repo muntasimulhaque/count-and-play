@@ -11,19 +11,19 @@ son; on Google Play so other families can use it too. In English and বাং�
 - **Privacy policy:** [online](https://muntasimulhaque.github.io/count-and-play/privacy.html) · [in this repo](docs/privacy.html)
 
 <p align="center">
-  <img src="play-store/screenshots/phone_01_home.png" width="170" alt="Home: three big picture games">
-  <img src="play-store/screenshots/phone_03_add.png" width="170" alt="Put together: both plates counted, the pour button awake">
-  <img src="play-store/screenshots/phone_04_add_fact.png" width="170" alt="The fact arrives huge on screen: 3 + 2 = 5">
-  <img src="play-store/screenshots/phone_06_take_fact.png" width="170" alt="Take away: 5 - 2 = 3 with ghost holes">
+  <img src="play-store/screenshots/phone/01_home.png" width="170" alt="Home: three big picture games">
+  <img src="play-store/screenshots/phone/03_add.png" width="170" alt="Put together: both plates counted, the pour button awake">
+  <img src="play-store/screenshots/phone/04_add_fact.png" width="170" alt="The fact arrives huge on screen: 3 + 2 = 5">
+  <img src="play-store/screenshots/phone/06_take_fact.png" width="170" alt="Take away: 5 - 2 = 3 with ghost holes">
 </p>
 
 The same play on tablets (7" and 10"):
 
 <p align="center">
-  <img src="play-store/screenshots/tablet7_01_home.png" width="200" alt="Home on a 7-inch tablet">
-  <img src="play-store/screenshots/tablet7_05_take.png" width="200" alt="Take away on a 7-inch tablet">
-  <img src="play-store/screenshots/tablet10_01_home.png" width="300" alt="Home on a 10-inch tablet">
-  <img src="play-store/screenshots/tablet10_06_take_fact.png" width="300" alt="Take away on a 10-inch tablet">
+  <img src="play-store/screenshots/tablet7/01_home.png" width="200" alt="Home on a 7-inch tablet">
+  <img src="play-store/screenshots/tablet7/05_take.png" width="200" alt="Take away on a 7-inch tablet">
+  <img src="play-store/screenshots/tablet10/01_home.png" width="300" alt="Home on a 10-inch tablet">
+  <img src="play-store/screenshots/tablet10/06_take_fact.png" width="300" alt="Take away on a 10-inch tablet">
 </p>
 
 ## What it is
@@ -96,6 +96,8 @@ permissions, there is nothing for it to collect. The full policy is
 ./gradlew :app:testReleaseUnitTest      # the rules
 ./gradlew :app:assembleRelease          # R8 release (~1 MB)
 ./gradlew :tools:makeSounds             # regenerate sound assets (deterministic)
+./gradlew :tools:checkSounds            # verify committed sounds match regeneration
+./gradlew :tools:makeArt                # regenerate store art + launcher icons
 ```
 
 Every push to `main` triggers GitHub Actions, which runs the unit tests and then
@@ -112,7 +114,6 @@ emulators from `ScreenshotTest`.
    rebuild) in `app/build.gradle.kts`.
 2. Commit and push to `main`.
 3. Take the signed AAB from the `latest-build` release once CI is green.
-4. Play Console: create a release on the alpha track (and on Production once
-   the app is live there).
+4. Play Console: create a release on the Production track.
 
 Only capture new store screenshots when the UI actually changed.
