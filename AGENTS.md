@@ -201,8 +201,10 @@ Bump `versionCode` +1 and `versionName` (+0.1 for small releases), push to
   (three form factors, eight scenes, the Play Console maximum). Pinned to
   API 35; see Build for the refresh loop.
 
-Deliver the upload kit in one place: the AAB in `aab/`, release notes
-paste-ready in chat (English, plain prose). Upload screenshots straight from
+Deliver the upload kit in one place: the AAB in `aab/`, release notes in
+chat as bare plain text (English, plain prose, no code fences, no markdown,
+no formatting of any kind, so the owner selects the words and pastes them
+straight into Play Console). Upload screenshots straight from
 `play-store/screenshots/`, one subfolder per form factor (`phone/`,
 `tablet7/`, `tablet10/`). Listing text, feature graphic and icon live in
 `play-store/`; the graphic and icon are `makeArt` outputs, so whenever either
