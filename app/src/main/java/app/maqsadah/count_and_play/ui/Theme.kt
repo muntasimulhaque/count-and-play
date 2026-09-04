@@ -82,13 +82,20 @@ val ToyFont: FontFamily = FontFamily(
     Font(R.font.baloo2_bold, FontWeight.Bold),
     Font(R.font.baloo2_extrabold, FontWeight.ExtraBold),
 )
-val ToyBold: FontWeight = FontWeight.ExtraBold
+/**
+ * The two-step type ramp. ToyBlack (ExtraBold, 800) is the display voice:
+ * titles, numerals, anything that IS the mathematics. ToyBold (Bold, 700) is
+ * the reading voice: prompts, labels, the grown-up sheet. One bundled face,
+ * two real weights, so the hierarchy is visible and the bold file earns its
+ * place in the APK.
+ */
+val ToyBold: FontWeight = FontWeight.Bold
 val ToyBlack: FontWeight = FontWeight.ExtraBold
 
 val SizeTitle = 32.sp
 val SizePrompt = 26.sp
 val SizeLabel = 22.sp
-val SizeFlash = 84.sp
+val SizeFlash = 96.sp
 val SizeChip = 18.sp
 
 /** Corner radius stepped down for small controls (chips of chrome). */

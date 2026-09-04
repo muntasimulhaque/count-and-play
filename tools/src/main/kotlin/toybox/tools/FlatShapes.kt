@@ -31,8 +31,9 @@ internal val LEAF_DARK = rgb(27, 107, 55)
 private fun Path2D.Double.q(cx: Double, cy: Double, x: Double, y: Double) =
     apply { quadTo(cx, cy, x, y) }
 
-/** The apple body from ShapeArt.kt, translated to (x, y) at size [s]. */
-private fun applePath(x: Double, y: Double, s: Double): Path2D.Double = Path2D.Double().apply {
+/** The apple body from ShapeArt.kt, translated to (x, y) at size [s].
+ *  Internal: the monochrome launcher glyph reuses the exact outline. */
+internal fun applePath(x: Double, y: Double, s: Double): Path2D.Double = Path2D.Double().apply {
     moveTo(x + 50 * s, y + 24 * s)
     q(x + 58 * s, y + 14 * s, x + 70 * s, y + 20 * s)
     q(x + 92 * s, y + 32 * s, x + 88 * s, y + 58 * s)

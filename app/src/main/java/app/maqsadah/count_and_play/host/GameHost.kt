@@ -1,10 +1,6 @@
 package app.maqsadah.count_and_play.host
 
 import android.app.Application
-import android.media.AudioAttributes
-import android.media.AudioFocusRequest
-import android.media.AudioManager
-import android.os.Build
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -38,6 +34,7 @@ class GameHost(application: Application) : AndroidViewModel(application) {
     private val store = Store(application)
     private val sounds = SoundBoard(application)
     val narrator = Narrator(application, store.language ?: Language.EN)
+    private val audioFocus = AudioFocus(application, narrator::setDucked)
 
     // Levels survive restarts; streaks do not (a streak is a run, not a fact).
     private var adaptCount = Adapt(level = store.levelCount)
@@ -56,7 +53,6 @@ class GameHost(application: Application) : AndroidViewModel(application) {
     private var scriptIndex = 0
 
     private var seedCounter = 0L
-    private var focusRequest: AudioFocusRequest? = null
 
     private val _ui = MutableStateFlow(model())
     val ui: StateFlow<UiModel> = _ui.asStateFlow()
@@ -122,7 +118,7 @@ class GameHost(application: Application) : AndroidViewModel(application) {
     fun home() {
         runCatching {
             hush()
-            abandonAudioFocus()
+            audioFocus.abandon()
             session = null
             flash = null
             publish()
@@ -164,7 +160,7 @@ class GameHost(application: Application) : AndroidViewModel(application) {
 
     /** Backgrounding stops the app dead, rather than leaving it talking unseen. */
     fun pause() {
-        runCatching { abandonAudioFocus() }
+        runCatching { audioFocus.abandon() }
         runCatching { performance?.cancel() }
         runCatching { narrator.pause() }
     }
@@ -188,7 +184,7 @@ class GameHost(application: Application) : AndroidViewModel(application) {
 
     override fun onCleared() {
         runCatching { performance?.cancel() }
-        runCatching { abandonAudioFocus() }
+        runCatching { audioFocus.abandon() }
         runCatching { narrator.release() }
         runCatching { sounds.release() }
     }
@@ -201,7 +197,7 @@ class GameHost(application: Application) : AndroidViewModel(application) {
         val previous = performance
         script = beats
         scriptIndex = 0
-        requestAudioFocus()
+        if (audioFocus.request()) narrator.setDucked(false) else narrator.setDucked(true)
         performance = viewModelScope.launch {
             previous?.cancelAndJoin()
             while (scriptIndex < script.size) {
@@ -311,38 +307,6 @@ class GameHost(application: Application) : AndroidViewModel(application) {
         scriptIndex = 0
     }
 
-    // -- Audio focus -----------------------------------------------------------
-    // Transient-and-may-duck: the voice and effects win briefly over music or
-    // video another app holds, and it returns the moment we go quiet. Needs no
-    // permission, so the zero-permission promise stands.
-
-    private fun requestAudioFocus() {
-        runCatching {
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || focusRequest != null) return
-            val manager = getApplication<Application>().getSystemService(AudioManager::class.java) ?: return
-            val request = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
-                .setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_GAME)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                        .build(),
-                )
-                .build()
-            manager.requestAudioFocus(request)
-            focusRequest = request
-        }
-    }
-
-    private fun abandonAudioFocus() {
-        runCatching {
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
-            val request = focusRequest ?: return
-            val manager = getApplication<Application>().getSystemService(AudioManager::class.java) ?: return
-            manager.abandonAudioFocusRequest(request)
-            focusRequest = null
-        }
-    }
-
     // -- UiModel ----------------------------------------------------------------
 
     private fun publish() {
@@ -363,6 +327,7 @@ class GameHost(application: Application) : AndroidViewModel(application) {
             settingsOpen = settingsOpen,
             firstRun = !store.languageChosen,
             voiceAvailable = narrator.voiceAvailable,
+            voiceReady = narrator.voiceReady,
             flash = flash,
             confettiKey = confettiKey,
         )

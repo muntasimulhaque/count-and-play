@@ -11,11 +11,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -40,6 +37,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
@@ -177,11 +175,19 @@ private fun CountChip(text: String, diameter: Dp, modifier: Modifier = Modifier)
     }
 }
 
-/** The dashed outline left where a taken-away object used to sit. */
+/**
+ * The dashed outline left where a taken-away object used to sit. [node] is
+ * the slot's layout footprint: it must match the node an ObjectView occupies
+ * in the same tray, so rows keep one rhythm whether a cell holds an object
+ * or the ghost of one. The dash itself stays at the body size, deliberately
+ * quiet so it is not read as an object.
+ */
 @Composable
-fun GhostSlot(sizeDp: Dp) {
-    Canvas(Modifier.size(sizeDp)) {
-        drawEmptySlot(size.minDimension)
+fun GhostSlot(sizeDp: Dp, node: Dp = sizeDp) {
+    Box(Modifier.size(node), contentAlignment = Alignment.Center) {
+        Canvas(Modifier.size(sizeDp)) {
+            drawEmptySlot(size.minDimension)
+        }
     }
 }
 
@@ -237,7 +243,6 @@ private val InnerRimDepth = 10.dp
  * tray against the room the screen offers, and ADD solves its plates and
  * bowl together in [solveAddTraySizes] so the whole round always fits.
  */
-@OptIn(ExperimentalLayoutApi::class) // the arrangement needs maxItemsInEachRow
 @Composable
 internal fun Tray(
     count: Int,
@@ -252,13 +257,53 @@ internal fun Tray(
         // An emptied plate must still look like a place, not vanish.
         modifier.sizeIn(minHeight = size + TrayPad * 2),
     ) {
-        FlowRow(
-            Modifier.padding(TrayPad),
-            horizontalArrangement = Arrangement.spacedBy(TrayGap),
-            verticalArrangement = Arrangement.spacedBy(TrayGap),
-            maxItemsInEachRow = layout.perRow.coerceAtLeast(1),
-        ) {
+        TrayRows(perRow = layout.perRow, modifier = Modifier.padding(TrayPad)) {
             content(size)
         }
     }
+}
+
+/**
+ * The tray's rows, placed by hand rather than left to a flow layout. A flow
+ * measures items in whole pixels, so an exactly-fitting row can push its last
+ * item to the next line: the solver says four-across and a phone renders
+ * three-and-one, and the whole tray reflows taller. Placing the rows we have
+ * already solved removes that class of drift entirely: exactly [perRow]
+ * items per full row on every device, the remainder centred beneath, so a
+ * five reads as the classic 3-over-2 instead of a lopsided 3-plus-2.
+ */
+@Composable
+private fun TrayRows(perRow: Int, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    Layout(
+        content = content,
+        modifier = modifier,
+        measurePolicy = { measurables, constraints ->
+            val plan = rowPlan(measurables.size, perRow)
+            val placeables = measurables.map { it.measure(constraints) }
+            val gap = TrayGap.roundToPx()
+            val rows = buildList {
+                var start = 0
+                for (n in plan) {
+                    add(placeables.subList(start, start + n))
+                    start += n
+                }
+            }
+            val rowWidths = rows.map { row -> row.sumOf { it.width } + gap * (row.size - 1) }
+            val rowHeights = rows.map { row -> row.maxOf { it.height } }
+            val widest = rowWidths.maxOrNull() ?: 0
+            val height = if (rows.isEmpty()) 0 else rowHeights.sum() + gap * (rows.size - 1)
+            val width = widest.coerceIn(constraints.minWidth, constraints.maxWidth)
+            layout(width, height) {
+                var y = 0
+                rows.forEachIndexed { index, row ->
+                    var x = (width - rowWidths[index]) / 2
+                    row.forEach { item ->
+                        item.place(x, y + (rowHeights[index] - item.height) / 2)
+                        x += item.width + gap
+                    }
+                    y += rowHeights[index] + gap
+                }
+            }
+        },
+    )
 }

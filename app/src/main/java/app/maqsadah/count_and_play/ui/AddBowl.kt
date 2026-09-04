@@ -167,11 +167,13 @@ private fun BowlInPlace(
     }
 }
 
-/** An empty bowl seat: the part's colour under the dashed slot to come. */
+/** An empty bowl seat: the part's colour under the dashed slot to come. The
+ *  node matches the seat a fallen piece occupies, so the pour moves pieces,
+ *  never furniture, and both phases of the bowl lay out on one rhythm. */
 @Composable
 private fun GhostSeat(sizeDp: Dp, seat: Color) {
-    Box(Modifier.size(sizeDp * SeatScale), contentAlignment = Alignment.Center) {
-        Box(Modifier.size(sizeDp * 1.3f).background(seat.copy(alpha = 0.5f), CircleShape))
+    Box(Modifier.size(nodeOf(sizeDp, seated = true)), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(sizeDp * SeatScale).background(seat.copy(alpha = 0.5f), CircleShape))
         GhostSlot(sizeDp)
     }
 }

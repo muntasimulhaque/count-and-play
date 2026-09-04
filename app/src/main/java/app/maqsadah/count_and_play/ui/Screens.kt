@@ -152,7 +152,9 @@ private fun MainTray(state: TakeState, copy: Copy, solution: TakeSolution, onTap
         state.tokens.forEach { token ->
             key(token.id) {
                 if (token.gone) {
-                    GhostSlot(size)
+                    // The ghost's node must be the node the object occupied,
+                    // so rows keep one rhythm after the taking.
+                    GhostSlot(size, nodeOf(size, seated = false))
                 } else {
                     ObjectView(
                         shape = token.shape,

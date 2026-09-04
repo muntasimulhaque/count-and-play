@@ -25,7 +25,15 @@ class Narrator(application: Application, initialLanguage: Language) {
     private var counter = 0L
     @Volatile private var queued: String? = null
     @Volatile private var engine: TextToSpeech? = null
+    @Volatile private var ducked = false
     private val pending = Collections.synchronizedSet(HashSet<String>())
+
+    /** False until the engine has bound and answered for the chosen language.
+     *  Distinguishes still checking from really missing: the settings note
+     *  must not scold a device whose engine simply has not started yet. */
+    @Volatile
+    var voiceReady = false
+        private set
 
     /** False when this device has no voice data for the chosen language. */
     @Volatile
@@ -46,6 +54,7 @@ class Narrator(application: Application, initialLanguage: Language) {
                     if (ready) {
                         engine?.setSpeechRate(RATE)
                         applyLanguage(language)
+                        voiceReady = true
                         // The first prompt can arrive before the engine binds; saying
                         // it late beats the old failure of a muted first round.
                         queued?.let { queued = null; speak(it) }
@@ -77,7 +86,7 @@ class Narrator(application: Application, initialLanguage: Language) {
     }
 
     fun speak(text: String) {
-        if (!foreground || muted) return
+        if (!foreground || muted || ducked) return
         val tts = engine ?: return
         if (!ready) {
             queued = text
@@ -129,6 +138,17 @@ class Narrator(application: Application, initialLanguage: Language) {
     fun setMuted(muted: Boolean) {
         this.muted = muted
         if (muted) stop()
+    }
+
+    /**
+     * Another app holds the microphone's attention: the voice goes quiet
+     * until a tap re-earns audio focus. Unlike the mute switch this is not
+     * the grown-up's choice, so it is never persisted and it opens again the
+     * moment focus is granted back.
+     */
+    fun setDucked(ducked: Boolean) {
+        this.ducked = ducked
+        if (ducked) stop()
     }
 
     fun release() {

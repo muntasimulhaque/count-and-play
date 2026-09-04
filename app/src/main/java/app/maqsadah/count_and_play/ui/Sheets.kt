@@ -72,6 +72,7 @@ fun SettingsSheet(
     language: Language,
     muted: Boolean,
     voiceAvailable: Boolean,
+    voiceReady: Boolean,
     onSetLanguage: (Language) -> Unit,
     onToggleMute: () -> Unit,
     onCloseSettings: () -> Unit,
@@ -96,7 +97,9 @@ fun SettingsSheet(
             SheetHeader(copy.closeLabel(), onCloseSettings)
             Spacer(Modifier.height(18.dp))
             LanguageRow(copy, language, onSetLanguage)
-            if (!voiceAvailable) VoiceNote(copy)
+            // Only a checked device may be told it lacks a voice: a cold
+            // engine that has not bound yet is not a missing voice.
+            if (voiceReady && !voiceAvailable) VoiceNote(copy)
             Spacer(Modifier.height(14.dp))
             SoundRow(copy, muted, onToggleMute)
         }

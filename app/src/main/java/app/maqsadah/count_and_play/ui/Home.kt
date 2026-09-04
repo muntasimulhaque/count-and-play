@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -54,9 +55,9 @@ fun HomeScreen(copy: Copy, onChoose: (Skill) -> Unit, onOpenSettings: () -> Unit
             FitTitle(copy.homeTitle(), Modifier.weight(1f))
             GearButton(Modifier, copy.settingsLabel(), onOpenSettings)
         }
-        Tile(Skill.COUNT, copy.tileCount(), Modifier.weight(1f), onChoose) { CountMini() }
-        Tile(Skill.ADD, copy.tileAdd(), Modifier.weight(1f), onChoose) { AddMini() }
-        Tile(Skill.TAKE, copy.tileTake(), Modifier.weight(1f), onChoose) { TakeMini() }
+        Tile(Skill.COUNT, copy.tileCount(), Modifier.weight(1f), onChoose) { room -> CountMini(room) }
+        Tile(Skill.ADD, copy.tileAdd(), Modifier.weight(1f), onChoose) { room -> AddMini(room) }
+        Tile(Skill.TAKE, copy.tileTake(), Modifier.weight(1f), onChoose) { room -> TakeMini(room) }
     }
 }
 
@@ -89,7 +90,7 @@ private fun Tile(
     label: String,
     modifier: Modifier,
     onChoose: (Skill) -> Unit,
-    mini: @Composable () -> Unit,
+    mini: @Composable (Dp) -> Unit,
 ) {
     Keycap(
         edge = EdgeNeutral,
@@ -97,11 +98,13 @@ private fun Tile(
         onClick = { onChoose(skill) },
     ) {
         // The scene rides a touch high so no label can ever collide with it
-        // (the ADD miniature is two rows tall on the tightest screens).
-        Box(
+        // (the ADD miniature is two rows tall on the tightest screens). The
+        // room left after that reserve drives the scene's size, so the
+        // pictures grow with the tile instead of floating as postage stamps.
+        BoxWithConstraints(
             Modifier.fillMaxSize().padding(bottom = 40.dp),
             contentAlignment = Alignment.Center,
-        ) { mini() }
+        ) { mini(maxHeight) }
         Text(
             label,
             Modifier.align(Alignment.BottomCenter).padding(bottom = 12.dp),
@@ -153,7 +156,10 @@ private fun GearIcon(size: Dp, color: Color) {
 }
 
 // ---- The three miniatures: each tile shows the game it opens, big enough
-// ---- to be read from across a room.
+// ---- to be read from across a room. Each scene sizes itself from the room
+// ---- its tile grants: a share of the room for the one-row scenes (COUNT,
+// ---- TAKE), a two-row budget for ADD, all capped so the smallest phone and
+// ---- the largest tablet both stay clear of the label and each other.
 
 @Composable
 private fun MiniShape(kind: ShapeKind, sizeDp: Dp) {
@@ -177,54 +183,62 @@ private fun MiniPanel(rim: Color, content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun MiniSeated(kind: ShapeKind, seat: Color) {
+private fun MiniSeated(kind: ShapeKind, seat: Color, seatSize: Dp) {
     Box(contentAlignment = Alignment.Center) {
-        Box(Modifier.size(46.dp).background(seat, CircleShape))
-        MiniShape(kind, 34.dp)
+        Box(Modifier.size(seatSize).background(seat, CircleShape))
+        MiniShape(kind, seatSize * 0.74f)
     }
 }
 
 @Composable
-private fun CountMini() {
+private fun CountMini(room: Dp) {
     MiniPanel(Blue) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            repeat(3) { MiniShape(ShapeKind.APPLE, 34.dp) }
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            repeat(3) { MiniShape(ShapeKind.APPLE, miniUnit(room)) }
         }
     }
 }
 
 @Composable
-private fun AddMini() {
+private fun AddMini(room: Dp) {
+    // The plate row and the bowl row share the room: seats a touch larger
+    // than the loose shapes, the same part-colour story the game itself tells.
+    val unit = (room - 56.dp) / 1.72f
+    val shape = (unit * 0.72f).coerceIn(26.dp, 56.dp)
+    val seat = unit.coerceIn(36.dp, 78.dp)
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            MiniPanel(Blue) { MiniShape(ShapeKind.STAR, 30.dp) }
+            MiniPanel(Blue) { MiniShape(ShapeKind.STAR, shape) }
             MiniPanel(Orange) {
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    MiniShape(ShapeKind.BALL, 30.dp)
-                    MiniShape(ShapeKind.BALL, 30.dp)
+                    MiniShape(ShapeKind.BALL, shape)
+                    MiniShape(ShapeKind.BALL, shape)
                 }
             }
         }
         MiniPanel(Green) {
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                MiniSeated(ShapeKind.STAR, SeatA)
-                MiniSeated(ShapeKind.BALL, SeatB)
-                MiniSeated(ShapeKind.BALL, SeatB)
+                MiniSeated(ShapeKind.STAR, SeatA, seat)
+                MiniSeated(ShapeKind.BALL, SeatB, seat)
+                MiniSeated(ShapeKind.BALL, SeatB, seat)
             }
         }
     }
 }
 
 @Composable
-private fun TakeMini() {
+private fun TakeMini(room: Dp) {
     MiniPanel(Pink) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            MiniShape(ShapeKind.APPLE, 34.dp)
-            GhostSlot(34.dp)
-            GhostSlot(34.dp)
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            MiniShape(ShapeKind.APPLE, miniUnit(room))
+            GhostSlot(miniUnit(room))
+            GhostSlot(miniUnit(room))
         }
     }
 }
+
+/** The one-row scenes' shape size: a third of the tile's spare room, capped. */
+private fun miniUnit(room: Dp): Dp = (room * 0.34f).coerceIn(34.dp, 60.dp)

@@ -2,6 +2,7 @@ package toybox.tools
 
 import java.awt.BasicStroke
 import java.awt.geom.Ellipse2D
+import java.awt.geom.Line2D
 import java.awt.geom.RoundRectangle2D
 import java.io.File
 
@@ -105,6 +106,37 @@ fun storeIcon(root: File) {
     savePng(resizeBicubic(img, 512, 512), File(root, "play-store/play-icon-512.png"))
 }
 
+/**
+ * The themed-icon glyph (Android 13+): the same poured bowl, reduced to one
+ * white outline. The launcher tints it however the parent's wallpaper wants,
+ * so it ships as alpha-only art. No seats: single-tone glyphs read best as
+ * pure line, and the five shapes still say 3+2 by their arrangement.
+ */
+fun paintMonochrome(img: Img, cx: Double, cy: Double, w: Double) {
+    val h = w * 0.52
+    val g = graphics(img)
+    val corner = minOf(w, h) * 0.14
+    val stroke = maxOf(1.5, w * 0.016)
+    g.argb(WHITE)
+    g.stroke = BasicStroke(stroke.toFloat(), BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND)
+    g.draw(RoundRectangle2D.Double(cx - w / 2, cy - h / 2, w, h, corner, corner))
+    val seat = w * 0.205
+    val box = seat * 0.86
+    val rowDy = h * 0.16
+    val colDx = w * 0.215
+    for (t in listOf(-1.0, 0.0, 1.0)) {
+        val ax = cx + t * colDx - box / 2
+        val ay = cy - rowDy - box / 2
+        g.draw(applePath(ax, ay, box / 100.0))
+        // The stem, so the outline reads as an apple at any size.
+        g.draw(Line2D.Double(ax + 50 * box / 100.0, ay + 26 * box / 100.0, ax + 56 * box / 100.0, ay + 6 * box / 100.0))
+    }
+    for (t in listOf(-0.5, 0.5)) {
+        g.draw(Ellipse2D.Double(cx + t * colDx - box * 0.44, cy + rowDy - box * 0.44, box * 0.88, box * 0.88))
+    }
+    g.dispose()
+}
+
 private val DENSITIES = listOf("mdpi" to 48, "hdpi" to 72, "xhdpi" to 96, "xxhdpi" to 144, "xxxhdpi" to 192)
 
 fun launcherIcons(root: File) {
@@ -120,5 +152,10 @@ fun launcherIcons(root: File) {
         val fg = iconBg(canvas)
         paintBowl(fg, canvas / 2.0, canvas * 0.52, canvas * 0.54)
         savePng(fg, File(root, "app/src/main/res/mipmap-$name/ic_launcher_foreground.png"))
+
+        // Themed-icon layer: same geometry, alpha-only white outline.
+        val mono = img(canvas, canvas)
+        paintMonochrome(mono, canvas / 2.0, canvas * 0.52, canvas * 0.54)
+        savePng(mono, File(root, "app/src/main/res/mipmap-$name/ic_launcher_monochrome.png"))
     }
 }

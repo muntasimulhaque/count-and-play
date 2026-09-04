@@ -166,6 +166,25 @@ class AddLayoutTest {
     }
 
     @Test
+    fun `row plans are full rows plus a centred remainder`() {
+        // The deterministic tray layout chunks by [rowPlan], so the plan
+        // itself carries the promise: full rows of exactly perRow, a final
+        // remainder that is never a lonely one (for the template's rows).
+        for (count in 1..10) {
+            val plan = rowPlan(count, perRowTemplate(count))
+            assertEquals("count $count lost items", count, plan.sum())
+            assertTrue(plan.all { it <= perRowTemplate(count) })
+            assertTrue(plan.dropLast(1).all { it == perRowTemplate(count) })
+            if (count >= 2) {
+                assertTrue("count $count plans an orphan", plan.last() >= 2 || plan.size == 1)
+            }
+        }
+        assertEquals(emptyList<Int>(), rowPlan(0, 4))
+        assertEquals(listOf(3, 2), rowPlan(5, 3))
+        assertEquals(listOf(1, 1, 1), rowPlan(3, 1))
+    }
+
+    @Test
     fun `single trays use the room a phone offers`() {
         // Four becomes a big line of four, five the 3+2 five-frame, ten a
         // couple of full rows: all at sizes a small finger enjoys.

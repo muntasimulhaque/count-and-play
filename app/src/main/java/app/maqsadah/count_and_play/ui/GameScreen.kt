@@ -175,6 +175,7 @@ private fun SettingsLayer(
             language = languageOf(ui.copy),
             muted = ui.muted,
             voiceAvailable = ui.voiceAvailable,
+            voiceReady = ui.voiceReady,
             onSetLanguage = onSetLanguage,
             onToggleMute = onToggleMute,
             onCloseSettings = onCloseSettings,

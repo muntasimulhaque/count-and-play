@@ -33,9 +33,14 @@ internal val HitTarget = 72.dp
 /** How much a seated token's node exceeds its body. */
 internal const val SeatScale = 1.3f
 
-/** Object-size ceilings: one-tray games may grow huge, ADD shares a screen. */
-internal val SingleCap = 128.dp
-internal val AddCap = 96.dp
+/**
+ * Object-size ceilings. One-tray games may grow huge, ADD shares a screen so
+ * its ceiling is lower, and both are sized for a toddler's eye, not a phone's
+ * width: on tablets these are what bind, and the toys should grow to fill the
+ * room rather than float in a sea of white liner.
+ */
+internal val SingleCap = 180.dp
+internal val AddCap = 132.dp
 
 /** The floor below which shrinking stops entirely. */
 internal val MinObject = 24.dp
@@ -65,6 +70,17 @@ internal fun perRowTemplate(count: Int): Int = when {
 
 /** One solved tray: how big each object draws, and how many sit in a row. */
 internal data class TraySolution(val size: Dp, val perRow: Int)
+
+/**
+ * How [count] items divide into rows of at most [perRow]: full rows first,
+ * then the remainder centred beneath them (the tray layout places every row
+ * centred, so 5 at three-per-row reads as the classic 3-over-2).
+ */
+internal fun rowPlan(count: Int, perRow: Int): List<Int> {
+    val p = perRow.coerceAtLeast(1)
+    if (count <= 0) return emptyList()
+    return List(count / p) { p } + (if (count % p > 0) listOf(count % p) else emptyList())
+}
 
 /** The node a token of [size] occupies: touch floor, plus seat growth. */
 internal fun nodeOf(size: Dp, seated: Boolean): Dp =

@@ -28,3 +28,6 @@ aab/
 # again. Uploads come from play-store/screenshots/.
 store-shots/
 __pycache__/
+
+# Local agent-harness scratch space, never part of the repo.
+.commandcode/

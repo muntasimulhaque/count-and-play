@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -118,12 +117,15 @@ private fun FactContent(flash: Flash, copy: Copy) {
 private fun digitsOf(n: Int): Int = n.toString().length
 
 /**
- * The equation row shrinks to fit whatever width the phone has, so even the
- * widest fact at the largest accessibility font scale stays fully on screen.
+ * The equation row hugs its glyphs: the card is sized by the fact it carries,
+ * not stretched to the screen, so the card reads as a thing that arrived,
+ * whatever the device. It still shrinks to fit whatever width the phone has,
+ * so even the widest fact at the largest accessibility font scale stays
+ * fully on screen.
  */
 @Composable
 private fun FactRow(glyphs: Int, content: @Composable (TextUnit) -> Unit) {
-    BoxWithConstraints(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+    BoxWithConstraints(contentAlignment = Alignment.Center) {
         val fontScale = LocalDensity.current.fontScale
         // Digit glyph ~0.62em, each operator ~0.75em including its padding.
         val needed = (glyphs * 0.62f + 2 * 0.75f) * SizeFlash.value * fontScale
@@ -136,7 +138,16 @@ private fun FactRow(glyphs: Int, content: @Composable (TextUnit) -> Unit) {
 
 @Composable
 private fun Numeral(text: String, color: Color, size: TextUnit) {
-    Text(text, color = color, fontSize = size, fontWeight = ToyBlack, fontFamily = ToyFont)
+    Text(
+        text,
+        color = color,
+        fontSize = size,
+        // A tight line box: Baloo's default line height is nearly double the
+        // cap height, which used to leave the card half empty air.
+        lineHeight = size * 1.05f,
+        fontWeight = ToyBlack,
+        fontFamily = ToyFont,
+    )
 }
 
 @Composable
@@ -146,6 +157,7 @@ private fun Operator(text: String, size: TextUnit) {
         Modifier.padding(horizontal = 8.dp),
         color = Ink,
         fontSize = size * 0.6f,
+        lineHeight = size * 0.63f,
         fontWeight = ToyBlack,
         fontFamily = ToyFont,
     )

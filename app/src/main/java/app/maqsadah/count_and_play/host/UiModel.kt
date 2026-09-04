@@ -29,6 +29,9 @@ data class UiModel(
     val firstRun: Boolean,
     /** False when the device lacks TTS voice data for the chosen language. */
     val voiceAvailable: Boolean = true,
+    /** False while the TTS engine has not yet bound: the missing-voice note
+     *  must wait for it, or every cold start scolds a healthy device. */
+    val voiceReady: Boolean = true,
     val flash: Flash? = null,
     /** Increments to fire one confetti burst. */
     val confettiKey: Int = 0,
