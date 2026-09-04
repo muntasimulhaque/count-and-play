@@ -24,8 +24,7 @@ letter.
    `ShapeKind` is the structural guarantee: there is no code path that renders
    a countable except through those ten shapes.
 
-Warmth comes from material, light, weight and voice instead: it rules out the
-lazy affective devices and forces the app toward what actually works at three.
+Warmth comes from material, light, weight and voice instead.
 
 ## Style
 
@@ -44,33 +43,31 @@ no quote marks around phrases, no markdown, no em-dashes.
   is a scar from the original Trusted Web Activity; Play ties an app to its
   first package ID forever. The *code namespace* is clean.
 - `versionCode` only ever increases. `targetSdk` moves only together with an
-  AGP that supports it (37 required AGP 9.3, Gradle 9.5, built-in Kotlin).
+  AGP that supports it.
 - **Zero manifest permissions.** This underpins the Data-safety declaration
   and the Families listing. Do not add one without a very good reason.
 - The signing keystore lives outside the repo and in the `KEYSTORE_BASE64`
   GitHub secret. If it is lost the app can never be updated again.
 
-## The game (v7)
+## The game
 
 Three games, each a huge picture button on the home screen; from there the app
 guides, and difficulty adapts invisibly *inside* a game.
 
 - **Count them:** tap the objects in any order; each tap leaves a numbered
   chip in HIS order and the voice says its number. The total lands as a huge
-  numeral the moment the last object is counted, not a few words later, with
-  a plain Well done! (সাব্বাশ) spoken over it.
+  numeral the moment the last object is counted, with a plain Well done!
+  (সাব্বাশ) spoken over it.
 - **Put together:** the LEFT plate is counted first, the right one asleep in
   washed-out grey until then, so two columns can never mix into one count. A
   finished plate wears its total as a candy badge that stays on through the
   pour. Then the big centred button pours them into one bowl below, and he
   counts the whole; the parts keep their coloured seats inside it, and the
-  plates keep their place (standing at full size where the screen allows,
-  folded into slim badge strips on tight phones). When both plates are
-  counted, the bowl itself wears the words Put them together, so the cue to
-  pour lives where the finger goes and never depends on the voice.
+  plates keep their place. Once both plates are counted the bowl wears the
+  words Put them together, so the cue to pour lives where the finger goes.
 - **Take away:** he counts the whole tray first, exactly as in Count them;
   only then does the ask hang above the tray as numerals (5 − 1), and he taps
-  the asked number out, each taken piece moving down into an empty taken box
+  the asked number out, each taken piece moving down into the taken box
   wearing its take-away number; then he counts what is left himself.
 
 Every round ends with the fact arriving huge on screen (`3 + 2 = 5`) while the
@@ -107,15 +104,15 @@ playable in plain JVM tests and store screenshots render straight from state.
 5. No user-facing string outside `copy/`.
 6. All speech goes through `Narrator` as host-performed `Beat.Say*` beats,
    epoch-guarded and gated on foreground/mute, so nothing speaks unseen and a
-   stale callback can never resurrect speech.
+   stale callback stays dead.
 7. **No `busy` flag that swallows input.** During play a tap always produces an
    outcome. (Celebration-dwell taps are gently ignored so drumming cannot score
    a finished round as struggle.)
 8. No countable is ever an emoji or a bitmap. `ShapeKind` only.
 9. No fail state. Struggling *eases* the ladder; "wrong" is never spoken.
 10. Arithmetic totals stay ≤ 5 at first and ≤ 10 at the top level; counting
-    practice ≤ 10, ADD plates ≤ 5. Not stylistic: subitizing at three tops out
-    near 3 and plates must stay five-frame-shaped and tappable.
+    practice ≤ 10, ADD plates ≤ 5. Subitizing at three tops out near 3 and
+    plates must stay five-frame-shaped and tappable.
 11. ≤ 400 lines per file, ≤ 40 per function. If anything passes, split it.
 12. **The three games are always visible.** Difficulty adapts *inside* a game,
     never to the home screen. Nothing the child has been shown is taken away.
@@ -131,10 +128,9 @@ playable in plain JVM tests and store screenshots render straight from state.
 - **Subtraction stays visible:** taken objects wear their take-away number in
   ghost holes; "left" is a quantity you can see, not a disappearing act.
 - **Symbols arrive at the moment of the fact**, never earlier, never as
-  chrome. Praise the mathematics, not the child. (One owner's exception,
-  deliberate: a finished COUNT speaks a plain Well done / সাব্বাশ, because his
-  son asked where the encouragement went. The facts themselves still speak
-  for themselves.)
+  chrome. Praise the mathematics, not the child. (One deliberate exception: a
+  finished COUNT speaks a plain Well done / সাব্বাশ, because his son asked
+  where the encouragement went.)
 - Re-taps are recorded, never punished: hesitation is diagnostic, the ladder
   eases, it never scolds.
 
@@ -151,80 +147,31 @@ playable in plain JVM tests and store screenshots render straight from state.
 An Android SDK and the Android Studio JBR are installed on the owner's machine
 (`JAVA_HOME` must point at the JBR; it is not on PATH).
 
-**Any UI change must be verified from rendered screenshot artifacts, not by
-reading code, and those artifacts come from CI.** The loop is: push (any UI
-push triggers screenshots.yml), wait the ~five minutes, download the three
-store-screenshots-* artifacts, refresh play-store/screenshots/, and read the
-PNGs on all three form factors. Do not boot a local emulator to pre-check UI
-work; the local API 35 AVD recipe below exists only as an emergency fallback
-for when CI itself cannot answer (e.g. iterating on capture machinery), and
-if a local capture fails twice, stop debugging the emulator and let CI do it.
-Capture is pinned to API 35 because both Android 17 images break under WHPX
-here and on hosted runners alike (see the emulator notes); API 35 renders the
-Compose UI identically, so nothing is lost.
+UI changes are verified from CI screenshot artifacts, never by reading code.
+Any push touching UI runs `screenshots.yml` (API 35, three form factors, eight
+scenes each, about five minutes); manual `workflow_dispatch` works too.
+Download the three `store-screenshots-*` artifacts (`gh run download <run-id>
+-R muntasimulhaque/count-and-play -D <dir>`; `-R` works from any directory and
+either machine), strip the form-factor prefix into `play-store/screenshots/`
+(`phone/`, `tablet7/`, `tablet10/`), and delete scenes the test no longer
+shoots. Git status is the drift check: a no-change refresh comes back
+byte-identical, a real change moves exactly the scenes that changed. Byte noise
+is not drift: phone-only pixels off by one step with zero pixels at 2 percent
+fuzz means emulator rasterization noise, safe to note in the message and move
+on; real pixels on all form factors mean a real change, find it first.
 
-**Emulator notes, learned the hard way on this machine (do not re-derive):**
-
-- Both Android 17 images (37.1 ps16k and 37.0 4k) are broken on this host,
-  on every GPU mode and with memory and disk to spare: the moment an app
-  starts rendering, surfaceflinger aborts with the assertion
-  `!rcEnc->featureInfo()->hasReadColorBufferDma`, the system server falls
-  with it, and every later adb command dies with Broken pipe or
-  Can't find service: package. Until Google's 17 graphics stack works under
-  WHPX here, local verification and capture run on API 35 AVDs
-  (`Pixel_4_35`, `Nexus_7_35`, `Pixel_C_35`), the same image CI uses.
-  The broken 37.x images and their AVDs were deleted from this machine to
-  reclaim the disk; bring them back with sdkmanager if upstream ever fixes
-  the renderer, and re-apply the data-partition fix below to any new AVD.
-- AVDs that avdmanager creates get a ~792 MB data partition, and installs fail
-  with Requested internal only, but not enough space. Fix once per AVD: put
-  `disk.dataPartition.size=6G` in its config.ini (not hw.diskSize, which the
-  emulator ignores) and delete `userdata-qemu.img*` so it is recreated.
-- Free host RAM before booting: `./gradlew --stop`, and kill leftover
-  `qemu-system-x86_64-headless.exe` processes; a starved host kills the guest's
-  system server.
-- Git Bash on Windows rewrites `/sdcard/...` arguments; export
-  `MSYS_NO_PATHCONV=1` before any adb shell command that carries one.
-- Capture without Gradle: `adb install` both APKs, then
-  `adb shell am instrument -w -e additionalTestOutputDir /sdcard/shots
-  app.maqsadah.count_and_play.twa.test/androidx.test.runner.AndroidJUnitRunner`,
-  then `adb pull /sdcard/shots`. Gradle's split APK install path trips over
-  the flaky package service; the streamed install does not.
-
-**Store screenshots come from CI, never from a hand-rolled local setup.** The
-committed references under `play-store/screenshots/` are refreshed from the
-`screenshots.yml` artifacts, not re-captured per machine:
-
-- Any push touching UI files runs `screenshots.yml` on API 35: three form
-  factors, eight scenes each (the Play Console maximum per form factor).
-  Manual `workflow_dispatch` works too. A run takes about five minutes.
-- When the UI changes, download that run's three `store-screenshots-*`
-  artifacts (`gh run download <run-id> -R muntasimulhaque/count-and-play -D
-  <dir>`; the `-R` lets this work from any directory and either machine).
-  Each artifact's eight PNGs go into their subfolder under
-  `play-store/screenshots/` (`phone/`, `tablet7/`, `tablet10/`), renamed to
-  drop the form-factor prefix (the subfolder carries it instead of the
-  filename). Delete any scene the test no longer shoots. The references must
-  never drift from what ships.
-- Never attempt API 37 capture, locally or in CI, until Google's Android 17
-  images boot reliably both under WHPX here and on hosted runners. Every
-  attempt so far failed in a new way; API 35 renders the Compose UI
-  identically, so screenshots gain nothing from 37 but inherit its breakage.
-- The local API 35 AVD recipe above is a fallback for interactive checks only.
-  If a local capture fails twice, stop debugging the emulator and let CI do
-  it.
-- **Byte-level noise is not drift.** On 2026-08-31 a no-UI-change refresh came back dirty on phone only: a few percent of pixels differed by one step in 255, zero pixels at a 2 percent tolerance, and the diff image was blank. That is emulator rasterization noise, not a UI change (a real change shows on all form factors with visible deltas). When a refresh is dirty, compare with a small fuzz tolerance first: zero differing pixels at 2 percent means noise, safe to commit with a note in the message; real pixels mean a real change, find it before committing.
-- **The refresh loop is proven drivable by hand, end to end.** On 2026-08-24
-  the 7.5 push produced all 24 shots in five minutes; on 2026-08-25 a bare
-  workflow_dispatch dry run repeated the whole thing from this machine in
-  under five minutes: gh workflow run screenshots.yml, poll gh run view
-  until completed/success, gh run download the three store-screenshots-*
-  artifacts (-R muntasimulhaque/count-and-play), copy each artifact's eight
-  PNGs into its subfolder under play-store/screenshots/ with the form-factor
-  prefix stripped. Git status is the drift check: with no UI change the
-  refreshed references must come back byte-identical, a clean tree; after a
-  real UI change the diff shows exactly the scenes that moved. Any other
-  outcome is a bug in the loop, not something to patch by hand.
+Do not pre-check UI on a local emulator; CI is the loop. Local API 35 AVDs
+(`Pixel_4_35`, `Nexus_7_35`, `Pixel_C_35`, the same image CI uses) exist only
+for when CI itself cannot answer, and if a local capture fails twice, stop and
+let CI do it. Never attempt API 37 capture until Android 17 images boot
+reliably under WHPX and on hosted runners; they currently crash the graphics
+stack on first render. Lessons that still bite per AVD: set
+`disk.dataPartition.size=6G` in config.ini (not `hw.diskSize`) and recreate the
+userdata image; free host RAM first (`./gradlew --stop`, kill stray
+`qemu-system-x86_64-headless.exe` processes); export `MSYS_NO_PATHCONV=1`
+before adb commands carrying `/sdcard/...`; install with `adb install` plus
+`am instrument`, since the Gradle split-APK path trips the flaky package
+service.
 
 ## Pull before working
 
@@ -249,20 +196,15 @@ Bump `versionCode` +1 and `versionName` (+0.1 for small releases), push to
 
 - `build.yml` runs tests, lint and `:tools:checkSounds`, then builds the
   signed AAB and publishes it to the `latest-build` GitHub release. Pull the
-  AAB from that release; the `builds` branch has gone stale before.
-- `screenshots.yml` captures fresh store screenshots whenever UI files change
+  AAB from that release.
+- `screenshots.yml` recaptures store screenshots whenever UI files change
   (three form factors, eight scenes, the Play Console maximum). Pinned to
-  API 35; see Store screenshots under Build.
+  API 35; see Build for the refresh loop.
 
 Deliver the upload kit in one place: the AAB in `aab/`, release notes
 paste-ready in chat (English, plain prose). Upload screenshots straight from
 `play-store/screenshots/`, one subfolder per form factor (`phone/`,
-`tablet7/`, `tablet10/`), which the Store screenshots rule keeps identical to
-what CI captured; there is no separate staging folder (the local
-`store-shots/` convention is retired; the same-named folder inside
-screenshots.yml is CI-internal scratch and unrelated). Listing text, feature
-graphic and icon live in `play-store/`; the graphic and icon are `makeArt`
-outputs, so whenever either is regenerated, upload the new PNGs to the
-listing as well. The owner uploads to Play Console and
-pastes the notes.
-
+`tablet7/`, `tablet10/`). Listing text, feature graphic and icon live in
+`play-store/`; the graphic and icon are `makeArt` outputs, so whenever either
+is regenerated, upload the new PNGs to the listing as well. The owner uploads
+to Play Console and pastes the notes.
