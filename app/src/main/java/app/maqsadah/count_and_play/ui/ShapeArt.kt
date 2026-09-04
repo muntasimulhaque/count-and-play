@@ -49,7 +49,8 @@ private val shapeColors = mapOf(
     ShapeKind.BALL to ShapeColors(Color(0xFF0EA0AE), Color(0xFF04525A), Color(0xFF44C0CC)),
 )
 
-fun colorsFor(shape: ShapeKind): ShapeColors = shapeColors.getValue(shape)
+fun colorsFor(shape: ShapeKind): ShapeColors =
+    shapeColors[shape] ?: shapeColors.getValue(ShapeKind.BALL)
 
 private const val BOX = 100f
 private val StemBrown = Color(0xFF7A5233)

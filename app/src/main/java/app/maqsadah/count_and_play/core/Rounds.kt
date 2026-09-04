@@ -1,5 +1,6 @@
 package app.maqsadah.count_and_play.core
 
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toPersistentList
 
 /**
@@ -78,10 +79,12 @@ object TakeRound {
         val n = rng.range(nBounds.first, nBounds.last)
         val bBounds = takeB(level)
         // b < n is guaranteed by the bounds tables, but never trust the table.
-        val b = rng.range(bBounds.first, minOf(bBounds.last, n - 1))
+        // If n ever collapses to 1, keep b < n instead of crashing in range().
+        val b = if (n <= 1) 0 else rng.range(bBounds.first, minOf(bBounds.last, n - 1))
         return TakeState(n, b, tokens(n, rng))
     }
 }
 
 private fun tokens(count: Int, rng: Rng) =
-    (1..count).map { Token(it, rng.pick(ShapeKind.all)) }.toPersistentList()
+    if (count <= 0) persistentListOf()
+    else (1..count).map { Token(it, rng.pick(ShapeKind.all)) }.toPersistentList()

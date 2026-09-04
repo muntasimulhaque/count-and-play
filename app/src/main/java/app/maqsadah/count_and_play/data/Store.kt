@@ -2,6 +2,7 @@ package app.maqsadah.count_and_play.data
 
 import android.content.Context
 import app.maqsadah.count_and_play.copy.Language
+import app.maqsadah.count_and_play.core.Adapt
 
 /**
  * Everything that survives a restart: the grown-up's language and mute
@@ -15,40 +16,51 @@ class Store(context: Context) {
         context.applicationContext.getSharedPreferences(FILE, Context.MODE_PRIVATE)
 
     var language: Language?
-        get() = Language.entries.firstOrNull { it.name == prefs.getString(KEY_LANGUAGE, null) }
+        get() = runCatching {
+            Language.entries.firstOrNull { it.name == prefs.getString(KEY_LANGUAGE, null) }
+        }.getOrNull()
         set(value) {
-            prefs.edit().putString(KEY_LANGUAGE, value?.name).apply()
+            runCatching { prefs.edit().putString(KEY_LANGUAGE, value?.name).apply() }
         }
 
     var languageChosen: Boolean
-        get() = prefs.getBoolean(KEY_LANGUAGE_CHOSEN, false)
+        get() = runCatching { prefs.getBoolean(KEY_LANGUAGE_CHOSEN, false) }.getOrDefault(false)
         set(value) {
-            prefs.edit().putBoolean(KEY_LANGUAGE_CHOSEN, value).apply()
+            runCatching { prefs.edit().putBoolean(KEY_LANGUAGE_CHOSEN, value).apply() }
         }
 
     var muted: Boolean
-        get() = prefs.getBoolean(KEY_MUTED, false)
+        get() = runCatching { prefs.getBoolean(KEY_MUTED, false) }.getOrDefault(false)
         set(value) {
-            prefs.edit().putBoolean(KEY_MUTED, value).apply()
+            runCatching { prefs.edit().putBoolean(KEY_MUTED, value).apply() }
         }
 
     var levelCount: Int
-        get() = prefs.getInt(KEY_LEVEL_COUNT, 0)
+        get() = readLevel(KEY_LEVEL_COUNT)
         set(value) {
-            prefs.edit().putInt(KEY_LEVEL_COUNT, value).apply()
+            writeLevel(KEY_LEVEL_COUNT, value)
         }
 
     var levelAdd: Int
-        get() = prefs.getInt(KEY_LEVEL_ADD, 0)
+        get() = readLevel(KEY_LEVEL_ADD)
         set(value) {
-            prefs.edit().putInt(KEY_LEVEL_ADD, value).apply()
+            writeLevel(KEY_LEVEL_ADD, value)
         }
 
     var levelTake: Int
-        get() = prefs.getInt(KEY_LEVEL_TAKE, 0)
+        get() = readLevel(KEY_LEVEL_TAKE)
         set(value) {
-            prefs.edit().putInt(KEY_LEVEL_TAKE, value).apply()
+            writeLevel(KEY_LEVEL_TAKE, value)
         }
+
+    private fun readLevel(key: String): Int = runCatching {
+        prefs.getInt(key, 0)
+    }.getOrDefault(0).coerceIn(0, Adapt.MAX_LEVEL)
+
+    private fun writeLevel(key: String, value: Int) {
+        val clamped = value.coerceIn(0, Adapt.MAX_LEVEL)
+        runCatching { prefs.edit().putInt(key, clamped).apply() }
+    }
 
     private companion object {
         const val FILE = "count_and_play"

@@ -16,6 +16,7 @@ import app.maqsadah.count_and_play.core.Adapt
 import app.maqsadah.count_and_play.core.Beat
 import app.maqsadah.count_and_play.core.Round
 import app.maqsadah.count_and_play.core.SessionState
+import app.maqsadah.count_and_play.core.Sfx
 import app.maqsadah.count_and_play.core.Skill
 import app.maqsadah.count_and_play.core.startSession
 import app.maqsadah.count_and_play.data.Store
@@ -70,54 +71,62 @@ class GameHost(application: Application) : AndroidViewModel(application) {
     // -- The child's choices -------------------------------------------------
 
     fun choose(skill: Skill) {
-        hush()
-        flash = null
-        // Deal straight at the stored level, so a returning child never
-        // regresses to level 0 for one round after a restart.
-        val next = startSession(
-            skill = skill,
-            seed = freshSeed(),
-            level = when (skill) {
-                Skill.COUNT -> adaptCount.level
-                Skill.ADD -> adaptAdd.level
-                Skill.TAKE -> adaptTake.level
-            },
-            adaptCount = adaptCount,
-            adaptAdd = adaptAdd,
-            adaptTake = adaptTake,
-        )
-        session = next
-        publish()
-        perform(next.round.startBeats())
+        runCatching {
+            hush()
+            flash = null
+            // Deal straight at the stored level, so a returning child never
+            // regresses to level 0 for one round after a restart.
+            val next = startSession(
+                skill = skill,
+                seed = freshSeed(),
+                level = when (skill) {
+                    Skill.COUNT -> adaptCount.level
+                    Skill.ADD -> adaptAdd.level
+                    Skill.TAKE -> adaptTake.level
+                },
+                adaptCount = adaptCount,
+                adaptAdd = adaptAdd,
+                adaptTake = adaptTake,
+            )
+            session = next
+            publish()
+            perform(next.round.startBeats())
+        }
     }
 
     fun tap(id: Int) {
-        val current = session ?: return
-        // Taps during the celebration dwell must not count as struggles; the
-        // core guards this too, but skipping here avoids a wasted publish.
-        if (current.round.done) return
-        val (next, beats) = current.tap(id)
-        session = next
-        publish()
-        perform(beats)
+        runCatching {
+            val current = session ?: return
+            // Taps during the celebration dwell must not count as struggles; the
+            // core guards this too, but skipping here avoids a wasted publish.
+            if (current.round.done) return
+            val (next, beats) = current.tap(id)
+            session = next
+            publish()
+            perform(beats)
+        }
     }
 
     /** The ADD pour button: the one in-round action that is not a token tap. */
     fun pour() {
-        val current = session ?: return
-        if (current.round.done) return
-        val (next, beats) = current.pour()
-        session = next
-        publish()
-        perform(beats)
+        runCatching {
+            val current = session ?: return
+            if (current.round.done) return
+            val (next, beats) = current.pour()
+            session = next
+            publish()
+            perform(beats)
+        }
     }
 
     fun home() {
-        hush()
-        abandonAudioFocus()
-        session = null
-        flash = null
-        publish()
+        runCatching {
+            hush()
+            abandonAudioFocus()
+            session = null
+            flash = null
+            publish()
+        }
     }
 
     // -- Grown-ups -------------------------------------------------------------
@@ -133,27 +142,31 @@ class GameHost(application: Application) : AndroidViewModel(application) {
     }
 
     fun setLanguage(language: Language) {
-        store.language = language
-        store.languageChosen = true
-        narrator.setLanguage(language)
-        // Relabel only: beats carry typed lines, so the new Copy rewords
-        // whatever is said next. Nothing is retold.
-        publish()
+        runCatching {
+            store.language = language
+            store.languageChosen = true
+            narrator.setLanguage(language)
+            // Relabel only: beats carry typed lines, so the new Copy rewords
+            // whatever is said next. Nothing is retold.
+            publish()
+        }
     }
 
     fun toggleMute() {
-        store.muted = !store.muted
-        narrator.setMuted(store.muted)
-        publish()
+        runCatching {
+            store.muted = !store.muted
+            narrator.setMuted(store.muted)
+            publish()
+        }
     }
 
     // -- Lifecycle -------------------------------------------------------------
 
     /** Backgrounding stops the app dead, rather than leaving it talking unseen. */
     fun pause() {
-        abandonAudioFocus()
-        performance?.cancel()
-        narrator.pause()
+        runCatching { abandonAudioFocus() }
+        runCatching { performance?.cancel() }
+        runCatching { narrator.pause() }
     }
 
     /**
@@ -162,20 +175,22 @@ class GameHost(application: Application) : AndroidViewModel(application) {
      * re-armed so the round still advances instead of freezing on the card.
      */
     fun resume() {
-        narrator.resume()
-        val current = session
-        if (current != null && current.round.done && flash != null) {
-            perform(emptyList())
-        } else if (scriptIndex < script.size) {
-            perform(script.drop(scriptIndex))
+        runCatching { narrator.resume() }
+        runCatching {
+            val current = session
+            if (current != null && current.round.done && flash != null) {
+                perform(emptyList())
+            } else if (scriptIndex < script.size) {
+                perform(script.drop(scriptIndex))
+            }
         }
     }
 
     override fun onCleared() {
-        performance?.cancel()
-        abandonAudioFocus()
-        narrator.release()
-        sounds.release()
+        runCatching { performance?.cancel() }
+        runCatching { abandonAudioFocus() }
+        runCatching { narrator.release() }
+        runCatching { sounds.release() }
     }
 
     // -- Beat performance ------------------------------------------------------
@@ -204,7 +219,7 @@ class GameHost(application: Application) : AndroidViewModel(application) {
     private suspend fun render(beat: Beat) {
         when (beat) {
             is Beat.Play -> {
-                sounds.play(beat.sfx)
+                safePlay(beat.sfx)
                 delay(150L)
             }
             is Beat.SayCount -> say(copy.numberWord(beat.n))
@@ -219,21 +234,29 @@ class GameHost(application: Application) : AndroidViewModel(application) {
             is Beat.SayFactTake -> say(copy.factTake(beat.n, beat.b, beat.left))
             is Beat.FlashCount -> {
                 flash = Flash.Count(beat.n)
-                publish()
+                safePublish()
             }
             is Beat.FlashAdd -> {
                 flash = Flash.Add(beat.a, beat.b, beat.total)
-                publish()
+                safePublish()
             }
             is Beat.FlashTake -> {
                 flash = Flash.Take(beat.n, beat.b, beat.left)
-                publish()
+                safePublish()
             }
             Beat.Confetti -> {
                 confettiKey++
-                publish()
+                safePublish()
             }
         }
+    }
+
+    private fun safePlay(sfx: Sfx) {
+        runCatching { sounds.play(sfx) }
+    }
+
+    private fun safePublish() {
+        runCatching { publish() }
     }
 
     /**
@@ -243,37 +266,49 @@ class GameHost(application: Application) : AndroidViewModel(application) {
      * immediately, because its performance job replaces this one.
      */
     private suspend fun say(line: String) {
-        narrator.speak(line)
+        runCatching { narrator.speak(line) }
         var waited = MIN_SAY_MS
         delay(MIN_SAY_MS)
-        while (narrator.speaking && waited < MAX_SAY_MS) {
+        while (isSpeaking() && waited < MAX_SAY_MS) {
             delay(SAY_POLL_MS)
             waited += SAY_POLL_MS
         }
     }
+
+    private fun isSpeaking(): Boolean =
+        runCatching { narrator.speaking }.getOrDefault(false)
 
     /** Records the finished round into its Adapt, persists the levels, and
      *  deals the next round of the same skill. */
     private suspend fun advance() {
         val current = session ?: return
         if (!current.round.done) return
-        val (next, startBeats) = current.nextRound()
+        val (next, startBeats) = runCatching { current.nextRound() }.getOrNull() ?: return
         session = next
-        store.levelCount = next.adaptCount.level
-        store.levelAdd = next.adaptAdd.level
-        store.levelTake = next.adaptTake.level
+        runCatching {
+            store.levelCount = next.adaptCount.level
+            store.levelAdd = next.adaptAdd.level
+            store.levelTake = next.adaptTake.level
+        }
         adaptCount = next.adaptCount
         adaptAdd = next.adaptAdd
         adaptTake = next.adaptTake
         flash = null
-        publish()
-        for (beat in startBeats) render(beat)
+        safePublish()
+        script = startBeats
+        scriptIndex = 0
+        while (scriptIndex < script.size) {
+            render(script[scriptIndex])
+            scriptIndex++
+        }
     }
 
     /** Stops whatever is being said, without touching what is on screen. */
     private fun hush() {
-        performance?.cancel()
-        narrator.stop()
+        runCatching { performance?.cancel() }
+        runCatching { narrator.stop() }
+        script = emptyList()
+        scriptIndex = 0
     }
 
     // -- Audio focus -----------------------------------------------------------
@@ -282,31 +317,36 @@ class GameHost(application: Application) : AndroidViewModel(application) {
     // permission, so the zero-permission promise stands.
 
     private fun requestAudioFocus() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || focusRequest != null) return
-        val manager = getApplication<Application>().getSystemService(AudioManager::class.java) ?: return
-        val request = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
-            .setAudioAttributes(
-                AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_GAME)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                    .build(),
-            )
-            .build()
-        manager.requestAudioFocus(request)
-        focusRequest = request
+        runCatching {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || focusRequest != null) return
+            val manager = getApplication<Application>().getSystemService(AudioManager::class.java) ?: return
+            val request = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
+                .setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_GAME)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                        .build(),
+                )
+                .build()
+            manager.requestAudioFocus(request)
+            focusRequest = request
+        }
     }
 
     private fun abandonAudioFocus() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || focusRequest == null) return
-        val manager = getApplication<Application>().getSystemService(AudioManager::class.java) ?: return
-        manager.abandonAudioFocusRequest(focusRequest!!)
-        focusRequest = null
+        runCatching {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+            val request = focusRequest ?: return
+            val manager = getApplication<Application>().getSystemService(AudioManager::class.java) ?: return
+            manager.abandonAudioFocusRequest(request)
+            focusRequest = null
+        }
     }
 
     // -- UiModel ----------------------------------------------------------------
 
     private fun publish() {
-        _ui.value = model()
+        runCatching { _ui.value = model() }
     }
 
     private fun model(): UiModel {

@@ -256,7 +256,7 @@ internal fun Tray(
             Modifier.padding(TrayPad),
             horizontalArrangement = Arrangement.spacedBy(TrayGap),
             verticalArrangement = Arrangement.spacedBy(TrayGap),
-            maxItemsInEachRow = layout.perRow,
+            maxItemsInEachRow = layout.perRow.coerceAtLeast(1),
         ) {
             content(size)
         }

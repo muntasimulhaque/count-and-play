@@ -6,6 +6,7 @@ import android.media.SoundPool
 import android.os.SystemClock
 import app.maqsadah.count_and_play.R
 import app.maqsadah.count_and_play.core.Sfx
+import java.util.Collections
 
 /**
  * SoundPool rather than MediaPlayer, deliberately: MediaPlayer's start latency
@@ -18,10 +19,12 @@ class SoundBoard(context: Context) {
     private val app = context.applicationContext
 
     private val loaded: Map<Sfx, Int>
-    private val readySamples = HashSet<Int>()
+    private val readySamples = Collections.synchronizedSet(HashSet<Int>())
 
-    /** The most recent request for a sample that was not loaded yet, replayed on load. */
-    private var pending: Sfx? = null
+    /** Requests that arrived before their sample decoded, replayed on load. */
+    private val pending = Collections.synchronizedSet(HashSet<Sfx>())
+
+    @Volatile private var released = false
 
     private val pool = SoundPool.Builder()
         .setMaxStreams(4)
@@ -34,47 +37,56 @@ class SoundBoard(context: Context) {
         .build()
 
     init {
-        // Registered before any load call, so the very first taps after process
-        // start are never silently dropped while samples decode.
-        pool.setOnLoadCompleteListener { _, sampleId, status ->
-            if (status != 0) return@setOnLoadCompleteListener
-            readySamples += sampleId
-            pending?.takeIf { loaded[it] == sampleId }?.let { wanted ->
-                pending = null
-                playNow(wanted)
+        loaded = mapOf(
+            Sfx.TICK to loadOrZero(R.raw.sfx_tick),
+            Sfx.THUD to loadOrZero(R.raw.sfx_thud),
+            Sfx.CHIME to loadOrZero(R.raw.sfx_chime),
+            Sfx.RUSTLE to loadOrZero(R.raw.sfx_rustle),
+        )
+        // Registered after the load calls, so the listener only ever sees
+        // sample ids this map already knows about.
+        runCatching {
+            pool.setOnLoadCompleteListener { _, sampleId, status ->
+                runCatching {
+                    if (status != 0) return@setOnLoadCompleteListener
+                    readySamples += sampleId
+                    loaded.entries.firstOrNull { it.value == sampleId }?.key?.let { wanted ->
+                        if (pending.remove(wanted)) playNow(wanted)
+                    }
+                }
             }
         }
-        loaded = mapOf(
-            Sfx.TICK to pool.load(app, R.raw.sfx_tick, 1),
-            Sfx.THUD to pool.load(app, R.raw.sfx_thud, 1),
-            Sfx.CHIME to pool.load(app, R.raw.sfx_chime, 1),
-            Sfx.RUSTLE to pool.load(app, R.raw.sfx_rustle, 1),
-        )
     }
 
-    private var lastChimeAt = 0L
+    private fun loadOrZero(resId: Int): Int =
+        runCatching { pool.load(app, resId, 1) }.getOrDefault(0)
+
+    @Volatile private var lastChimeAt = 0L
 
     fun play(sfx: Sfx) {
+        if (released) return
         val id = loaded[sfx] ?: return
         // Two pitched notes in quick succession make an interval, and intervals
         // are where melody starts. The flow keeps chimes seconds apart already;
         // this is the structural guarantee.
         if (sfx == Sfx.CHIME) {
-            val now = SystemClock.elapsedRealtime()
+            val now = runCatching { SystemClock.elapsedRealtime() }.getOrDefault(0L)
             if (now - lastChimeAt < CHIME_GAP_MS) return
             lastChimeAt = now
         }
-        if (id !in readySamples) {
-            pending = sfx
+        if (id == 0 || id !in readySamples) {
+            pending.add(sfx)
             return
         }
         playNow(sfx)
     }
 
     private fun playNow(sfx: Sfx) {
+        if (released) return
         val id = loaded[sfx] ?: return
+        if (id == 0) return
         val volume = volumeOf(sfx)
-        pool.play(id, volume, volume, 1, 0, 1f)
+        runCatching { pool.play(id, volume, volume, 1, 0, 1f) }
     }
 
     /** Effects duck under the voice so a number word is never masked. */
@@ -85,7 +97,12 @@ class SoundBoard(context: Context) {
         Sfx.RUSTLE -> 0.60f
     }
 
-    fun release() = pool.release()
+    fun release() {
+        if (released) return
+        released = true
+        runCatching { pending.clear() }
+        runCatching { pool.release() }
+    }
 
     private companion object {
         const val CHIME_GAP_MS = 1200L

@@ -127,7 +127,7 @@ private fun FactRow(glyphs: Int, content: @Composable (TextUnit) -> Unit) {
         val fontScale = LocalDensity.current.fontScale
         // Digit glyph ~0.62em, each operator ~0.75em including its padding.
         val needed = (glyphs * 0.62f + 2 * 0.75f) * SizeFlash.value * fontScale
-        val fit = minOf(1f, maxWidth.value / needed)
+        val fit = if (needed <= 0f) 1f else minOf(1f, maxWidth.value / needed).coerceAtLeast(0.2f)
         Row(verticalAlignment = Alignment.CenterVertically) {
             content((SizeFlash.value * fit).sp)
         }

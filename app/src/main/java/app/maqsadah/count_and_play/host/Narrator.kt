@@ -4,6 +4,7 @@ import android.app.Application
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import app.maqsadah.count_and_play.copy.Language
+import java.util.Collections
 import java.util.Locale
 
 /**
@@ -16,17 +17,18 @@ import java.util.Locale
  */
 class Narrator(application: Application, initialLanguage: Language) {
 
-    private var language = initialLanguage
-    private var ready = false
-    private var muted = false
-    private var foreground = true
-    private var epoch = 0L
+    @Volatile private var language = initialLanguage
+    @Volatile private var ready = false
+    @Volatile private var muted = false
+    @Volatile private var foreground = true
+    @Volatile private var epoch = 0L
     private var counter = 0L
-    private var queued: String? = null
-    private var engine: TextToSpeech? = null
-    private val pending = HashSet<String>()
+    @Volatile private var queued: String? = null
+    @Volatile private var engine: TextToSpeech? = null
+    private val pending = Collections.synchronizedSet(HashSet<String>())
 
     /** False when this device has no voice data for the chosen language. */
+    @Volatile
     var voiceAvailable = false
         private set
 
@@ -34,36 +36,44 @@ class Narrator(application: Application, initialLanguage: Language) {
     val speaking: Boolean get() = pending.isNotEmpty()
 
     init {
-        engine = TextToSpeech(application.applicationContext) { status ->
-            // The ViewModel can be cleared before the engine binds; a callback
-            // arriving after release() must not resurrect state.
-            if (engine == null) return@TextToSpeech
-            ready = status == TextToSpeech.SUCCESS
-            if (ready) {
-                engine?.setSpeechRate(RATE)
-                applyLanguage(language)
-                // The first prompt can arrive before the engine binds; saying
-                // it late beats the old failure of a muted first round.
-                queued?.let { queued = null; speak(it) }
-            }
-        }.apply {
-            setOnUtteranceProgressListener(object : UtteranceProgressListener() {
-                override fun onStart(utteranceId: String?) = Unit
-                override fun onDone(utteranceId: String?) = finish(utteranceId)
+        engine = runCatching {
+            TextToSpeech(application.applicationContext) { status ->
+                // The ViewModel can be cleared before the engine binds; a callback
+                // arriving after release() must not resurrect state.
+                runCatching {
+                    if (engine == null) return@TextToSpeech
+                    ready = status == TextToSpeech.SUCCESS
+                    if (ready) {
+                        engine?.setSpeechRate(RATE)
+                        applyLanguage(language)
+                        // The first prompt can arrive before the engine binds; saying
+                        // it late beats the old failure of a muted first round.
+                        queued?.let { queued = null; speak(it) }
+                    }
+                }
+            }.apply {
+                runCatching {
+                    setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+                        override fun onStart(utteranceId: String?) = Unit
+                        override fun onDone(utteranceId: String?) = finish(utteranceId)
 
-                @Deprecated("required by the framework")
-                override fun onError(utteranceId: String?) = finish(utteranceId)
-                override fun onError(utteranceId: String?, errorCode: Int) = finish(utteranceId)
-                override fun onStop(utteranceId: String?, interrupted: Boolean) = finish(utteranceId)
-            })
-        }
+                        @Deprecated("required by the framework")
+                        override fun onError(utteranceId: String?) = finish(utteranceId)
+                        override fun onError(utteranceId: String?, errorCode: Int) = finish(utteranceId)
+                        override fun onStop(utteranceId: String?, interrupted: Boolean) = finish(utteranceId)
+                    })
+                }
+            }
+        }.getOrNull()
     }
 
     /** Epoch guard: ids tagged before the last stop() are stale and dropped. */
     private fun finish(utteranceId: String?) {
-        val id = utteranceId ?: return
-        if (id.substringBefore(':').toLongOrNull() != epoch) return
-        pending.remove(id)
+        runCatching {
+            val id = utteranceId ?: return
+            if (id.substringBefore(':').toLongOrNull() != epoch) return
+            pending.remove(id)
+        }
     }
 
     fun speak(text: String) {
@@ -75,18 +85,19 @@ class Narrator(application: Application, initialLanguage: Language) {
         }
         val id = "$epoch:${counter++}"
         pending.add(id)
-        if (tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, id) != TextToSpeech.SUCCESS) {
-            pending.remove(id)
-        }
+        val ok = runCatching {
+            tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, id)
+        }.getOrDefault(TextToSpeech.ERROR)
+        if (ok != TextToSpeech.SUCCESS) pending.remove(id)
     }
 
     /** cancelAndJoin-style stop: the epoch bump stale-s every in-flight
      *  utterance the moment the engine halts. */
     fun stop() {
         epoch++
-        pending.clear()
+        runCatching { pending.clear() }
         queued = null
-        engine?.stop()
+        runCatching { engine?.stop() }
     }
 
     fun setLanguage(language: Language) {
@@ -96,11 +107,13 @@ class Narrator(application: Application, initialLanguage: Language) {
 
     private fun applyLanguage(language: Language) {
         val tts = engine ?: return
-        val result = tts.setLanguage(Locale.forLanguageTag(language.name.lowercase()))
-        voiceAvailable = result != TextToSpeech.LANG_MISSING_DATA &&
-            result != TextToSpeech.LANG_NOT_SUPPORTED
-        // A device without this voice gets the default voice rather than silence.
-        if (!voiceAvailable) tts.setLanguage(Locale.getDefault())
+        runCatching {
+            val result = tts.setLanguage(Locale.forLanguageTag(language.name.lowercase()))
+            voiceAvailable = result != TextToSpeech.LANG_MISSING_DATA &&
+                result != TextToSpeech.LANG_NOT_SUPPORTED
+            // A device without this voice gets the default voice rather than silence.
+            if (!voiceAvailable) tts.setLanguage(Locale.getDefault())
+        }
     }
 
     /** Lifecycle gate: a backgrounded app stops talking, dead. */
@@ -119,8 +132,8 @@ class Narrator(application: Application, initialLanguage: Language) {
     }
 
     fun release() {
-        stop()
-        engine?.shutdown()
+        runCatching { stop() }
+        runCatching { engine?.shutdown() }
         engine = null
     }
 

@@ -15,6 +15,9 @@ import androidx.compose.ui.platform.LocalView
 fun rememberTick(): () -> Unit {
     val view = LocalView.current
     return remember(view) {
-        { view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK) }
+        {
+            runCatching { view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK) }
+            Unit
+        }
     }
 }

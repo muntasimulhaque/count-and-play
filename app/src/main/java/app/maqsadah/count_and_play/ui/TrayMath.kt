@@ -61,7 +61,7 @@ internal fun perRowTemplate(count: Int): Int = when {
     count <= 6 -> 3
     count <= 8 -> 4
     else -> 5
-}
+}.coerceAtLeast(1)
 
 /** One solved tray: how big each object draws, and how many sit in a row. */
 internal data class TraySolution(val size: Dp, val perRow: Int)
@@ -71,7 +71,7 @@ internal fun nodeOf(size: Dp, seated: Boolean): Dp =
     maxOf(HitTarget, if (seated) size * SeatScale else size)
 
 internal fun rowsFor(count: Int, perRow: Int): Int =
-    if (count <= 0) 0 else (count + perRow - 1) / perRow
+    if (count <= 0 || perRow <= 0) 0 else (count + perRow - 1) / perRow
 
 /** Full rendered height of a tray, rim and padding included. */
 internal fun trayHeight(count: Int, size: Dp, perRow: Int, seated: Boolean = false): Dp {

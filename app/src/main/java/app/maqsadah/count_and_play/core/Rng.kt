@@ -37,5 +37,8 @@ fun <T> Rng.shuffled(items: List<T>): List<T> {
 
 class SeededRng(seed: Long) : Rng {
     private val random = kotlin.random.Random(seed)
-    override fun int(untilExclusive: Int): Int = random.nextInt(untilExclusive)
+    override fun int(untilExclusive: Int): Int {
+        require(untilExclusive > 0) { "empty bound $untilExclusive" }
+        return random.nextInt(untilExclusive)
+    }
 }
