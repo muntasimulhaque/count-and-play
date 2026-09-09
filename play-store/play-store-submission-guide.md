@@ -88,12 +88,11 @@ makes, no data collected, is exactly true of the native app)
 
 All three sets live under `play-store/screenshots/`, one subfolder per form
 factor (`phone/`, `tablet7/`, `tablet10/`), captured by CI whenever UI files
-change and refreshed into those same subfolders in the same session. Captures
-are English only: the listing is reviewed in English, and the app's own
-Bengali support is described in the listing text instead. Upload each
-subfolder's seven PNGs to its Play Console slot, in filename order
+change and refreshed into those same subfolders in the same session. Upload
+each subfolder's eight PNGs to its Play Console slot, in filename order
 (01_home first); a Families-reviewed listing should match what ships. There
-is no separate staging folder.
+is no separate staging folder. Captures are English only from the next
+refresh on; the app's own Bengali support is described in the listing text.
 
 ## Console questionnaires: answers
 

@@ -149,12 +149,18 @@ An Android SDK and the Android Studio JBR are installed on the owner's machine
 (`JAVA_HOME` must point at the JBR; it is not on PATH).
 
 UI changes are verified from CI screenshot artifacts, never by reading code.
-Any push touching UI runs `screenshots.yml` (API 35, three form factors,
-seven scenes each, about five minutes); manual `workflow_dispatch` works too.
-**Captures are English only.** The listing is reviewed in English, so the one
-Bengali scene was retired after the 8.7 capture and its three PNGs are gone
-from the kit; the app itself still plays in both languages. Do not add a
-non-English scene back without the owner saying so.
+Any push touching UI runs `screenshots.yml` (API 35, three form factors, eight
+scenes each, about five minutes); manual `workflow_dispatch` works too.
+
+**Captures are English only, and stay eight per form factor (24 in all).**
+The listing is reviewed in English, so no scene is shot in Bengali any more;
+the app itself still plays in both languages and the listing text says so.
+Eight is the Play Console maximum, so the retired Bengali scene is replaced
+rather than dropped. **Next session:** at the next capture, choose an eighth
+English scene for that slot and shoot it. Until then the 8.7 kit keeps the
+Bengali scene there, so the set is never short. Do not add a non-English
+scene back without the owner saying so.
+
 Download the three `store-screenshots-*` artifacts (`gh run download <run-id>
 -R muntasimulhaque/count-and-play -D <dir>`; `-R` works from any directory and
 either machine), strip the form-factor prefix into `play-store/screenshots/`
@@ -203,7 +209,8 @@ Bump `versionCode` +1 and `versionName` (+0.1 for small releases), push to
   signed AAB and publishes it to the `latest-build` GitHub release. Pull the
   AAB from that release.
 - `screenshots.yml` recaptures store screenshots whenever UI files change
-  (three form factors, seven English scenes). Pinned to API 35; see Build for
+  (three form factors, eight scenes each, the Play Console maximum; English
+  only from the next capture on, see Build). Pinned to API 35; see Build for
   the refresh loop.
 
 Deliver the upload kit in one place: the AAB in `aab/`, release notes in

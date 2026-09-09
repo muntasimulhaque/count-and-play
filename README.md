@@ -106,9 +106,8 @@ builds a **signed release AAB and APK**. Signing uses four repository secrets:
 keystore is never committed; if it is lost, the app can never be updated again.
 
 A second workflow renders the Play Store screenshots on phone, 7" and 10"
-emulators from `ScreenshotTest`. Captures are English only: the listing is
-reviewed in English, so no Bengali scene is shot, though the app still plays
-in both languages.
+emulators from `ScreenshotTest`: eight scenes per form factor, the Play
+Console maximum, English only from the next refresh on.
 
 ## Releasing an update
 

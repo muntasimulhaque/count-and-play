@@ -11,6 +11,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import app.maqsadah.count_and_play.copy.BnCopy
+import app.maqsadah.count_and_play.copy.Copy
 import app.maqsadah.count_and_play.copy.EnCopy
 import app.maqsadah.count_and_play.copy.Language
 import app.maqsadah.count_and_play.core.AddState
@@ -148,28 +150,30 @@ class ScreenshotTest {
         // sound switch's red off-state is on the record.
         shoot(outDir, scenario, "07_settings") { model(Screen.Home, settingsOpen = true, muted = true) }
 
-        // English only: the listing is reviewed in English, so no Bengali
-        // scene is shot any more. The app itself still speaks both.
+        // The same counting moment, in Bengali.
+        shoot(outDir, scenario, "08_bangla") {
+            model(
+                Screen.Count(CountState(tokens = tray(ShapeKind.MELON, n = 4, counted = 1))),
+                copy = BnCopy,
+            )
+        }
 
         scenario.close()
     }
 
     // -- Fixtures -----------------------------------------------------------
 
-    /**
-     * Every fixture keeps confettiKey = 0, so no burst fires mid-capture, and
-     * speaks English: the listing is reviewed in English, so captures are
-     * English only. The app itself still plays in both languages.
-     */
+    /** Every fixture keeps confettiKey = 0, so no burst fires mid-capture. */
     private fun model(
         screen: Screen,
+        copy: Copy = EnCopy,
         settingsOpen: Boolean = false,
         muted: Boolean = false,
         flash: Flash? = null,
     ) = UiModel(
         screen = screen,
-        copy = EnCopy,
-        language = Language.EN,
+        copy = copy,
+        language = if (copy is BnCopy) Language.BN else Language.EN,
         muted = muted,
         settingsOpen = settingsOpen,
         firstRun = false,
