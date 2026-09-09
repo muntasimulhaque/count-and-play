@@ -30,6 +30,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 
 /** The shared geometry of every key: one radius, one hairline. */
@@ -80,7 +81,7 @@ fun Keycap(
         Box(sizeModifier.background(edge, KeyShape))
         Box(
             sizeModifier
-                .offset(y = sink - edgeHeight)
+                .offset { IntOffset(x = 0, y = (sink - edgeHeight).roundToPx()) }
                 .shadow(elevation = lift, shape = KeyShape)
                 .background(fill, KeyShape)
                 .border(BorderStroke(1.dp, Hairline), KeyShape)
@@ -94,7 +95,7 @@ fun Keycap(
                         Modifier
                     },
                 )
-                .semantics {
+                .semantics(mergeDescendants = true) {
                     role = Role.Button
                     if (description != null) contentDescription = description
                     if (stateDescription != null) this.stateDescription = stateDescription

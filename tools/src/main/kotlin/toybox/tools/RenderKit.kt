@@ -38,7 +38,6 @@ fun mix(a: Int, b: Int, t: Double): Int {
     return out
 }
 
-fun lighten(c: Int, t: Double) = mix(c, WHITE, t)
 fun darken(c: Int, t: Double) = mix(c, rgb(0, 0, 0), t)
 
 // -- Gradients -----------------------------------------------------------------
@@ -59,22 +58,6 @@ fun vgrad(w: Int, h: Int, stops: List<Pair<Double, Int>>): Img {
         }
         raster.setPixels(0, y, w, 1, row)
     }
-    return out
-}
-
-/** Elliptical radial gradient: t = 0 at the centre, 1 at the ellipse edge. */
-fun rgrad(w: Int, h: Int, cx: Double, cy: Double, rx: Double, ry: Double, stops: List<Pair<Double, Int>>): Img {
-    val out = img(w, h)
-    val px = IntArray(w * h)
-    for (y in 0 until h) {
-        for (x in 0 until w) {
-            val dx = (x - cx) / rx
-            val dy = (y - cy) / ry
-            val t = sqrt(dx * dx + dy * dy).coerceIn(0.0, 1.0)
-            px[y * w + x] = interpOne(t, stops)
-        }
-    }
-    out.raster.setDataElements(0, 0, w, h, px)
     return out
 }
 

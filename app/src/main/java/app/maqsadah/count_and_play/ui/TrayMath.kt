@@ -30,6 +30,16 @@ internal val TrayGap = 10.dp
 /** A three-year-old's finger lands wide: the smallest tappable node. */
 internal val HitTarget = 72.dp
 
+/**
+ * The half-width ADD plates need a smaller floor than a full-width tray. On a
+ * 360 dp phone a plate is about 157 dp wide: at [HitTarget] two objects plus
+ * their gap do not fit, so a five-object plate would stack one-wide, which is
+ * not a five-frame at all. 56 dp is still a wide toddler target (well past the
+ * 48 dp accessibility floor) and buys two objects per row on the smallest
+ * phone this app installs on.
+ */
+internal val PlateHitTarget = 56.dp
+
 /** How much a seated token's node exceeds its body. */
 internal const val SeatScale = 1.3f
 
@@ -54,6 +64,15 @@ internal val PlateGap = 14.dp
 
 /** Vertical room the take-away equation reserves above the trays. */
 internal val TakeEqReserve = 56.dp
+
+/**
+ * The take equation's line box. The equation hangs above the tray, so its
+ * measured height must live inside [TakeEqReserve] at every font scale the
+ * app allows (see MainActivity.MAX_FONT_SCALE): 42 dp * 1.3 = 54.6 dp < 56 dp.
+ * Without a tight line box Baloo's default leading made the row taller than
+ * the reserve, and the taken box could run off the bottom of short screens.
+ */
+internal val EquationLine = 42.dp
 
 /**
  * How many objects sit in one row of a tray of [count]: balanced
@@ -83,23 +102,29 @@ internal fun rowPlan(count: Int, perRow: Int): List<Int> {
 }
 
 /** The node a token of [size] occupies: touch floor, plus seat growth. */
-internal fun nodeOf(size: Dp, seated: Boolean): Dp =
-    maxOf(HitTarget, if (seated) size * SeatScale else size)
+internal fun nodeOf(size: Dp, seated: Boolean, minNode: Dp = HitTarget): Dp =
+    maxOf(minNode, if (seated) size * SeatScale else size)
 
 internal fun rowsFor(count: Int, perRow: Int): Int =
     if (count <= 0 || perRow <= 0) 0 else (count + perRow - 1) / perRow
 
 /** Full rendered height of a tray, rim and padding included. */
-internal fun trayHeight(count: Int, size: Dp, perRow: Int, seated: Boolean = false): Dp {
+internal fun trayHeight(
+    count: Int,
+    size: Dp,
+    perRow: Int,
+    seated: Boolean = false,
+    minNode: Dp = HitTarget,
+): Dp {
     val rows = rowsFor(count, perRow)
     if (rows <= 0) return size + TrayPad * 2
-    val node = nodeOf(size, seated)
+    val node = nodeOf(size, seated, minNode)
     return node * rows + TrayGap * (rows - 1) + TrayPad * 2
 }
 
 /** The widest row of touch-sized nodes that fits a tray's inner width. */
-internal fun maxPerRowFor(inner: Dp): Int =
-    ((inner + TrayGap) / (HitTarget + TrayGap)).toInt().coerceAtLeast(1)
+internal fun maxPerRowFor(inner: Dp, minNode: Dp = HitTarget): Int =
+    ((inner + TrayGap) / (minNode + TrayGap)).toInt().coerceAtLeast(1)
 
 /**
  * Solves one tray: the biggest object size at most [cap] whose template row
@@ -113,14 +138,15 @@ internal fun solveTray(
     cap: Dp,
     availHeight: Dp? = null,
     seated: Boolean = false,
+    minNode: Dp = HitTarget,
 ): TraySolution {
     if (count <= 0) return TraySolution(cap, 1)
     val inner = width - TrayPad * 2
-    val pref = minOf(perRowTemplate(count), maxPerRowFor(inner))
+    val pref = minOf(perRowTemplate(count), maxPerRowFor(inner, minNode))
     for (perRow in pref downTo 1) {
         var size = minOf(cap, (inner - TrayGap * (perRow - 1)) / perRow / if (seated) SeatScale else 1f)
         if (size < MinObject) continue
-        var node = nodeOf(size, seated)
+        var node = nodeOf(size, seated, minNode)
         if (node * perRow + TrayGap * (perRow - 1) > inner) continue
         if (availHeight != null) {
             val rows = rowsFor(count, perRow)
@@ -135,6 +161,18 @@ internal fun solveTray(
     }
     return TraySolution(MinObject, 1)
 }
+
+/**
+ * The finished plate's total badge. Sized from the plate it belongs to, floored
+ * so the numeral stays legible and capped so it reads as a tag rather than a
+ * second plate. The badge rides the well's bottom-right corner, hanging just
+ * past it (see AddGame), so it never covers a piece.
+ */
+internal fun badgeDiameter(objectSize: Dp): Dp =
+    (objectSize * 0.5f).coerceIn(34.dp, 40.dp)
+
+/** How far the badge's corner hangs past the well's corner, both axes. */
+internal val BadgeOverhang = 10.dp
 
 /** One solved ADD round: plate and bowl sizes plus their row counts.
  *
@@ -182,14 +220,18 @@ internal fun solveAddTraySizes(
 ): TraySizes {
     val room = availHeight
     val plateWidth = (playWidth - PlateGap) / 2
-    val plateSol = solveTray(plateWidth, bigPlate, AddCap, room - BowlAsleepReserve)
+    val plateSol = solveTray(
+        plateWidth, bigPlate, AddCap, room - BowlAsleepReserve, minNode = PlateHitTarget,
+    )
     val bowlSeed = solveTray(playWidth, total, AddCap, room - BowlAsleepReserve - SectionGap * 2, seated = true)
     var scale = 1f
     while (scale > 0.4f) {
         val plate = plateSol.size * scale
         val bowl = bowlSeed.size * scale
         val bowlFull = trayHeight(total, bowl, bowlSeed.perRow, seated = true)
-        if (trayHeight(bigPlate, plate, plateSol.perRow) + SectionGap * 2 + bowlFull <= room) {
+        if (trayHeight(bigPlate, plate, plateSol.perRow, minNode = PlateHitTarget) +
+            SectionGap * 2 + bowlFull <= room
+        ) {
             return TraySizes(plate, plate, bowl, plateSol.perRow, bowlSeed.perRow, bowlFull, true)
         }
         scale -= 0.05f

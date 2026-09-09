@@ -112,13 +112,24 @@ private fun TakeEquation(state: TakeState, copy: Copy, modifier: Modifier = Modi
     Row(
         modifier
             .graphicsLayer { alpha = shown }
-            .then(if (state.totalDone) Modifier else Modifier.clearAndSetSemantics { }),
+            .then(
+                if (state.totalDone) {
+                    // One spoken fact for a screen reader: the numerals as a
+                    // subtraction, not three bare glyph nodes.
+                    Modifier.semantics(mergeDescendants = true) {
+                        contentDescription = "${copy.digits(state.n)} \u2212 ${copy.digits(state.b)}"
+                    }
+                } else {
+                    Modifier.clearAndSetSemantics { }
+                },
+            ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             copy.digits(state.n),
             color = FlashBlue,
             fontSize = SizeEquation,
+            lineHeight = EquationLine.value.sp,
             fontWeight = ToyBlack,
             fontFamily = ToyFont,
         )
@@ -127,6 +138,7 @@ private fun TakeEquation(state: TakeState, copy: Copy, modifier: Modifier = Modi
             Modifier.padding(horizontal = 10.dp),
             color = Ink,
             fontSize = SizeEquation * 0.62f,
+            lineHeight = EquationLine.value.sp * 0.62f,
             fontWeight = ToyBlack,
             fontFamily = ToyFont,
         )
@@ -134,13 +146,12 @@ private fun TakeEquation(state: TakeState, copy: Copy, modifier: Modifier = Modi
             copy.digits(state.b),
             color = FlashPink,
             fontSize = SizeEquation,
+            lineHeight = EquationLine.value.sp,
             fontWeight = ToyBlack,
             fontFamily = ToyFont,
         )
     }
 }
-
-private val SizeEquation = 40.sp
 
 /**
  * The whole bowl of n slots. A taken token leaves a dashed ghost behind, so
@@ -151,19 +162,17 @@ private fun MainTray(state: TakeState, copy: Copy, solution: TakeSolution, onTap
     Tray(state.n, TraySolution(solution.size, solution.mainPerRow), Modifier.fillMaxWidth()) { size ->
         state.tokens.forEach { token ->
             key(token.id) {
-                if (token.gone) {
-                    // The ghost's node must be the node the object occupied,
-                    // so rows keep one rhythm after the taking.
-                    GhostSlot(size, nodeOf(size, seated = false))
-                } else {
-                    ObjectView(
-                        shape = token.shape,
-                        sizeDp = size,
-                        chip = if (token.countOrder > 0) copy.digits(token.countOrder) else null,
-                        label = copy.objectLabel(token.shape.name, token.countOrder),
-                        onTap = { onTap(token.id) },
-                    )
-                }
+                // One node per slot across the taking: the piece sinks into
+                // its ghost instead of blinking out, and the empty slot stays
+                // reachable (a tap on it is heard and recorded, never dead).
+                ObjectView(
+                    shape = token.shape,
+                    sizeDp = size,
+                    chip = if (token.countOrder > 0) copy.digits(token.countOrder) else null,
+                    gone = token.gone,
+                    label = if (token.gone) null else copy.objectLabel(token.shape.name, token.countOrder),
+                    onTap = { onTap(token.id) },
+                )
             }
         }
     }
@@ -176,7 +185,9 @@ private fun TakenTray(state: TakeState, copy: Copy, solution: TakeSolution) {
         state.removed,
         TraySolution(solution.size, solution.takenPerRow),
         Modifier.fillMaxWidth(),
-        tint = Purple,
+        // Pink is the take-away hue everywhere else (the equation's subtrahend,
+        // the shelf's miniature), so the box the pieces land in wears it too.
+        tint = Pink,
     ) { size ->
         state.tokens.filter { it.gone }.forEach { token ->
             key(token.id) {
@@ -226,6 +237,10 @@ internal fun ActivityFrame(prompt: String, copy: Copy, onHome: () -> Unit, conte
                     textAlign = TextAlign.Center,
                     color = Ink,
                     fontSize = SizePrompt,
+                    // Tight leading and a two-line ceiling: a long ask at the
+                    // capped font scale must not eat the play area below it.
+                    lineHeight = SizePrompt * 1.15f,
+                    maxLines = 2,
                     fontWeight = ToyBold,
                     fontFamily = ToyFont,
                 )

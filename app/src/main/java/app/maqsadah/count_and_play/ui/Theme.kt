@@ -96,7 +96,10 @@ val SizeTitle = 32.sp
 val SizePrompt = 26.sp
 val SizeLabel = 22.sp
 val SizeFlash = 96.sp
-val SizeChip = 18.sp
+/** The take equation's numerals: the ask, hung above the tray it describes. */
+val SizeEquation = 40.sp
+/** The grown-up sheet's reading size: read over a child's shoulder, not by the child. */
+val AdultSize = 16.sp
 
 /** Corner radius stepped down for small controls (chips of chrome). */
 val CornerSmall = 18.dp

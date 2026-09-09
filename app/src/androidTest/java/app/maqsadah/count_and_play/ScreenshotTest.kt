@@ -14,6 +14,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import app.maqsadah.count_and_play.copy.BnCopy
 import app.maqsadah.count_and_play.copy.Copy
 import app.maqsadah.count_and_play.copy.EnCopy
+import app.maqsadah.count_and_play.copy.Language
 import app.maqsadah.count_and_play.core.AddState
 import app.maqsadah.count_and_play.core.CountState
 import app.maqsadah.count_and_play.core.ShapeKind
@@ -172,6 +173,7 @@ class ScreenshotTest {
     ) = UiModel(
         screen = screen,
         copy = copy,
+        language = if (copy is BnCopy) Language.BN else Language.EN,
         muted = muted,
         settingsOpen = settingsOpen,
         firstRun = false,

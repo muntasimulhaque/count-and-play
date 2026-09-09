@@ -61,9 +61,10 @@ guides, and difficulty adapts invisibly *inside* a game.
 - **Put together:** the LEFT plate is counted first, the right one asleep in
   washed-out grey until then, so two columns can never mix into one count. A
   finished plate wears its total as a candy badge that stays on through the
-  pour. Then the big centred button pours them into one bowl below, and he
-  counts the whole; the parts keep their coloured seats inside it, and the
-  plates keep their place. Once both plates are counted the bowl wears the
+  pour. Once both plates are counted the bowl wears the words Put them
+  together, so the cue to pour lives where the finger goes, and the pour
+  itself is a tap on the bowl; then he counts the whole; the parts keep
+  their coloured seats inside it, and the plates keep their place. Once both plates are counted the bowl wears the
   words Put them together, so the cue to pour lives where the finger goes.
 - **Take away:** he counts the whole tray first, exactly as in Count them;
   only then does the ask hang above the tray as numerals (5 − 1), and he taps

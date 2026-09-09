@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -79,7 +80,7 @@ private fun PlatesRow(state: AddState, copy: Copy, sizes: TraySizes, onTap: (Int
             perRow = sizes.platePerRow,
             badge = if (state.doneA) copy.digits(state.a) else null,
             badgeCentred = state.poured,
-            enabled = true,
+            awake = true,
             copy = copy,
             modifier = Modifier.weight(1f),
             onTap = onTap,
@@ -91,7 +92,7 @@ private fun PlatesRow(state: AddState, copy: Copy, sizes: TraySizes, onTap: (Int
             perRow = sizes.platePerRow,
             badge = if (state.doneB) copy.digits(state.b) else null,
             badgeCentred = state.poured,
-            enabled = state.doneA || state.poured,
+            awake = state.doneA || state.poured,
             copy = copy,
             modifier = Modifier.weight(1f),
             onTap = onTap,
@@ -102,8 +103,10 @@ private fun PlatesRow(state: AddState, copy: Copy, sizes: TraySizes, onTap: (Int
 /**
  * One plate of objects. A sleeping plate keeps its place and its rim colour
  * but its pieces are drawn washed-out and monochrome, so the child can see
- * which column is his before its turn arrives. A finished plate wears its
- * total as a popped-on badge that survives the pour.
+ * which column is his before its turn arrives. It still answers the finger:
+ * the core turns a tap there into a soft tick and records the reach, never a
+ * count, so no touch in play is ever dead. A finished plate wears its total
+ * as a popped-on badge that survives the pour.
  */
 @Composable
 private fun PlateTray(
@@ -113,14 +116,21 @@ private fun PlateTray(
     perRow: Int,
     badge: String?,
     badgeCentred: Boolean,
-    enabled: Boolean,
+    awake: Boolean,
     copy: Copy,
     modifier: Modifier,
     onTap: (Int) -> Unit,
 ) {
     Box(modifier) {
-        Tray(tokens.size, TraySolution(objectSize, perRow), Modifier.fillMaxWidth()) { size ->
-            val washout = if (enabled) {
+        Tray(
+            tokens.size,
+            TraySolution(objectSize, perRow),
+            Modifier.fillMaxWidth(),
+            // The plate's own hue, so the left and right columns are told
+            // apart at a glance and match the seats they fill in the bowl.
+            tint = rim,
+        ) { size ->
+            val washout = if (awake) {
                 Modifier
             } else {
                 Modifier.graphicsLayer {
@@ -133,27 +143,35 @@ private fun PlateTray(
                     ObjectView(
                         shape = token.shape,
                         sizeDp = size,
+                        modifier = washout,
+                        touchTarget = PlateHitTarget,
                         chip = if (token.counted) copy.digits(token.countOrder) else null,
                         label = copy.objectLabel(token.shape.name, if (token.counted) token.countOrder else 0),
-                        modifier = washout,
-                        onTap = if (enabled) ({ onTap(token.id) }) else null,
+                        onTap = { onTap(token.id) },
                     )
                 }
             }
         }
         if (badge != null) {
-            // Standing plates pin their total to the bottom-right corner: the
-            // one spot count chips never reach (they sit at objects' top-right).
-            // Folded places hold the total centred.
-            val alignment = if (badgeCentred) Alignment.Center else Alignment.BottomEnd
-            TotalBadge(badge, rim, Modifier.align(alignment).padding(10.dp))
+            val dia = badgeDiameter(objectSize)
+            // Standing plates hang the total off the well's bottom-right
+            // corner: the one spot the pieces never reach (count chips sit at
+            // each object's top-right), so the badge is a tag on the plate
+            // rather than a lid over the last piece. Folded places hold the
+            // total centred, where there is nothing else left to cover.
+            val place = if (badgeCentred) {
+                Modifier.align(Alignment.Center)
+            } else {
+                Modifier.align(Alignment.BottomEnd).offset(x = BadgeOverhang, y = BadgeOverhang)
+            }
+            TotalBadge(badge, rim, dia, place)
         }
     }
 }
 
 /** The plate's finished total: a candy disc with the numeral, popping onto the plate. */
 @Composable
-private fun TotalBadge(text: String, ring: Color, modifier: Modifier = Modifier) {
+private fun TotalBadge(text: String, ring: Color, diameter: Dp, modifier: Modifier = Modifier) {
     val reducedMotion = rememberReducedMotion()
     val scale = remember { Animatable(if (reducedMotion) 1f else 0.4f) }
     LaunchedEffect(reducedMotion) {
@@ -162,16 +180,17 @@ private fun TotalBadge(text: String, ring: Color, modifier: Modifier = Modifier)
     Box(
         modifier
             .graphicsLayer { scaleX = scale.value; scaleY = scale.value }
-            .size(56.dp)
+            .size(diameter)
             .shadow(elevation = LiftHeld, shape = CircleShape, clip = false)
             .background(Liner, CircleShape)
-            .border(BorderStroke(4.dp, ring), CircleShape),
+            .border(BorderStroke(3.dp, ring), CircleShape),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text,
             color = flashTint(ring),
-            fontSize = 28.sp,
+            fontSize = (diameter.value * 0.52f).sp,
+            lineHeight = (diameter.value * 0.52f).sp,
             fontWeight = ToyBlack,
             fontFamily = ToyFont,
         )

@@ -1,6 +1,5 @@
 package app.maqsadah.count_and_play.ui
 
-import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.snap
@@ -9,17 +8,16 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
@@ -30,9 +28,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -43,19 +39,18 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.maqsadah.count_and_play.copy.Copy
 import app.maqsadah.count_and_play.copy.Language
-
-/** Settings are read by a grown-up over the child's shoulder. */
-private val AdultSize = 16.sp
 
 /** The sheet's rounded top, the only radius it has. */
 private val SheetTop = RoundedCornerShape(topStart = Corner, topEnd = Corner)
@@ -78,11 +73,17 @@ fun SettingsSheet(
     onCloseSettings: () -> Unit,
 ) {
     Box(
-        Modifier
-            .fillMaxSize()
-            .background(Ink.copy(alpha = 0.25f))
-            .clickable(remember { MutableInteractionSource() }, indication = null) { onCloseSettings() },
+        Modifier.fillMaxSize().background(Ink.copy(alpha = 0.25f)),
     ) {
+        // The scrim answers a tap anywhere outside the sheet. It is a plain
+        // pointer target on purpose: making it a button would hand a screen
+        // reader an unlabelled full-screen control. The sheet's own Close is
+        // the one named way out.
+        Box(
+            Modifier.matchParentSize().pointerInput(onCloseSettings) {
+                detectTapGestures { onCloseSettings() }
+            },
+        )
         Column(
             Modifier
                 .align(Alignment.BottomCenter)
@@ -90,7 +91,8 @@ fun SettingsSheet(
                 .shadow(elevation = LiftRaised, shape = SheetTop, clip = false)
                 .clip(SheetTop)
                 .background(Liner)
-                .clickable(remember { MutableInteractionSource() }, indication = null) { }
+                // Taps that land on the sheet must not reach the scrim behind.
+                .pointerInput(Unit) { detectTapGestures { } }
                 .padding(horizontal = 20.dp, vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
@@ -143,7 +145,7 @@ private val LangGap = 14.dp
 private fun LanguageRow(copy: Copy, language: Language, onSetLanguage: (Language) -> Unit) {
     val reducedMotion = rememberReducedMotion()
     BoxWithConstraints(Modifier.fillMaxWidth()) {
-        val half = (maxWidth - LangGap) / 2
+        val half = ((maxWidth - LangGap) / 2).coerceAtLeast(0.dp)
         val glide by animateDpAsState(
             targetValue = if (language == Language.BN) half + LangGap else 0.dp,
             animationSpec = if (reducedMotion) snap() else tween(durationMillis = 260, easing = FastOutSlowInEasing),
@@ -154,7 +156,7 @@ private fun LanguageRow(copy: Copy, language: Language, onSetLanguage: (Language
         Box(Modifier.matchParentSize()) {
             Box(
                 Modifier
-                    .offset(x = glide)
+                    .offset { IntOffset(x = glide.roundToPx(), y = 0) }
                     .width(half)
                     .fillMaxHeight()
                     .background(Blue.copy(alpha = 0.12f), RoundedCornerShape(CornerSmall))
@@ -179,7 +181,7 @@ private fun LangChoice(name: String, active: Boolean, modifier: Modifier, onClic
         modifier
             .heightIn(min = 56.dp)
             .pressable(onClick = onClick)
-            .semantics {
+            .semantics(mergeDescendants = true) {
                 role = Role.Button
                 selected = active
             },
@@ -203,7 +205,7 @@ private fun SoundRow(copy: Copy, muted: Boolean, onToggleMute: () -> Unit) {
             .pressable(onClick = onToggleMute)
             .background(Liner, RoundedCornerShape(CornerSmall))
             .border(BorderStroke(1.dp, Hairline), RoundedCornerShape(CornerSmall))
-            .semantics {
+            .semantics(mergeDescendants = true) {
                 role = Role.Button
                 contentDescription = description
             }
@@ -222,116 +224,6 @@ private fun SoundRow(copy: Copy, muted: Boolean, onToggleMute: () -> Unit) {
         // A second, colour-only statement of the state: green when sound
         // flows, red when it is switched off.
         Box(Modifier.size(14.dp).background(if (muted) Red else Green, CircleShape))
-    }
-}
-
-/** The one-time door: nothing is playable until a language has been chosen. */
-@Composable
-fun FirstRunPicker(copy: Copy, onSetLanguage: (Language) -> Unit) {
-    // Opaque and tap-swallowing: no touch reaches the shelf beneath it.
-    Box(
-        Modifier
-            .fillMaxSize()
-            .background(Ground)
-            .clickable(remember { MutableInteractionSource() }, indication = null) { },
-        contentAlignment = Alignment.Center,
-    ) {
-        FadeIn {
-            Column(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(28.dp)
-                    .shadow(elevation = LiftRaised, shape = RoundedCornerShape(Corner), clip = false)
-                    .background(Liner, RoundedCornerShape(Corner))
-                    .border(BorderStroke(1.dp, Hairline), RoundedCornerShape(Corner))
-                    .padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(14.dp),
-            ) {
-                Text(copy.firstRunTitleEn(), color = Ink, fontSize = SizeLabel, fontWeight = ToyBlack, fontFamily = ToyFont)
-                Text(copy.firstRunTitleBn(), color = Ink, fontSize = SizeLabel, fontWeight = ToyBlack, fontFamily = ToyFont)
-                Spacer(Modifier.height(4.dp))
-                LangButton(copy.languageName(Language.EN), active = false, big = true, modifier = Modifier.fillMaxWidth()) {
-                    onSetLanguage(Language.EN)
-                }
-                LangButton(copy.languageName(Language.BN), active = false, big = true, modifier = Modifier.fillMaxWidth()) {
-                    onSetLanguage(Language.BN)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun LangButton(name: String, active: Boolean, big: Boolean, modifier: Modifier, onClick: () -> Unit) {
-    Box(
-        modifier
-            // A floor, not a ceiling: the box grows with the text under the
-            // capped font scale, so no label ever clips at any setting.
-            .heightIn(min = if (big) 72.dp else 56.dp)
-            .pressable(onClick = onClick)
-            .background(
-                if (active) Blue.copy(alpha = 0.12f) else Liner,
-                RoundedCornerShape(CornerSmall),
-            )
-            .border(
-                BorderStroke(if (active) 2.dp else 1.dp, if (active) Blue else Hairline),
-                RoundedCornerShape(CornerSmall),
-            )
-            .semantics {
-                role = Role.Button
-                selected = active
-            }
-            .padding(horizontal = 10.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            if (active) {
-                TickMark(Blue, 16.dp)
-                Spacer(Modifier.size(8.dp))
-            }
-            Text(
-                name,
-                color = Ink,
-                fontSize = if (big) SizePrompt else AdultSize,
-                fontWeight = ToyBold,
-                fontFamily = ToyFont,
-            )
-        }
-    }
-}
-
-/** A small check that draws itself on, arm first, then the long tail. */
-@Composable
-private fun TickMark(color: Color, size: Dp) {
-    val reducedMotion = rememberReducedMotion()
-    val draw = remember { Animatable(if (reducedMotion) 1f else 0f) }
-    LaunchedEffect(reducedMotion) {
-        if (!reducedMotion && draw.value < 1f) draw.animateTo(1f, tween(durationMillis = 240, delayMillis = 90))
-    }
-    Canvas(Modifier.size(size)) {
-        val w = this.size.width
-        val h = this.size.height
-        val stroke = w * 0.16f
-        // Two strokes in sequence, so the tick reads as drawn, not stamped.
-        val arm = (draw.value * 2f).coerceAtMost(1f)
-        if (arm > 0f) {
-            drawLine(
-                color,
-                Offset(w * 0.12f, h * 0.55f),
-                Offset(w * 0.12f, h * 0.55f) + Offset(w * 0.26f, h * 0.30f) * arm,
-                stroke, StrokeCap.Round,
-            )
-        }
-        val tail = ((draw.value - 0.5f) * 2f).coerceIn(0f, 1f)
-        if (tail > 0f) {
-            drawLine(
-                color,
-                Offset(w * 0.38f, h * 0.85f),
-                Offset(w * 0.38f, h * 0.85f) + Offset(w * 0.50f, -h * 0.70f) * tail,
-                stroke, StrokeCap.Round,
-            )
-        }
     }
 }
 

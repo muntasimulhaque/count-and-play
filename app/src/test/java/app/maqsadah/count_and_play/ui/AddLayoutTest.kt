@@ -27,14 +27,32 @@ class AddLayoutTest {
         5 to 5, 5 to 10,         // level 2: balanced and lopsided extremes
     )
 
+    /**
+     * Real play areas, not raw screens: width is the screen minus the 16 dp
+     * gutter each side, height is the screen minus the prompt row and a
+     * worst-case system inset. These are the shapes the app actually ships on,
+     * including the CI capture profiles (411x731 phone, 600x960 tablet 7,
+     * 800x562 tablet 10 in landscape) and the narrowest phone it installs on.
+     */
+    private val screens = listOf(
+        328.dp to 554.dp,    // 360x640 phone: the narrowest this app installs on
+        361.dp to 765.dp,    // 393x851 phone (Pixel 4a)
+        379.dp to 645.dp,    // 411x731 phone (the CI phone profile)
+        568.dp to 874.dp,    // 600x960 tablet 7" (the CI tablet 7 profile)
+        768.dp to 470.dp,    // 800x562 tablet 10" landscape (the CI tablet 10 profile)
+        768.dp to 1190.dp,   // 800x1280 tablet portrait
+    )
+
     private fun assertAddPhasesFit(playWidth: Dp, bigPlate: Int, total: Int, availHeight: Dp) {
         val s = solveAddTraySizes(playWidth, bigPlate, total, availHeight)
 
         // Phase one always stands the full columns beside the sleeping bowl.
+        // The plates pack at their own smaller touch floor (see TrayMath).
         assertTrue(
             "beforePour overflows: w=$playWidth h=$availHeight plate=$bigPlate/$total " +
                 "sizes=${s.plate}/${s.bowl}",
-            trayHeight(bigPlate, s.plate, s.platePerRow) + s.bowlBefore <= availHeight,
+            trayHeight(bigPlate, s.plate, s.platePerRow, minNode = PlateHitTarget) +
+                s.bowlBefore <= availHeight,
         )
         if (s.bowlInPlace) {
             // The sleeping bowl reserves its full seated height: the seats he
@@ -49,7 +67,7 @@ class AddLayoutTest {
             // Full columns kept after the pour: the bowl slides beneath them.
             assertTrue(
                 "afterPour overflows with standing plates: w=$playWidth h=$availHeight plate=$bigPlate/$total",
-                trayHeight(bigPlate, s.plate, s.platePerRow) + SectionGap * 2 +
+                trayHeight(bigPlate, s.plate, s.platePerRow, minNode = PlateHitTarget) + SectionGap * 2 +
                     trayHeight(total, s.bowl, s.bowlPerRow, seated = true) <= availHeight,
             )
         } else {
@@ -79,13 +97,7 @@ class AddLayoutTest {
 
     @Test
     fun `every dealable round fits both phases on common screens`() {
-        // 360 dp is the narrowest hardware this app's minSdk 23 generation
-        // shipped on; nothing 320 dp wide can install it. Heights keep a
-        // phone-ish aspect: shorter ones do not exist in the wild.
-        for ((width, availHeight) in listOf(
-            360.dp to 640.dp, 393.dp to 675.dp,
-            411.dp to 731.dp, 480.dp to 854.dp, 600.dp to 960.dp, 800.dp to 1280.dp,
-        )) {
+        for ((width, availHeight) in screens) {
             for ((bigPlate, total) in deals) {
                 assertAddPhasesFit(width, bigPlate, total, availHeight)
             }
@@ -93,8 +105,54 @@ class AddLayoutTest {
     }
 
     @Test
+    fun `plates never degenerate into a one-wide column`() {
+        // A plate of five stacked one-per-row is not a five-frame, and on a
+        // 360 dp phone that is exactly what a 72 dp touch floor produced. The
+        // plate floor (PlateHitTarget) must keep two per row wherever two
+        // objects can physically fit.
+        for ((width, availHeight) in screens) {
+            for ((bigPlate, total) in deals) {
+                if (bigPlate < 2) continue
+                val s = solveAddTraySizes(width, bigPlate, total, availHeight)
+                assertTrue(
+                    "plate stacks one-wide: w=$width h=$availHeight plate=$bigPlate/$total perRow=${s.platePerRow}",
+                    s.platePerRow >= 2,
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `solved plate rows fit their plate at the plate touch floor`() {
+        // The composable enforces the same floor the solver plans against
+        // (ObjectView's touchTarget): if these ever disagree, a row measures
+        // wider than the plate and the tray silently overflows its well.
+        for ((width, availHeight) in screens) {
+            val inner = (width - PlateGap) / 2 - TrayPad * 2
+            for ((bigPlate, total) in deals) {
+                val s = solveAddTraySizes(width, bigPlate, total, availHeight)
+                val node = nodeOf(s.plate, seated = false, minNode = PlateHitTarget)
+                val row = node * s.platePerRow + TrayGap * (s.platePerRow - 1)
+                assertTrue(
+                    "plate row ${row} wider than inner ${inner}: w=$width plate=$bigPlate/$total",
+                    row <= inner + 0.01.dp,
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `the take equation fits inside the space reserved for it`() {
+        // The equation is a Row of Texts; without an explicit line box Baloo's
+        // default leading made it taller than TakeEqReserve, and on a short
+        // screen the taken box ran past the bottom of the play area.
+        assertTrue(EquationLine >= SizeEquation.value.dp * 1.05f)
+        assertTrue(TakeEqReserve >= EquationLine * 1.3f) // MainActivity.MAX_FONT_SCALE
+    }
+
+    @Test
     fun `every take round fits tray equation and taken box on common screens`() {
-        for ((width, availHeight) in listOf(360.dp to 640.dp, 393.dp to 675.dp, 600.dp to 960.dp)) {
+        for ((width, availHeight) in screens) {
             for ((n, b) in listOf(3 to 1, 5 to 2, 5 to 3, 10 to 1, 10 to 3)) {
                 for (gone in 0..b) assertTakeFits(width, n, gone, availHeight)
             }
@@ -132,7 +190,9 @@ class AddLayoutTest {
 
     @Test
     fun `roomy screens keep the poured columns at full size`() {
-        for ((width, availHeight) in listOf(411.dp to 731.dp, 600.dp to 960.dp, 800.dp to 1280.dp)) {
+        for ((width, availHeight) in listOf(
+            379.dp to 645.dp, 568.dp to 874.dp, 768.dp to 1190.dp,
+        )) {
             for ((bigPlate, total) in deals) {
                 val s = solveAddTraySizes(width, bigPlate, total, availHeight)
                 assertEquals(
@@ -146,12 +206,26 @@ class AddLayoutTest {
 
     @Test
     fun `tight phones fold the poured plates only when physics demands`() {
-        val s = solveAddTraySizes(360.dp, 5, 10, 640.dp)
+        val s = solveAddTraySizes(328.dp, 5, 10, 554.dp)
         assertTrue(s.plateAfter <= PouredPlatePlace)
         assertTrue(
             s.plateAfter + TrayPad * 2 + SectionGap * 2 +
-                trayHeight(10, s.bowl, s.bowlPerRow, seated = true) <= 640.dp,
+                trayHeight(10, s.bowl, s.bowlPerRow, seated = true) <= 554.dp,
         )
+    }
+
+    @Test
+    fun `the finished plate's badge stays a tag, never a second plate`() {
+        // The badge hangs off the well's bottom-right corner (AddGame), so it
+        // must stay small relative to the piece it sits beside, and big enough
+        // to read from across a room.
+        for (objectSize in listOf(40.dp, 47.6.dp, 59.5.dp, 80.dp, AddCap, SingleCap)) {
+            val badge = badgeDiameter(objectSize)
+            assertTrue("badge $badge too small on $objectSize", badge >= 34.dp)
+            assertTrue("badge $badge too big on $objectSize", badge <= 40.dp)
+            assertTrue("badge $badge wider than its piece $objectSize", badge <= objectSize + 0.01.dp)
+            assertTrue("badge overhang eats the plate gap", BadgeOverhang < PlateGap)
+        }
     }
 
     @Test

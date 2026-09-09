@@ -5,6 +5,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -18,9 +19,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.activity.compose.BackHandler
 import androidx.compose.ui.Modifier
-import app.maqsadah.count_and_play.copy.BnCopy
+import androidx.compose.ui.graphics.graphicsLayer
 import app.maqsadah.count_and_play.copy.Copy
 import app.maqsadah.count_and_play.copy.Language
 import app.maqsadah.count_and_play.core.Skill
@@ -107,13 +109,22 @@ private fun Stage(
  * route, so the many state changes inside one game never re-trigger the
  * transition, and each pane keeps the exact screen it was keyed for while
  * it fades. Reduced motion snaps.
+ *
+ * While the fact card is up the whole stage settles back: the card is the
+ * mathematics arriving, and nothing should compete with it for the eye.
  */
 @Composable
 private fun PlayRoutes(ui: UiModel, actions: Actions) {
     val reducedMotion = rememberReducedMotion()
+    val stageAlpha by animateFloatAsState(
+        targetValue = if (ui.flash != null) 0.45f else 1f,
+        animationSpec = if (reducedMotion) snap() else tween(durationMillis = 200),
+        label = "stageAlpha",
+    )
     AnimatedContent(
         targetState = ui.screen,
         contentKey = { it.route },
+        modifier = Modifier.graphicsLayer { alpha = stageAlpha },
         transitionSpec = {
             if (reducedMotion) {
                 fadeIn(snap()) togetherWith fadeOut(snap())
@@ -172,7 +183,7 @@ private fun SettingsLayer(
     ) {
         SettingsSheet(
             copy = ui.copy,
-            language = languageOf(ui.copy),
+            language = ui.language,
             muted = ui.muted,
             voiceAvailable = ui.voiceAvailable,
             voiceReady = ui.voiceReady,
@@ -182,13 +193,6 @@ private fun SettingsLayer(
         )
     }
 }
-
-/**
- * [UiModel] carries the words but not which language produced them; the
- * settings sheet needs to highlight the current one, so recover it from the
- * identity of the copy pack.
- */
-private fun languageOf(copy: Copy): Language = if (copy is BnCopy) Language.BN else Language.EN
 
 /**
  * The back gesture resolves one level at a time, so a stray swipe from a

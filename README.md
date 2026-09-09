@@ -36,7 +36,7 @@ navigation buttons are hidden while playing, so nothing crowds the toys.
 | | |
 |---|---|
 | **Count them** | Tap the objects in any order; each tap leaves a numbered chip in his order and the voice says its number. Whatever he taps first is "one". |
-| **Put together** | He counts each plate on its own ("three!" … "two!"), taps the big button to pour them into one bowl, then counts the whole ("one … five!"). The parts keep their coloured seats inside the whole, so five reads as three-and-two at a glance. |
+| **Put together** | He counts each plate on its own ("three!" … "two!"), then taps the bowl to pour them together, and counts the whole ("one … five!"). The parts keep their coloured seats inside the whole, so five reads as three-and-two at a glance. |
 | **Take away** | A bowl; *"take away two"*; he taps two out, each wearing its number as it sinks into a ghost hole. Then he counts what is left himself, so "left" is a quantity he can see. |
 
 Every round ends the same way: the fact arrives **huge on screen**, `3 + 2 = 5`

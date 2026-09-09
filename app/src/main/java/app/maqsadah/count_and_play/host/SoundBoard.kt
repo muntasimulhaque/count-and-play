@@ -18,7 +18,9 @@ class SoundBoard(context: Context) {
 
     private val app = context.applicationContext
 
-    private val loaded: Map<Sfx, Int>
+    /** Sample ids, filled in as each load is requested. */
+    private val ids = Collections.synchronizedMap(HashMap<Sfx, Int>())
+    private val bySample = Collections.synchronizedMap(HashMap<Int, Sfx>())
     private val readySamples = Collections.synchronizedSet(HashSet<Int>())
 
     /** Requests that arrived before their sample decoded, replayed on load. */
@@ -37,35 +39,37 @@ class SoundBoard(context: Context) {
         .build()
 
     init {
-        loaded = mapOf(
-            Sfx.TICK to loadOrZero(R.raw.sfx_tick),
-            Sfx.THUD to loadOrZero(R.raw.sfx_thud),
-            Sfx.CHIME to loadOrZero(R.raw.sfx_chime),
-            Sfx.RUSTLE to loadOrZero(R.raw.sfx_rustle),
-        )
-        // Registered after the load calls, so the listener only ever sees
-        // sample ids this map already knows about.
+        // The listener goes on BEFORE the first load. SoundPool decodes on its
+        // own thread: a tiny sample that finished before the listener existed
+        // would never be marked ready, and the first tap of a round would be
+        // silent for the rest of the session.
         runCatching {
             pool.setOnLoadCompleteListener { _, sampleId, status ->
                 runCatching {
                     if (status != 0) return@setOnLoadCompleteListener
                     readySamples += sampleId
-                    loaded.entries.firstOrNull { it.value == sampleId }?.key?.let { wanted ->
-                        if (pending.remove(wanted)) playNow(wanted)
-                    }
+                    val wanted = bySample[sampleId] ?: return@setOnLoadCompleteListener
+                    if (pending.remove(wanted)) playNow(wanted)
                 }
             }
         }
+        load(Sfx.TICK, R.raw.sfx_tick)
+        load(Sfx.THUD, R.raw.sfx_thud)
+        load(Sfx.CHIME, R.raw.sfx_chime)
+        load(Sfx.RUSTLE, R.raw.sfx_rustle)
     }
 
-    private fun loadOrZero(resId: Int): Int =
-        runCatching { pool.load(app, resId, 1) }.getOrDefault(0)
+    private fun load(sfx: Sfx, resId: Int) {
+        val id = runCatching { pool.load(app, resId, 1) }.getOrDefault(0)
+        ids[sfx] = id
+        if (id != 0) bySample[id] = sfx
+    }
 
     @Volatile private var lastChimeAt = 0L
 
     fun play(sfx: Sfx) {
         if (released) return
-        val id = loaded[sfx] ?: return
+        val id = ids[sfx] ?: return
         // Two pitched notes in quick succession make an interval, and intervals
         // are where melody starts. The flow keeps chimes seconds apart already;
         // this is the structural guarantee.
@@ -83,7 +87,7 @@ class SoundBoard(context: Context) {
 
     private fun playNow(sfx: Sfx) {
         if (released) return
-        val id = loaded[sfx] ?: return
+        val id = ids[sfx] ?: return
         if (id == 0) return
         val volume = volumeOf(sfx)
         runCatching { pool.play(id, volume, volume, 1, 0, 1f) }
@@ -101,6 +105,7 @@ class SoundBoard(context: Context) {
         if (released) return
         released = true
         runCatching { pending.clear() }
+        runCatching { bySample.clear() }
         runCatching { pool.release() }
     }
 

@@ -1,6 +1,7 @@
-package app.maqsadah.count_and_play.data
+package app.maqsadah.count_and_play.host
 
 import android.content.Context
+import androidx.core.content.edit
 import app.maqsadah.count_and_play.copy.Language
 import app.maqsadah.count_and_play.core.Adapt
 
@@ -20,19 +21,19 @@ class Store(context: Context) {
             Language.entries.firstOrNull { it.name == prefs.getString(KEY_LANGUAGE, null) }
         }.getOrNull()
         set(value) {
-            runCatching { prefs.edit().putString(KEY_LANGUAGE, value?.name).apply() }
+            runCatching { prefs.edit { putString(KEY_LANGUAGE, value?.name) } }
         }
 
     var languageChosen: Boolean
         get() = runCatching { prefs.getBoolean(KEY_LANGUAGE_CHOSEN, false) }.getOrDefault(false)
         set(value) {
-            runCatching { prefs.edit().putBoolean(KEY_LANGUAGE_CHOSEN, value).apply() }
+            runCatching { prefs.edit { putBoolean(KEY_LANGUAGE_CHOSEN, value) } }
         }
 
     var muted: Boolean
         get() = runCatching { prefs.getBoolean(KEY_MUTED, false) }.getOrDefault(false)
         set(value) {
-            runCatching { prefs.edit().putBoolean(KEY_MUTED, value).apply() }
+            runCatching { prefs.edit { putBoolean(KEY_MUTED, value) } }
         }
 
     var levelCount: Int
@@ -59,7 +60,7 @@ class Store(context: Context) {
 
     private fun writeLevel(key: String, value: Int) {
         val clamped = value.coerceIn(0, Adapt.MAX_LEVEL)
-        runCatching { prefs.edit().putInt(key, clamped).apply() }
+        runCatching { prefs.edit { putInt(key, clamped) } }
     }
 
     private companion object {

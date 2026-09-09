@@ -15,7 +15,6 @@ import app.maqsadah.count_and_play.core.SessionState
 import app.maqsadah.count_and_play.core.Sfx
 import app.maqsadah.count_and_play.core.Skill
 import app.maqsadah.count_and_play.core.startSession
-import app.maqsadah.count_and_play.data.Store
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
@@ -47,10 +46,10 @@ class GameHost(application: Application) : AndroidViewModel(application) {
     private var confettiKey = 0
     private var performance: Job? = null
 
-    /** The script currently being performed and how far it got, so an
-     *  interruption (backgrounding) can resume where it stopped. */
-    private var script: List<Beat> = emptyList()
-    private var scriptIndex = 0
+    /** The beats of the current script and how many have been performed, so an
+     *  interruption (backgrounding) can resume exactly where it stopped. */
+    private var pendingBeats: List<Beat> = emptyList()
+    private var performedBeats = 0
 
     private var seedCounter = 0L
 
@@ -175,9 +174,11 @@ class GameHost(application: Application) : AndroidViewModel(application) {
         runCatching {
             val current = session
             if (current != null && current.round.done && flash != null) {
+                // The celebration tail was cut short: re-arm the dwell so the
+                // round still advances instead of freezing on the card.
                 perform(emptyList())
-            } else if (scriptIndex < script.size) {
-                perform(script.drop(scriptIndex))
+            } else if (performedBeats < pendingBeats.size) {
+                perform(pendingBeats.drop(performedBeats))
             }
         }
     }
@@ -192,23 +193,30 @@ class GameHost(application: Application) : AndroidViewModel(application) {
     // -- Beat performance ------------------------------------------------------
 
     /** One performance at a time: starting a new one cancels and joins the
-     *  previous, so two scripts can never speak over each other. */
+     *  previous, so two scripts can never speak over each other. The script
+     *  and its progress are per-performance values, never shared mutable
+     *  state that a stale coroutine could walk into. */
     private fun perform(beats: List<Beat>) {
         val previous = performance
-        script = beats
-        scriptIndex = 0
+        pendingBeats = beats
+        performedBeats = 0
         if (audioFocus.request()) narrator.setDucked(false) else narrator.setDucked(true)
         performance = viewModelScope.launch {
             previous?.cancelAndJoin()
-            while (scriptIndex < script.size) {
-                render(script[scriptIndex])
-                scriptIndex++
-            }
+            renderAll(beats)
             val current = session ?: return@launch
             if (current.round.done) {
-                delay(2300L) // the big-numeral moment stays on screen
+                delay(CELEBRATION_DWELL_MS) // the big-numeral moment stays on screen
                 advance()
             }
+        }
+    }
+
+    /** Performs [beats] in order, noting after each one how far it got. */
+    private suspend fun renderAll(beats: List<Beat>) {
+        for ((index, beat) in beats.withIndex()) {
+            render(beat)
+            performedBeats = index + 1
         }
     }
 
@@ -291,20 +299,17 @@ class GameHost(application: Application) : AndroidViewModel(application) {
         adaptTake = next.adaptTake
         flash = null
         safePublish()
-        script = startBeats
-        scriptIndex = 0
-        while (scriptIndex < script.size) {
-            render(script[scriptIndex])
-            scriptIndex++
-        }
+        pendingBeats = startBeats
+        performedBeats = 0
+        renderAll(startBeats)
     }
 
     /** Stops whatever is being said, without touching what is on screen. */
     private fun hush() {
         runCatching { performance?.cancel() }
         runCatching { narrator.stop() }
-        script = emptyList()
-        scriptIndex = 0
+        pendingBeats = emptyList()
+        performedBeats = 0
     }
 
     // -- UiModel ----------------------------------------------------------------
@@ -323,6 +328,7 @@ class GameHost(application: Application) : AndroidViewModel(application) {
                 is Round.IsTake -> Screen.Take(round.state)
             },
             copy = copy,
+            language = language,
             muted = store.muted,
             settingsOpen = settingsOpen,
             firstRun = !store.languageChosen,
@@ -341,6 +347,9 @@ class GameHost(application: Application) : AndroidViewModel(application) {
         const val MIN_SAY_MS = 700L
         const val MAX_SAY_MS = 2600L
         const val SAY_POLL_MS = 60L
+
+        /** How long the finished fact stays on screen before the next round. */
+        const val CELEBRATION_DWELL_MS = 2300L
 
         fun factory(application: Application) = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")

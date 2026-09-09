@@ -38,6 +38,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
@@ -53,6 +54,11 @@ private fun chipDiameter(objectSize: Dp): Dp = maxOf(30.dp, objectSize * 0.36f)
  * One countable. Optionally on a rounded seat (the ADD bowl's part colours),
  * optionally wearing its count chip, and tappable only when [onTap] is given.
  *
+ * [touchTarget] is the smallest node the finger gets. A full-width tray can
+ * afford [HitTarget]; the half-width ADD plates pack two to a row on the
+ * narrowest phone only at [PlateHitTarget], and the layout solver plans rows
+ * against exactly this number, so it must be passed through here too.
+ *
  * [gone] is the TAKE removal: the same node first shows the object sinking
  * away, then the dashed ghost that keeps its slot. Keeping one composable per
  * slot across that transition preserves its identity, so screen-reader focus
@@ -62,11 +68,12 @@ private fun chipDiameter(objectSize: Dp): Dp = maxOf(30.dp, objectSize * 0.36f)
 fun ObjectView(
     shape: ShapeKind,
     sizeDp: Dp,
+    modifier: Modifier = Modifier,
+    touchTarget: Dp = HitTarget,
     chip: String? = null,
     seat: Color? = null,
     gone: Boolean = false,
     label: String? = null,
-    modifier: Modifier = Modifier,
     onTap: (() -> Unit)? = null,
 ) {
     val reducedMotion = rememberReducedMotion()
@@ -90,10 +97,13 @@ fun ObjectView(
     }
     Box(
         modifier = modifier
-            .sizeIn(minWidth = HitTarget, minHeight = HitTarget)
+            .sizeIn(minWidth = touchTarget, minHeight = touchTarget)
             .graphicsLayer { scaleX = scale; scaleY = scale }
             .then(
-                if (onTap != null && !gone) {
+                // A tap always lands, even on an emptied slot: the finger is
+                // answered with the tactile tick and the core records the
+                // reach. Nothing in play is ever a dead surface.
+                if (onTap != null) {
                     Modifier.clickable(interactionSource = interactionSource, indication = null) {
                         tick()
                         onTap()
@@ -106,7 +116,9 @@ fun ObjectView(
                 if (label != null) {
                     Modifier.semantics { contentDescription = label }
                 } else {
-                    Modifier
+                    // An emptied slot is not a thing to count: it keeps no
+                    // spoken name and no focus, so nobody tries to count it.
+                    Modifier.clearAndSetSemantics { }
                 },
             ),
         contentAlignment = Alignment.Center,
@@ -161,6 +173,7 @@ private fun CountChip(text: String, diameter: Dp, modifier: Modifier = Modifier)
     Box(
         modifier
             .size(diameter)
+            .clearAndSetSemantics { }
             .background(ChipBlue, CircleShape)
             .padding(2.dp),
         contentAlignment = Alignment.Center,
@@ -169,6 +182,7 @@ private fun CountChip(text: String, diameter: Dp, modifier: Modifier = Modifier)
             text,
             color = Color.White,
             fontSize = (diameter.value * 0.58f).sp,
+            lineHeight = (diameter.value * 0.58f).sp,
             fontWeight = ToyBlack,
             fontFamily = ToyFont,
         )
@@ -176,15 +190,14 @@ private fun CountChip(text: String, diameter: Dp, modifier: Modifier = Modifier)
 }
 
 /**
- * The dashed outline left where a taken-away object used to sit. [node] is
- * the slot's layout footprint: it must match the node an ObjectView occupies
- * in the same tray, so rows keep one rhythm whether a cell holds an object
- * or the ghost of one. The dash itself stays at the body size, deliberately
- * quiet so it is not read as an object.
+ * The dashed outline left where a taken-away object used to sit. It occupies
+ * the same node an [ObjectView] does, so rows keep one rhythm whether a cell
+ * holds an object or the ghost of one. The dash itself stays at the body
+ * size, deliberately quiet so it is not read as an object.
  */
 @Composable
-fun GhostSlot(sizeDp: Dp, node: Dp = sizeDp) {
-    Box(Modifier.size(node), contentAlignment = Alignment.Center) {
+fun GhostSlot(sizeDp: Dp) {
+    Box(Modifier.size(sizeDp), contentAlignment = Alignment.Center) {
         Canvas(Modifier.size(sizeDp)) {
             drawEmptySlot(size.minDimension)
         }

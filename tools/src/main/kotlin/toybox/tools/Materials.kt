@@ -6,7 +6,6 @@ import java.awt.Graphics2D
 import java.awt.RenderingHints
 import java.awt.font.TextLayout
 import java.awt.geom.AffineTransform
-import java.awt.geom.Rectangle2D
 import java.io.File
 
 // -- Type ----------------------------------------------------------------------
@@ -46,14 +45,6 @@ internal fun anchorPos(text: String, f: Font, x: Double, cy: Double, anchor: Str
         else -> x
     }
     return drawX to baseline
-}
-
-/** The ink bounds in absolute canvas coordinates (for underline bars). */
-fun textInkBounds(text: String, f: Font, x: Double, cy: Double, anchor: String): Rectangle2D {
-    val l = TextLayout(text, f, frc())
-    val (dx, baseline) = anchorPos(text, f, x, cy, anchor)
-    val b = l.bounds
-    return Rectangle2D.Double(dx + b.minX, baseline + b.minY, b.width, b.height)
 }
 
 /**

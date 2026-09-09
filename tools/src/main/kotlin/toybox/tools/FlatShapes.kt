@@ -21,7 +21,6 @@ internal val CARROT_C = FlatColors(rgb(240, 106, 14), rgb(138, 58, 5), rgb(255, 
 
 internal val CHIP_BLUE = rgb(39, 53, 122)
 internal val LINER = rgb(255, 255, 255)
-internal val RIM_BLUE = rgb(28, 169, 232)
 internal val RIM_GREEN = rgb(51, 168, 82)
 internal val SEAT_A = rgb(207, 233, 251)
 internal val SEAT_B = rgb(253, 227, 196)
@@ -197,33 +196,6 @@ fun brandText(
     if (keyline > 0) {
         drawGlyphs(g, text, f, dx, base, fill, keyline.toInt(), keylineFill)
     }
-    drawGlyphs(g, text, f, dx, base, fill, 0, fill)
-    g.dispose()
-}
-
-/** A numeral with two keylines, the way the in-app shapes wear their outlines. */
-fun outlinedNumeral(
-    dst: Img,
-    x: Double,
-    y: Double,
-    text: String,
-    size: Int,
-    fill: Int,
-    outlineColor: Int,
-    shadow: Quad = Quad(0.0, size * 0.06, 50, size * 0.04),
-) {
-    val f = font("black", size)
-    val (dx, base) = anchorPos(text, f, x, y, "mm")
-
-    val lay = img(dst.width, dst.height)
-    val lg = graphicsText(lay)
-    drawGlyphs(lay.let { lg }, text, f, dx + shadow.a, base + shadow.b, INK or (shadow.c shl 24), 0, INK)
-    lg.dispose()
-    val blurred = gaussianBlur(lay, shadow.d)
-    val g = graphicsText(dst)
-    g.drawImage(blurred, 0, 0, null)
-    drawGlyphs(g, text, f, dx, base, fill, (size * 0.16).toInt(), WHITE)
-    drawGlyphs(g, text, f, dx, base, fill, (size * 0.07).toInt(), outlineColor)
     drawGlyphs(g, text, f, dx, base, fill, 0, fill)
     g.dispose()
 }

@@ -95,6 +95,7 @@ private fun Tile(
     Keycap(
         edge = EdgeNeutral,
         modifier = modifier.fillMaxWidth().padding(vertical = 7.dp),
+        description = label,
         onClick = { onChoose(skill) },
     ) {
         // The scene rides a touch high so no label can ever collide with it
@@ -102,7 +103,7 @@ private fun Tile(
         // room left after that reserve drives the scene's size, so the
         // pictures grow with the tile instead of floating as postage stamps.
         BoxWithConstraints(
-            Modifier.fillMaxSize().padding(bottom = 40.dp),
+            Modifier.fillMaxSize().padding(bottom = LabelReserve),
             contentAlignment = Alignment.Center,
         ) { mini(maxHeight) }
         Text(
@@ -110,11 +111,18 @@ private fun Tile(
             Modifier.align(Alignment.BottomCenter).padding(bottom = 12.dp),
             color = Ink,
             fontSize = SizeLabel,
+            // A tight line box, so the reserve above is honest at the capped
+            // font scale instead of Baloo's near-double leading.
+            lineHeight = SizeLabel * 1.15f,
             fontWeight = ToyBold,
             fontFamily = ToyFont,
+            maxLines = 1,
         )
     }
 }
+
+/** The strip under every tile's scene that the label owns. */
+private val LabelReserve = 46.dp
 
 @Composable
 private fun GearButton(modifier: Modifier, description: String, onOpenSettings: () -> Unit) {
@@ -134,24 +142,28 @@ private fun GearButton(modifier: Modifier, description: String, onOpenSettings: 
     }
 }
 
-/** A plain gear: a ring with eight stubby teeth. Vector, static, no emoji. */
+/** A plain gear: a thick hub ring, eight short teeth, a real hole. Vector, static, no emoji. */
 @Composable
 private fun GearIcon(size: Dp, color: Color) {
     Canvas(Modifier.size(size)) {
         val r = this.size.minDimension / 2f
+        // The hub: one thick ring, so the centre stays a hole rather than a
+        // disc. Teeth are short and fat, overlapping the hub's outer edge;
+        // thin, long spokes read as a sun, which is what this used to look
+        // like next to a settings label.
+        drawCircle(color, radius = r * 0.50f, style = Stroke(width = r * 0.40f))
         for (i in 0 until 8) {
             val a = Math.toRadians((i * 45).toDouble())
             val dx = kotlin.math.cos(a).toFloat()
             val dy = kotlin.math.sin(a).toFloat()
             drawLine(
                 color,
-                Offset(center.x + dx * r * 0.58f, center.y + dy * r * 0.58f),
-                Offset(center.x + dx * r * 0.95f, center.y + dy * r * 0.95f),
-                strokeWidth = r * 0.30f,
+                Offset(center.x + dx * r * 0.62f, center.y + dy * r * 0.62f),
+                Offset(center.x + dx * r * 0.94f, center.y + dy * r * 0.94f),
+                strokeWidth = r * 0.34f,
                 cap = StrokeCap.Round,
             )
         }
-        drawCircle(color, radius = r * 0.50f, style = Stroke(width = r * 0.26f))
     }
 }
 
@@ -201,11 +213,12 @@ private fun CountMini(room: Dp) {
 
 @Composable
 private fun AddMini(room: Dp) {
-    // The plate row and the bowl row share the room: seats a touch larger
-    // than the loose shapes, the same part-colour story the game itself tells.
-    val unit = (room - 56.dp) / 1.72f
-    val shape = (unit * 0.72f).coerceIn(26.dp, 56.dp)
-    val seat = unit.coerceIn(36.dp, 78.dp)
+    // The plate row and the bowl row share the room: two rows and the gap
+    // between them decide the seat, and the seat decides the piece. Seats a
+    // touch larger than the loose shapes, the same part-colour story the game
+    // itself tells.
+    val seat = ((room - 8.dp) / 2).coerceIn(36.dp, 120.dp)
+    val shape = (seat * 0.72f).coerceIn(26.dp, 88.dp)
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -241,4 +254,4 @@ private fun TakeMini(room: Dp) {
 }
 
 /** The one-row scenes' shape size: a third of the tile's spare room, capped. */
-private fun miniUnit(room: Dp): Dp = (room * 0.34f).coerceIn(34.dp, 60.dp)
+private fun miniUnit(room: Dp): Dp = (room * 0.34f).coerceIn(34.dp, 96.dp)

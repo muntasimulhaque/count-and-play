@@ -22,13 +22,12 @@ import app.maqsadah.count_and_play.core.ShapeKind
  * produce a face. Everything is designed in a 100x100 box and scaled to the
  * cell, so a shape is identical at every size and on every screen.
  */
-enum class Detail { FULL, PRIMARY, PLAIN, MINIMAL }
+enum class Detail { FULL, PRIMARY, PLAIN }
 
 fun detailFor(cellDp: Float): Detail = when {
     cellDp >= 56f -> Detail.FULL
     cellDp >= 40f -> Detail.PRIMARY
-    cellDp >= 32f -> Detail.PLAIN
-    else -> Detail.MINIMAL
+    else -> Detail.PLAIN
 }
 
 /** Fill, outline and top facet for each object. */

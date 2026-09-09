@@ -94,7 +94,7 @@ private fun BowlStrip(state: AddState, copy: Copy, onPour: () -> Unit, modifier:
 /** The bowl the pieces fell into, after the pour on a tight screen. */
 @Composable
 private fun BowlTray(state: AddState, copy: Copy, layout: TraySolution, onTap: (Int) -> Unit) {
-    Tray(state.bowl.size, layout, Modifier.fillMaxWidth()) { size ->
+    Tray(state.bowl.size, layout, Modifier.fillMaxWidth(), tint = Green) { size ->
         state.bowl.forEachIndexed { index, token ->
             key(token.id) {
                 FallIn(index) {
@@ -141,6 +141,9 @@ private fun BowlInPlace(
             state.total,
             TraySolution(sizes.bowl, sizes.bowlPerRow),
             Modifier.fillMaxWidth(),
+            // The bowl's own hue, matching the sleeping strip and the shelf's
+            // miniature: one colour says this is where the parts become whole.
+            tint = Green,
         ) { size ->
             if (state.poured) {
                 state.bowl.forEachIndexed { index, token ->

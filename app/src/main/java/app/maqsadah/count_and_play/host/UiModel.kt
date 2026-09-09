@@ -1,6 +1,7 @@
 package app.maqsadah.count_and_play.host
 
 import app.maqsadah.count_and_play.copy.Copy
+import app.maqsadah.count_and_play.copy.Language
 import app.maqsadah.count_and_play.core.AddState
 import app.maqsadah.count_and_play.core.CountState
 import app.maqsadah.count_and_play.core.TakeState
@@ -23,6 +24,8 @@ sealed class Flash {
 data class UiModel(
     val screen: Screen,
     val copy: Copy,
+    /** Which pack [copy] is: the settings sheet highlights the current choice. */
+    val language: Language,
     val muted: Boolean,
     val settingsOpen: Boolean,
     /** True until a language has ever been chosen: shows the first-run picker. */
