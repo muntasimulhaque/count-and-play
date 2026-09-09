@@ -47,43 +47,6 @@ internal fun anchorPos(text: String, f: Font, x: Double, cy: Double, anchor: Str
     return drawX to baseline
 }
 
-/**
- * Chunky type with a soft drop and an optional offset tint for depth. The
- * stroke extends [stroke] pixels outside the glyphs, as Pillow's did.
- */
-fun stickerText(
-    dst: Img,
-    x: Double,
-    y: Double,
-    text: String,
-    kind: String,
-    size: Int,
-    fill: Int,
-    stroke: Int = 0,
-    strokeFill: Int = WHITE,
-    shadow: Quad = Quad(6.0, 14.0, 60, 9.0),
-    tint: Int? = null,
-    tintOff: Pair<Double, Double> = 9.0 to 11.0,
-    anchor: String = "mm",
-) {
-    val f = font(kind, size)
-    val (dx0, base0) = anchorPos(text, f, x, y, anchor)
-
-    val lay = img(dst.width, dst.height)
-    val lg = graphicsText(lay)
-    drawGlyphs(lg, text, f, dx0 + shadow.a, base0 + shadow.b, INK or (shadow.c shl 24), stroke, INK or (shadow.c shl 24))
-    lg.dispose()
-    val blurred = gaussianBlur(lay, shadow.d)
-    val g = graphicsText(dst)
-    g.drawImage(blurred, 0, 0, null)
-
-    if (tint != null) {
-        drawGlyphs(g, text, f, dx0 + tintOff.first, base0 + tintOff.second, tint, stroke, strokeFill)
-    }
-    drawGlyphs(g, text, f, dx0, base0, fill, stroke, strokeFill)
-    g.dispose()
-}
-
 data class Quad(val a: Double, val b: Double, val c: Int, val d: Double)
 
 internal fun graphicsText(im: Img): Graphics2D = im.createGraphics().apply {
