@@ -54,10 +54,10 @@ Three games, each one tap away on the shelf:
 • Count them: tap each shape in any order, hear its number, and a numbered
   chip stays where the finger tapped. Any order is a right order.
 
-• Put together: two plates are counted on their own, then your child pours
-  them into one bowl with one big button, and counts what that made. The
-  parts keep their colours inside the whole, so five still reads as three
-  and two at a glance.
+• Put together: two plates are counted on their own, then your child taps
+  the bowl to pour them together, and counts what that made. The parts keep
+  their colours inside the whole, so five still reads as three and two at a
+  glance.
 
 • Take away: take the asked number out, and each taken piece wears its
   number as it sinks into its ghost. Then your child counts what is left.
@@ -88,8 +88,10 @@ makes, no data collected, is exactly true of the native app)
 
 All three sets live under `play-store/screenshots/`, one subfolder per form
 factor (`phone/`, `tablet7/`, `tablet10/`), captured by CI whenever UI files
-change and refreshed into those same subfolders in the same session. Upload
-each subfolder's eight PNGs to its Play Console slot, in filename order
+change and refreshed into those same subfolders in the same session. Captures
+are English only: the listing is reviewed in English, and the app's own
+Bengali support is described in the listing text instead. Upload each
+subfolder's seven PNGs to its Play Console slot, in filename order
 (01_home first); a Families-reviewed listing should match what ships. There
 is no separate staging folder.
 

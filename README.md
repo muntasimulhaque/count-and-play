@@ -12,7 +12,7 @@ son; on Google Play so other families can use it too. In English and বাং�
 
 <p align="center">
   <img src="play-store/screenshots/phone/01_home.png" width="170" alt="Home: three big picture games">
-  <img src="play-store/screenshots/phone/03_add.png" width="170" alt="Put together: both plates counted, the pour button awake">
+  <img src="play-store/screenshots/phone/03_add.png" width="170" alt="Put together: both plates counted, the bowl awake">
   <img src="play-store/screenshots/phone/04_add_fact.png" width="170" alt="The fact arrives huge on screen: 3 + 2 = 5">
   <img src="play-store/screenshots/phone/06_take_fact.png" width="170" alt="Take away: 5 - 2 = 3 with ghost holes">
 </p>
@@ -106,7 +106,9 @@ builds a **signed release AAB and APK**. Signing uses four repository secrets:
 keystore is never committed; if it is lost, the app can never be updated again.
 
 A second workflow renders the Play Store screenshots on phone, 7" and 10"
-emulators from `ScreenshotTest`.
+emulators from `ScreenshotTest`. Captures are English only: the listing is
+reviewed in English, so no Bengali scene is shot, though the app still plays
+in both languages.
 
 ## Releasing an update
 
