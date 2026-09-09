@@ -58,6 +58,11 @@ class Narrator(application: Application, initialLanguage: Language) {
                         // The first prompt can arrive before the engine binds; saying
                         // it late beats the old failure of a muted first round.
                         queued?.let { queued = null; speak(it) }
+                    } else {
+                        // The engine answered and refused: no voice is coming,
+                        // so stop waiting and let the settings sheet say so.
+                        voiceReady = true
+                        voiceAvailable = false
                     }
                 }
             }.apply {
@@ -74,6 +79,13 @@ class Narrator(application: Application, initialLanguage: Language) {
                 }
             }
         }.getOrNull()
+        if (engine == null) {
+            // No engine at all (rare, but it happens on stripped ROMs): the
+            // game is fully playable and silent, and the grown-up is told
+            // rather than left wondering why the counting has no voice.
+            voiceReady = true
+            voiceAvailable = false
+        }
     }
 
     /** Epoch guard: ids tagged before the last stop() are stale and dropped. */

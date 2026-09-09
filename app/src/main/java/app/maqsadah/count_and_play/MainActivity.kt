@@ -17,9 +17,7 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.maqsadah.count_and_play.host.GameHost
 import app.maqsadah.count_and_play.ui.GameScreen
-
-/** The most the toy-box lets system font scaling grow its words. */
-private const val MAX_FONT_SCALE = 1.3f
+import app.maqsadah.count_and_play.ui.MAX_FONT_SCALE
 
 class MainActivity : ComponentActivity() {
 

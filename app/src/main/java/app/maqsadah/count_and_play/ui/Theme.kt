@@ -103,3 +103,12 @@ val AdultSize = 16.sp
 
 /** Corner radius stepped down for small controls (chips of chrome). */
 val CornerSmall = 18.dp
+
+/**
+ * The most the toy-box lets system font scaling grow its words. Past this the
+ * words stop fitting the fixed play surfaces and begin to overlap them, which
+ * serves nobody, so MainActivity composes the whole UI under a bounded
+ * density. Kept here so the layout tests can hold the type reserves against
+ * the same ceiling the app enforces.
+ */
+const val MAX_FONT_SCALE = 1.3f

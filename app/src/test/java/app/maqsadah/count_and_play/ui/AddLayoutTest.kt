@@ -147,7 +147,7 @@ class AddLayoutTest {
         // default leading made it taller than TakeEqReserve, and on a short
         // screen the taken box ran past the bottom of the play area.
         assertTrue(EquationLine >= SizeEquation.value.dp * 1.05f)
-        assertTrue(TakeEqReserve >= EquationLine * 1.3f) // MainActivity.MAX_FONT_SCALE
+        assertTrue(TakeEqReserve >= EquationLine * MAX_FONT_SCALE)
     }
 
     @Test
