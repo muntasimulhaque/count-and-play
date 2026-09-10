@@ -35,16 +35,17 @@ the PNGs by hand.
 
 **App name** (30 chars max): `Count & Play`
 
-**Short description** (80 chars max, 69 used):
+**Short description** (80 chars max, 68 used):
 
 ```
-Ages 3 to 5: see adding and taking away happen with shapes and voice.
+First sums made visible: counting, adding, taking away, ages 3 to 5.
 ```
 
-Ages first on purpose, since that is who the app is for. Purely descriptive
-otherwise: the short-description guideline rejects keywords that indicate
+The age band and the three games, in as few words as possible. Purely
+descriptive: the short-description guideline rejects keywords that indicate
 price or promotion (free, no ads, best, sale), so the no-ads, offline and
-open-source facts live in the full description only.
+open-source facts live in the full description only. Keep the word "first":
+it says beginner without the guidelines reading it as a promise or a ranking.
 
 **Full description** (4000 chars max, 1741 used):
 
