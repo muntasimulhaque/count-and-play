@@ -35,18 +35,24 @@ the PNGs by hand.
 
 **App name** (30 chars max): `Count & Play`
 
-**Short description** (80 chars max, 76 used):
+**Short description** (80 chars max, 72 used):
 
 ```
-Teach a 3 to 5 year old counting, adding and taking away with simple shapes.
+Watch your 3 to 5 year old work out adding and taking away on their own.
 ```
 
-One plain sentence: who it is for, what it teaches, and what the child does
-with it. The age band sits inside the sentence rather than in front of a
-label, which is why it reads like speech instead of a form field. Purely
-descriptive: the short-description guideline rejects keywords that indicate
-price or promotion (free, no ads, best, sale), so the no-ads, offline and
-open-source facts live in the full description only.
+Ogilvy's rule for a headline: it should promise a benefit to the person
+holding the money, not describe the product. The buyer is the parent and the
+user is the child, so this talks to the parent and shows the outcome they are
+paying attention to, their child working it out unaided. The age band stays
+inside the sentence, and the only claim is one the game actually honours: the
+child counts the plates, pours, and produces the total himself, with no score
+and no fail state. No adjectives, because adjectives are what a seller adds
+when the fact is not strong enough on its own.
+
+Purely descriptive, still: the short-description guideline rejects keywords
+that indicate price or promotion (free, no ads, best, sale), so the no-ads,
+offline and open-source facts live in the full description only.
 
 **Full description** (4000 chars max, 1741 used):
 
