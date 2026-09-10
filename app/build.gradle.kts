@@ -14,8 +14,8 @@ android {
         applicationId = "app.maqsadah.count_and_play.twa"
         minSdk = 23
         targetSdk = 37
-        versionCode = 34
-        versionName = "8.7"
+        versionCode = 35
+        versionName = "8.8"
 
         // Instrumented tests (the emulator screenshot capture) use AndroidX's runner.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

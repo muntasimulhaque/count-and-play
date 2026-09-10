@@ -28,6 +28,9 @@ class SoundBoard(context: Context) {
 
     @Volatile private var released = false
 
+    /** The grown-up's mute switch, the same choice [Narrator] honours. */
+    @Volatile private var muted = false
+
     private val pool = SoundPool.Builder()
         .setMaxStreams(4)
         .setAudioAttributes(
@@ -67,8 +70,12 @@ class SoundBoard(context: Context) {
 
     @Volatile private var lastChimeAt = 0L
 
+    fun setMuted(muted: Boolean) {
+        this.muted = muted
+    }
+
     fun play(sfx: Sfx) {
-        if (released) return
+        if (released || muted) return
         val id = ids[sfx] ?: return
         // Two pitched notes in quick succession make an interval, and intervals
         // are where melody starts. The flow keeps chimes seconds apart already;
@@ -86,7 +93,7 @@ class SoundBoard(context: Context) {
     }
 
     private fun playNow(sfx: Sfx) {
-        if (released) return
+        if (released || muted) return
         val id = ids[sfx] ?: return
         if (id == 0) return
         val volume = volumeOf(sfx)

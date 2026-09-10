@@ -61,6 +61,7 @@ class GameHost(application: Application) : AndroidViewModel(application) {
 
     init {
         narrator.setMuted(store.muted)
+        sounds.setMuted(store.muted)
     }
 
     // -- The child's choices -------------------------------------------------
@@ -151,6 +152,7 @@ class GameHost(application: Application) : AndroidViewModel(application) {
         runCatching {
             store.muted = !store.muted
             narrator.setMuted(store.muted)
+            sounds.setMuted(store.muted)
             publish()
         }
     }
