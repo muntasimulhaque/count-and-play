@@ -11,8 +11,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import app.maqsadah.count_and_play.copy.BnCopy
-import app.maqsadah.count_and_play.copy.Copy
 import app.maqsadah.count_and_play.copy.EnCopy
 import app.maqsadah.count_and_play.copy.Language
 import app.maqsadah.count_and_play.core.AddState
@@ -150,11 +148,14 @@ class ScreenshotTest {
         // sound switch's red off-state is on the record.
         shoot(outDir, scenario, "07_settings") { model(Screen.Home, settingsOpen = true, muted = true) }
 
-        // The same counting moment, in Bengali.
-        shoot(outDir, scenario, "08_bangla") {
+        // The counting game's payoff: four shapes from the bag, every one
+        // tagged in his own order, the total landing huge over the tray the
+        // way it does at the end of a round. Shot last, so the shelf closes
+        // on a number he produced rather than was told.
+        shoot(outDir, scenario, "08_count_fact") {
             model(
-                Screen.Count(CountState(tokens = tray(ShapeKind.MELON, n = 4, counted = 1))),
-                copy = BnCopy,
+                Screen.Count(CountState(tokens = countedTray())),
+                flash = Flash.Count(4),
             )
         }
 
@@ -166,14 +167,13 @@ class ScreenshotTest {
     /** Every fixture keeps confettiKey = 0, so no burst fires mid-capture. */
     private fun model(
         screen: Screen,
-        copy: Copy = EnCopy,
         settingsOpen: Boolean = false,
         muted: Boolean = false,
         flash: Flash? = null,
     ) = UiModel(
         screen = screen,
-        copy = copy,
-        language = if (copy is BnCopy) Language.BN else Language.EN,
+        copy = EnCopy,
+        language = Language.EN,
         muted = muted,
         settingsOpen = settingsOpen,
         firstRun = false,
@@ -186,6 +186,19 @@ class ScreenshotTest {
         List(n) { i ->
             Token(id = i + 1, shape = shape, counted = i < counted, countOrder = if (i < counted) i + 1 else 0)
         }.toPersistentList()
+
+    /**
+     * A whole tray at the end of a COUNT round: four shapes out of the bag,
+     * each wearing the number of the tap that claimed it. The chips run left
+     * to right only because a still frame has to sit still; in play they
+     * follow the finger.
+     */
+    private fun countedTray(): PersistentList<Token> =
+        listOf(ShapeKind.APPLE, ShapeKind.STAR, ShapeKind.CARROT, ShapeKind.BALL)
+            .mapIndexed { i, shape ->
+                Token(id = i + 1, shape = shape, counted = true, countOrder = i + 1)
+            }
+            .toPersistentList()
 
     /** A plate of [count] [shape]s, the first [counted] of them tagged. */
     private fun plate(count: Int, shape: ShapeKind, counted: Int, firstId: Int, origin: Int = 0) =

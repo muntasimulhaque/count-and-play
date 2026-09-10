@@ -157,11 +157,12 @@ scenes each, about five minutes); manual `workflow_dispatch` works too.
 **Captures are English only, and stay eight per form factor (24 in all).**
 The listing is reviewed in English, so no scene is shot in Bengali any more;
 the app itself still plays in both languages and the listing text says so.
-Eight is the Play Console maximum, so the retired Bengali scene is replaced
-rather than dropped. **Next session:** at the next capture, choose an eighth
-English scene for that slot and shoot it. Until then the 8.7 kit keeps the
-Bengali scene there, so the set is never short. Do not add a non-English
-scene back without the owner saying so.
+Eight is the Play Console maximum, so the retired Bengali scene was replaced
+rather than dropped: slot 08 is the finished count, four shapes from the bag
+wearing the numbers of his own taps, the total arriving huge over the tray.
+That is the moment COUNT shares with the other two games, and it closes the
+shelf on a number he produced. Do not add a non-English scene back without
+the owner saying so.
 
 Download the three `store-screenshots-*` artifacts (`gh run download <run-id>
 -R muntasimulhaque/count-and-play -D <dir>`; `-R` works from any directory and
