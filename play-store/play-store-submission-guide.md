@@ -1,8 +1,9 @@
-# Count & Play: Play Console Reference (v7 era)
+# Count & Play: Play Console Reference (v8 era)
 
 Paste-ready material for the Play Console listing and release flow. The v1
 submission pack (PWABuilder zip, Netlify TWA) and the v6 listing text are
 history: everything below describes the native app as it actually ships.
+Status: the v8 build is submitted for Play review.
 
 ## Irreplaceable
 
@@ -30,52 +31,73 @@ the PNGs by hand.
   `mipmap-*/ic_launcher_foreground.png`) come from the same scene, so the
   shelf and the home screen always match.
 
-## Store listing (v7)
+## Store listing (v8)
 
 **App name** (30 chars max): `Count & Play`
 
-**Short description** (80 chars max):
+**Short description** (80 chars max, 69 used):
 
 ```
-See addition and subtraction happen. Count objects, pour them, take them away.
+Ages 3 to 5: see adding and taking away happen with shapes and voice.
 ```
 
-Purely descriptive on purpose: the short-description guideline rejects
-keywords that indicate price or promotion (free, no ads, best, sale),
-so the no-ads and offline facts live in the full description only.
+Ages first on purpose, since that is who the app is for. Purely descriptive
+otherwise: the short-description guideline rejects keywords that indicate
+price or promotion (free, no ads, best, sale), so the no-ads, offline and
+open-source facts live in the full description only.
 
-**Full description**:
+**Full description** (4000 chars max, 1741 used):
 
 ```
-Count & Play shows a very young child what numbers are, and what adding and
-taking away do to them, in a bright toy-box of big tappable candy shapes.
-Three games, each one tap away on the shelf:
+Count & Play teaches a 3 to 5 year old what numbers are, and what adding and
+taking away really do, with big candy shapes made to be tapped. It was built
+by a father for his own son.
 
-• Count them: tap each shape in any order, hear its number, and a numbered
-  chip stays where the finger tapped. Any order is a right order.
+Three games, each one tap away:
 
-• Put together: two plates are counted on their own, then your child taps
-  the bowl to pour them together, and counts what that made. The parts keep
-  their colours inside the whole, so five still reads as three and two at a
-  glance.
+• Count them: tap each shape in any order. Every tap leaves a numbered chip
+  and speaks its number. Any order is a right order.
 
-• Take away: take the asked number out, and each taken piece wears its
-  number as it sinks into its ghost. Then your child counts what is left.
-  Left is a quantity you can see, not a disappearing act.
+• Put together: count each plate on its own, then pour them into the bowl and
+  count the whole. The parts keep their colours inside, so five still reads as
+  three and two.
+
+• Take away: take the asked number out, and each taken piece keeps its number
+  as it sinks into a ghost hole. Then count what is left, so left is something
+  your child can see.
 
 Every round ends with the fact arriving huge on screen, 3 + 2 = 5, spoken
-aloud, then confetti. Difficulty creeps up invisibly inside each game and
-eases whenever your child struggles. There is no score, no timer and no fail
-state: the word wrong is never spoken.
+aloud, then confetti. Difficulty rises quietly when your child gets it and
+eases when they struggle. There is no score, no timer and no fail state, and
+the word wrong is never spoken.
 
-Made for little learners:
-• Everything is spoken in English and বাংলা, so no reading is needed
-• Huge touch targets on pressable toy keys, made for small fingers
-• No music, no characters: just shapes, colour, motion and voice
-• No ads, no purchases, no data collection, zero permissions, ever
-• Fully offline after the first open
+Made for young children, from an Islamic perspective:
 
-Made by a parent, for parents who want to sit with their child and teach.
+• For ages 3 to 5, with small numbers, huge touch targets and no reading
+  needed
+
+• No people, no animals, no faces, no mascots, no characters: only shapes and
+  colour
+
+• No music, just short sound effects and a clear spoken voice
+
+• Spoken in English and বাংলা
+
+Private and honest:
+
+• No ads, no trackers, no analytics, no accounts, no third party code
+
+• No internet access at all, so nothing can ever be sent anywhere
+
+• Zero permissions, because it needs none
+
+• Free, and always will be, with no purchases and no subscriptions
+
+• Open source under the MIT licence, so any parent can read every line on
+  GitHub: https://github.com/muntasimulhaque/count-and-play
+
+Made by a parent, for parents who want to sit with their child and learn
+together.
 ```
 
 **App category**: Education
@@ -125,9 +147,9 @@ external links reachable by a child.
   publishing is off, so an approved release publishes itself.
 - Every release: bump versionCode and versionName, push `main`, CI signs and
   publishes the AAB to the `latest-build` GitHub release (pull it into
-  `aab/`), then Play Console: create the release, paste English-only notes,
-  attach the screenshots from `play-store/screenshots/`, each subfolder to
-  its slot (already refreshed by the screenshot rule; no separate download
-  step).
+  `play-store/aab/`, so the upload kit is one folder), then Play Console:
+  create the release, paste English-only notes, attach the screenshots from
+  `play-store/screenshots/`, each subfolder to its slot (already refreshed by
+  the screenshot rule; no separate download step).
 - The app is fully native and fully offline: every change, however small, needs
   a new build and a Play release. Nothing ships without it.

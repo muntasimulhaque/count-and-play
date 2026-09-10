@@ -213,8 +213,8 @@ Bump `versionCode` +1 and `versionName` (+0.1 for small releases), push to
   only from the next capture on, see Build). Pinned to API 35; see Build for
   the refresh loop.
 
-Deliver the upload kit in one place: the AAB in `aab/`, release notes in
-chat as bare plain text (English, plain prose, no code fences, no markdown,
+Deliver the upload kit in one place: the AAB in `play-store/aab/`, release
+notes in chat as bare plain text (English, plain prose, no code fences, no markdown,
 no formatting of any kind, so the owner selects the words and pastes them
 straight into Play Console). The notes must also fit the Play Console
 release-notes field: 500 characters, counted before handing them over,

@@ -4,10 +4,16 @@ A native Android app that helps a very young child *see* what numbers are, and
 what adding and taking away do to them. Built by a father for his 3-year-old
 son; on Google Play so other families can use it too. In English and বাংলা.
 
+**Made for ages 3 to 5.** Free, and it always will be. Open source under MIT,
+and the whole thing is in this repository.
+
+Submitted for Play review. Everything below describes that build.
+
 [![Get it on Google Play](https://img.shields.io/badge/-Get%20it%20on%20Google%20Play-414141?logo=google-play&logoColor=white&style=flat)](https://play.google.com/store/apps/details?id=app.maqsadah.count_and_play.twa)
 
 - **Play Store package:** `app.maqsadah.count_and_play.twa`
-- **License:** MIT
+- **License:** MIT (free to use, read, fork and learn from)
+- **Price:** free, no ads, no purchases, no subscriptions
 - **Privacy policy:** [online](https://muntasimulhaque.github.io/count-and-play/privacy.html) · [in this repo](docs/privacy.html)
 
 <p align="center">
@@ -25,6 +31,24 @@ The same play on tablets (7" and 10"):
   <img src="play-store/screenshots/tablet10/01_home.png" width="300" alt="Home on a 10-inch tablet">
   <img src="play-store/screenshots/tablet10/06_take_fact.png" width="300" alt="Take away on a 10-inch tablet">
 </p>
+
+## Why parents pick it
+
+- **Ages 3 to 5.** The numbers stay small on purpose, the touch targets are
+  huge, and nothing needs reading.
+- **From an Islamic perspective.** No people, no animals, no faces, no mascots
+  and no characters anywhere, in the games, the icon or the store art. Shape
+  and colour carry the warmth instead.
+- **No music.** Every sound is a short, deliberately inharmonic effect or the
+  spoken voice. The one pitched chime can never sound twice in quick
+  succession, because two notes in a row make an interval and intervals are
+  where melody starts.
+- **Private by construction.** No ads, no trackers, no analytics, no accounts,
+  no third-party SDKs and no internet access at all. The app declares zero
+  permissions, so there is nothing for it to collect or send.
+- **Free, and always will be.** No purchase, no subscription, no unlock, no
+  upsell. The source is on GitHub under the MIT licence, so anyone can read
+  exactly what the app does.
 
 ## What it is
 
@@ -114,7 +138,21 @@ Console maximum, English only from the next refresh on.
 1. Bump `versionCode` (+1) and `versionName` (+0.1 for a small fix, +1.0 for a
    rebuild) in `app/build.gradle.kts`.
 2. Commit and push to `main`.
-3. Take the signed AAB from the `latest-build` release once CI is green.
+3. Pull the signed AAB from the `latest-build` release into `play-store/aab/`,
+   so the whole upload kit sits in one folder:
+
+   ```
+   gh release download latest-build -R muntasimulhaque/count-and-play \
+     -p app-release.aab -D play-store/aab --clobber
+   ```
+
 4. Play Console: create a release on the Production track.
 
 Only capture new store screenshots when the UI actually changed.
+
+## Store listing
+
+The Play Store name, short description, full description and the questionnaire
+answers live in [play-store/play-store-submission-guide.md](play-store/play-store-submission-guide.md).
+The upload kit, the AAB, the screenshots and the art, all sits under
+[play-store/](play-store/).
