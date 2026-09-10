@@ -162,7 +162,7 @@ fun flatChip(dst: Img, cx: Double, cy: Double, dia: Double, text: String) {
     plainText(dst, cx, cy - dia * 0.04, text, "black", (dia * 0.62).toInt(), WHITE)
 }
 
-/** A rounded seat disc, the bowl's part colours. */
+/** A rounded seat disc, the bowl's part colors. */
 fun flatSeat(dst: Img, cx: Double, cy: Double, dia: Double, seat: Int) {
     val g = graphics(dst)
     g.argb(seat)

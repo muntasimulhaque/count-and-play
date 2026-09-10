@@ -17,7 +17,7 @@ data class Token(
     val counted: Boolean = false,
     val gone: Boolean = false,
     val countOrder: Int = 0,
-    /** ADD only: 1 = came from plate A, 2 = plate B, so the bowl can seat each part on its own colour. */
+    /** ADD only: 1 = came from plate A, 2 = plate B, so the bowl can seat each part on its own color. */
     val origin: Int = 0,
 )
 
@@ -74,7 +74,7 @@ data class CountState(
  *    out first; the right plate sleeps (shown washed-out) until then, so two
  *    columns can never be mixed into one count.
  * 2. POUR: once both plates are counted the button wakes; tapping it pours
- *    everyone into the bowl, each part keeping its plate's colour. The plates
+ *    everyone into the bowl, each part keeping its plate's color. The plates
  *    stay exactly as they were, now wearing their totals; only the objects
  *    move down into the bowl that appears beneath them.
  * 3. COUNT THE WHOLE: the bowl is counted afresh, one word per tap, and the
@@ -113,7 +113,7 @@ data class AddState(
      */
     fun onPour(): Pair<AddState, List<Beat>> {
         if (poured || !platesReady) return this to listOf(Beat.Play(Sfx.TICK))
-        // Everyone is counted afresh in the bowl; only the part colour stays.
+        // Everyone is counted afresh in the bowl; only the part color stays.
         val moved = plateA.map { it.copy(counted = false, countOrder = 0, origin = 1) } +
             plateB.map { it.copy(counted = false, countOrder = 0, origin = 2) }
         val beats = listOf(Beat.Play(Sfx.RUSTLE), Beat.SayPromptAll)

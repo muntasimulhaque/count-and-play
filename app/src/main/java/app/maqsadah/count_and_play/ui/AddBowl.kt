@@ -102,7 +102,7 @@ private fun BowlTray(state: AddState, copy: Copy, layout: TraySolution, onTap: (
                         shape = token.shape,
                         sizeDp = size,
                         chip = if (token.counted) copy.digits(token.countOrder) else null,
-                        // Each part keeps its plate's colour under it in the bowl.
+                        // Each part keeps its plate's color under it in the bowl.
                         seat = if (token.origin == 1) SeatA else SeatB,
                         label = copy.objectLabel(token.shape.name, if (token.counted) token.countOrder else 0),
                         onTap = { onTap(token.id) },
@@ -115,7 +115,7 @@ private fun BowlTray(state: AddState, copy: Copy, layout: TraySolution, onTap: (
 
 /**
  * The roomy screen's bowl, present from the first frame and constant through
- * the pour: before it, total ghost seats on their part colours, washed out
+ * the pour: before it, total ghost seats on their part colors, washed out
  * until both plates are counted and the whole bowl is the tap target; after
  * it, the pieces fallen into exactly those seats, each one tappable for the
  * fresh count of the whole. The geometry never changes, so the pour moves
@@ -142,7 +142,7 @@ private fun BowlInPlace(
             TraySolution(sizes.bowl, sizes.bowlPerRow),
             Modifier.fillMaxWidth(),
             // The bowl's own hue, matching the sleeping strip and the shelf's
-            // miniature: one colour says this is where the parts become whole.
+            // miniature: one color says this is where the parts become whole.
             tint = Green,
         ) { size ->
             if (state.poured) {
@@ -170,7 +170,7 @@ private fun BowlInPlace(
     }
 }
 
-/** An empty bowl seat: the part's colour under the dashed slot to come. The
+/** An empty bowl seat: the part's color under the dashed slot to come. The
  *  node matches the seat a fallen piece occupies, so the pour moves pieces,
  *  never furniture, and both phases of the bowl lay out on one rhythm. */
 @Composable

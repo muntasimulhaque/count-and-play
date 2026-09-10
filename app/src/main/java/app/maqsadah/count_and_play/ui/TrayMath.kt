@@ -17,7 +17,7 @@ import androidx.compose.ui.unit.dp
  * - Every token node is at least [HitTarget] wide, whatever it looks like;
  *   a three-year-old's finger lands wide, and packing follows the finger,
  *   not the drawing.
- * - A seated token (the bowl's part colours) draws a circle around itself,
+ * - A seated token (the bowl's part colors) draws a circle around itself,
  *   so its node grows past its body.
  *
  * Rows follow [perRowTemplate]: balanced arrangements with no lonely orphan
@@ -92,8 +92,8 @@ internal data class TraySolution(val size: Dp, val perRow: Int)
 
 /**
  * How [count] items divide into rows of at most [perRow]: full rows first,
- * then the remainder centred beneath them (the tray layout places every row
- * centred, so 5 at three-per-row reads as the classic 3-over-2).
+ * then the remainder centered beneath them (the tray layout places every row
+ * centered, so 5 at three-per-row reads as the classic 3-over-2).
  */
 internal fun rowPlan(count: Int, perRow: Int): List<Int> {
     val p = perRow.coerceAtLeast(1)

@@ -245,7 +245,7 @@ internal fun ActivityFrame(prompt: String, copy: Copy, onHome: () -> Unit, conte
                     fontFamily = ToyFont,
                 )
             }
-            // Mirrors the home button so the prompt stays optically centred and
+            // Mirrors the home button so the prompt stays optically centered and
             // can never slide underneath it, whatever the screen width or font.
             Spacer(Modifier.width(52.dp))
         }

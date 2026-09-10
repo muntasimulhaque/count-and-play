@@ -38,7 +38,7 @@ The same play on tablets (7" and 10"):
   huge, and nothing needs reading.
 - **From an Islamic perspective.** No people, no animals, no faces, no mascots
   and no characters anywhere, in the games, the icon or the store art. Shape
-  and colour carry the warmth instead.
+  and color carry the warmth instead.
 - **No music.** Every sound is a short, deliberately inharmonic effect or the
   spoken voice. The one pitched chime can never sound twice in quick
   succession, because two notes in a row make an interval and intervals are
@@ -47,7 +47,7 @@ The same play on tablets (7" and 10"):
   no third-party SDKs and no internet access at all. The app declares zero
   permissions, so there is nothing for it to collect or send.
 - **Free, and always will be.** No purchase, no subscription, no unlock, no
-  upsell. The source is on GitHub under the MIT licence, so anyone can read
+  upsell. The source is on GitHub under the MIT license, so anyone can read
   exactly what the app does.
 
 ## What it is
@@ -60,11 +60,11 @@ navigation buttons are hidden while playing, so nothing crowds the toys.
 | | |
 |---|---|
 | **Count them** | Tap the objects in any order; each tap leaves a numbered chip in his order and the voice says its number. Whatever he taps first is "one". |
-| **Put together** | He counts each plate on its own ("three!" … "two!"), then taps the bowl to pour them together, and counts the whole ("one … five!"). The parts keep their coloured seats inside the whole, so five reads as three-and-two at a glance. |
+| **Put together** | He counts each plate on its own ("three!" … "two!"), then taps the bowl to pour them together, and counts the whole ("one … five!"). The parts keep their colored seats inside the whole, so five reads as three-and-two at a glance. |
 | **Take away** | A bowl; *"take away two"*; he taps two out, each wearing its number as it sinks into a ghost hole. Then he counts what is left himself, so "left" is a quantity he can see. |
 
 Every round ends the same way: the fact arrives **huge on screen**, `3 + 2 = 5`
-in coloured numerals, while the voice says it, and paper confetti falls. The
+in colored numerals, while the voice says it, and paper confetti falls. The
 symbols land at the exact moment the child has just lived them.
 
 Difficulty creeps up invisibly: totals of three, then five, then ten, and eases
@@ -77,7 +77,7 @@ counting practice never exceeds ten. A 3-year-old can see three at a glance and
 track one or two moving objects; twenty objects is not harder counting, it is a
 different and much worse task.
 
-Design constraints honoured throughout: **no music**, and **no depiction of any
+Design constraints honored throughout: **no music**, and **no depiction of any
 animate being**, no people, animals, faces, or mascots anywhere, including the
 icon. Warmth comes from material, weight, motion and voice instead. No ads, no
 data collection, no network access, zero permissions.
@@ -97,7 +97,7 @@ host/     ViewModel, beat runner, TTS, sounds
 ui/       Compose, candy toy-box
 ```
 
-The organising principle: **the rules are pure data and functions; Android is a
+The organizing principle: **the rules are pure data and functions; Android is a
 player of those rules, not a participant.** The domain emits a script of beats
 (say this, play that, show this, wait) and the host performs it, so `delay()`
 exists in exactly one place. That is why the entire game is playable in plain

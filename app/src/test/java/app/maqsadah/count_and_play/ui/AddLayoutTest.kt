@@ -240,7 +240,7 @@ class AddLayoutTest {
     }
 
     @Test
-    fun `row plans are full rows plus a centred remainder`() {
+    fun `row plans are full rows plus a centered remainder`() {
         // The deterministic tray layout chunks by [rowPlan], so the plan
         // itself carries the promise: full rows of exactly perRow, a final
         // remainder that is never a lonely one (for the template's rows).

@@ -28,7 +28,7 @@ class SoundBoard(context: Context) {
 
     @Volatile private var released = false
 
-    /** The grown-up's mute switch, the same choice [Narrator] honours. */
+    /** The grown-up's mute switch, the same choice [Narrator] honors. */
     @Volatile private var muted = false
 
     private val pool = SoundPool.Builder()

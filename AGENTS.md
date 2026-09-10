@@ -33,6 +33,9 @@ release notes, commit messages, code comments, or this file. Use commas,
 colons, parentheses, or a sentence break instead. The en-dash stays for number
 ranges ("1–2"); the ellipsis is not an em-dash and is fine.
 
+**American English, everywhere.** Spelling, words and idiom: color, license,
+center, gray, practice, traveled, honor, organize. Store text included.
+
 **Plain-text store text.** Release notes are pasted into Play Console, where
 quotes, markdown fences, and dashes mangle or get auto-corrected: plain prose,
 no quote marks around phrases, no markdown, no em-dashes.
@@ -59,13 +62,12 @@ guides, and difficulty adapts invisibly *inside* a game.
   numeral the moment the last object is counted, with a plain Well done!
   (সাব্বাশ) spoken over it.
 - **Put together:** the LEFT plate is counted first, the right one asleep in
-  washed-out grey until then, so two columns can never mix into one count. A
+  washed-out gray until then, so two columns can never mix into one count. A
   finished plate wears its total as a candy badge that stays on through the
   pour. Once both plates are counted the bowl wears the words Put them
   together, so the cue to pour lives where the finger goes, and the pour
   itself is a tap on the bowl; then he counts the whole; the parts keep
-  their coloured seats inside it, and the plates keep their place. Once both plates are counted the bowl wears the
-  words Put them together, so the cue to pour lives where the finger goes.
+  their colored seats inside it, and the plates keep their place.
 - **Take away:** he counts the whole tray first, exactly as in Count them;
   only then does the ask hang above the tray as numerals (5 − 1), and he taps
   the asked number out, each taken piece moving down into the taken box
@@ -90,7 +92,7 @@ listing text, the submission guide); docs/ holds privacy.html as served on
 GitHub Pages and the bundled font's license. Nothing else lives loose.
 ```
 
-The organising principle: **the rules are pure data and functions; Android is
+The organizing principle: **the rules are pure data and functions; Android is
 a player of those rules, not a participant.** The domain emits beats (say,
 play, show, wait) and the host performs them, which is why the whole game is
 playable in plain JVM tests and store screenshots render straight from state.
@@ -125,7 +127,7 @@ playable in plain JVM tests and store screenshots render straight from state.
 - **The parts are counted, then the whole**, by him: plates on their own, the
   pour he performs himself, the total he produces rather than was told.
 - **The parts stay inside the whole:** the bowl seats each part on its own
-  colour, so five keeps reading as three-and-two at a glance.
+  color, so five keeps reading as three-and-two at a glance.
 - **Subtraction stays visible:** taken objects wear their take-away number in
   ghost holes; "left" is a quantity you can see, not a disappearing act.
 - **Symbols arrive at the moment of the fact**, never earlier, never as

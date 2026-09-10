@@ -49,7 +49,7 @@ fun HomeScreen(copy: Copy, onChoose: (Skill) -> Unit, onOpenSettings: () -> Unit
             Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            // Mirrors the gear so the title stays optically centred and can
+            // Mirrors the gear so the title stays optically centered and can
             // never slide underneath it, whatever the screen width or font.
             Spacer(Modifier.width(48.dp))
             FitTitle(copy.homeTitle(), Modifier.weight(1f))
@@ -83,7 +83,7 @@ private fun FitTitle(text: String, modifier: Modifier) {
     )
 }
 
-/** One toy key: a white cap on the neutral sand edge, its scene centred inside. */
+/** One toy key: a white cap on the neutral sand edge, its scene centered inside. */
 @Composable
 private fun Tile(
     skill: Skill,
@@ -147,7 +147,7 @@ private fun GearButton(modifier: Modifier, description: String, onOpenSettings: 
 private fun GearIcon(size: Dp, color: Color) {
     Canvas(Modifier.size(size)) {
         val r = this.size.minDimension / 2f
-        // The hub: one thick ring, so the centre stays a hole rather than a
+        // The hub: one thick ring, so the center stays a hole rather than a
         // disc. Teeth are short and fat, overlapping the hub's outer edge;
         // thin, long spokes read as a sun, which is what this used to look
         // like next to a settings label.
@@ -215,7 +215,7 @@ private fun CountMini(room: Dp) {
 private fun AddMini(room: Dp) {
     // The plate row and the bowl row share the room: two rows and the gap
     // between them decide the seat, and the seat decides the piece. Seats a
-    // touch larger than the loose shapes, the same part-colour story the game
+    // touch larger than the loose shapes, the same part-color story the game
     // itself tells.
     val seat = ((room - 8.dp) / 2).coerceIn(36.dp, 120.dp)
     val shape = (seat * 0.72f).coerceIn(26.dp, 88.dp)

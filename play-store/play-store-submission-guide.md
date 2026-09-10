@@ -21,7 +21,7 @@ lettering is Baloo 2, the same face bundled with the app, so shelf, store and
 screen are one brand. Regenerate with `./gradlew :tools:makeArt`; never edit
 the PNGs by hand.
 
-- `play-store/feature-graphic-1024x500.png`: the centred wordmark and promise
+- `play-store/feature-graphic-1024x500.png`: the centered wordmark and promise
   above the three games as the app's own candy tiles, each showing its real
   scene: counting with the chips on, the plates and the bowl with the parts
   seated inside the whole, and take-away with its numbered ghosts.
@@ -45,7 +45,7 @@ Ogilvy's rule for a headline: it should promise a benefit to the person
 holding the money, not describe the product. The buyer is the parent and the
 user is the child, so this talks to the parent and shows the outcome they are
 paying attention to, their child working it out unaided. The age band stays
-inside the sentence, and the only claim is one the game actually honours: the
+inside the sentence, and the only claim is one the game actually honors: the
 child counts the plates, pours, and produces the total himself, with no score
 and no fail state. No adjectives, because adjectives are what a seller adds
 when the fact is not strong enough on its own.
@@ -54,59 +54,46 @@ Purely descriptive, still: the short-description guideline rejects keywords
 that indicate price or promotion (free, no ads, best, sale), so the no-ads,
 offline and open-source facts live in the full description only.
 
-**Full description** (4000 chars max, 1741 used):
+**Full description** (4000 chars max, 2660 used):
 
 ```
-Count & Play teaches a 3 to 5 year old what numbers are, and what adding and
-taking away really do, with big candy shapes made to be tapped. It was built
-by a father for his own son.
+Your child can see what adding and taking away do.
 
-Three games, each one tap away:
+A three year old can count to ten by heart and still not know what five means. Hold up three fingers, then two, and watch his eyes slide politely past your hand. The symbols mean nothing yet because nothing has happened to him yet.
 
-• Count them: tap each shape in any order. Every tap leaves a numbered chip
-  and speaks its number. Any order is a right order.
+Count & Play makes it happen to him.
 
-• Put together: count each plate on its own, then pour them into the bowl and
-  count the whole. The parts keep their colours inside, so five still reads as
-  three and two.
+He taps a shape. The voice says one, and a chip numbered one stays where his finger landed. He taps another, and that is two. There is no wrong order, because whatever he taps first is one.
 
-• Take away: take the asked number out, and each taken piece keeps its number
-  as it sinks into a ghost hole. Then count what is left, so left is something
-  your child can see.
+Then the plates. Three shapes on the left, two on the right. He counts each plate on its own, out loud, with the voice. He taps the bowl and the two groups pour in together, and he counts the whole himself: one, two, three, four, five. The five shapes keep their colors inside the bowl, three of one and two of the other, so five keeps meaning three and two. That is addition, seen instead of memorized.
 
-Every round ends with the fact arriving huge on screen, 3 + 2 = 5, spoken
-aloud, then confetti. Difficulty rises quietly when your child gets it and
-eases when they struggle. There is no score, no timer and no fail state, and
-the word wrong is never spoken.
+Take away works the same way. Take away two. Two shapes come out, each keeping its number as it sinks into the hole it left behind. Then he counts what remains. Nothing vanishes. Left is a number he can point at.
 
-Made for young children, from an Islamic perspective:
+Every round ends with the fact arriving on screen, large: 3 + 2 = 5. The voice says it while he looks at it, and confetti falls. He did the work a second earlier, so the symbols land on something he already knows.
 
-• For ages 3 to 5, with small numbers, huge touch targets and no reading
-  needed
+The difficulty moves without being noticed. Two good rounds in a row and the numbers grow. Fumbling brings them back down. Nothing is scored, nothing is timed and no round can be failed. The word wrong is never spoken.
 
-• No people, no animals, no faces, no mascots, no characters: only shapes and
-  colour
+For preschool and the year before kindergarten, ages three to five:
 
-• No music, just short sound effects and a clear spoken voice
+• Counting never goes past ten, and adding never goes past five. Small numbers are not a limitation, they are the lesson: a young child sees three at a glance but cannot track twenty.
+• The shapes are the buttons, so a target is never smaller than a shape.
+• Nothing needs reading. Every word is spoken, in English or Bengali.
+• No people, no animals, no faces and no characters, anywhere, in the games, the icon or the store pictures. We left them out deliberately. Nothing competes with the numbers.
+• No music. Four short, dry sounds and one speaking voice.
+• No ads, no trackers, no analytics, no accounts, no third party code, and no internet access at all, so nothing can be sent anywhere. Zero permissions, because it needs none.
+• Free, with no purchase and no subscription, and it always will be. Every line of the source is on GitHub under the MIT license: https://github.com/muntasimulhaque/count-and-play
 
-• Spoken in English and বাংলা
-
-Private and honest:
-
-• No ads, no trackers, no analytics, no accounts, no third party code
-
-• No internet access at all, so nothing can ever be sent anywhere
-
-• Zero permissions, because it needs none
-
-• Free, and always will be, with no purchases and no subscriptions
-
-• Open source under the MIT licence, so any parent can read every line on
-  GitHub: https://github.com/muntasimulhaque/count-and-play
-
-Made by a parent, for parents who want to sit with their child and learn
-together.
+I wrote it for my own son when he was three. This is what I built instead of holding up my fingers again.
 ```
+
+How this follows Ogilvy's long copy: the first line is a benefit, not a
+label. Every paragraph after it is a fact he could verify, one scene per
+game, in the order a child meets them. Specific numbers do the selling
+(three to five, never past ten, never past five, zero permissions) because
+specifics are believable and adjectives are not. Subheads are absent on
+purpose, the way he wrote long copy, so the eye is carried by the first
+sentence of each paragraph. The last line is a testimonial, and it is true,
+which is the only kind he used.
 
 **App category**: Education
 **Contact email**: muntasim.haque@gmail.com

@@ -46,12 +46,12 @@ private val KeySpring = spring<Dp>(
  * A pressable toy key, hung in the calm gallery: a white cap riding on a
  * neutral sand side edge. At rest the cap sits lifted and floats on its
  * shadow; under the finger it sinks flush, the shadow vanishes and the edge
- * disappears, so a press is felt as much as seen. Solid colours only: the
+ * disappears, so a press is felt as much as seen. Solid colors only: the
  * depth is geometry, not a gradient. Caps are white; [fill] overrides. Keys
  * FLOAT, wells (see Objects) hold.
  *
  * The lift lives inside the key's own top padding, so callers lay keys out
- * exactly like plain boxes and neighbours never jump when one sinks.
+ * exactly like plain boxes and neighbors never jump when one sinks.
  */
 @Composable
 fun Keycap(

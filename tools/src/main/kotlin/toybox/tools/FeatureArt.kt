@@ -40,7 +40,7 @@ private fun featureGround(): Img {
 }
 
 private fun featureBand(img: Img) {
-    // One centred column: wordmark above, tagline below, tiles beneath. The
+    // One centered column: wordmark above, tagline below, tiles beneath. The
     // wordmark keeps its candy two-tone sticker lettering: this is a kids'
     // app, and the title gets to be as playful as the toys beneath it.
     val w1 = textAdvance("Count", font("black", 160))

@@ -79,7 +79,7 @@ private fun PlatesRow(state: AddState, copy: Copy, sizes: TraySizes, onTap: (Int
             objectSize = if (state.poured) sizes.plateAfter else sizes.plate,
             perRow = sizes.platePerRow,
             badge = if (state.doneA) copy.digits(state.a) else null,
-            badgeCentred = state.poured,
+            badgeCentered = state.poured,
             awake = true,
             copy = copy,
             modifier = Modifier.weight(1f),
@@ -91,7 +91,7 @@ private fun PlatesRow(state: AddState, copy: Copy, sizes: TraySizes, onTap: (Int
             objectSize = if (state.poured) sizes.plateAfter else sizes.plate,
             perRow = sizes.platePerRow,
             badge = if (state.doneB) copy.digits(state.b) else null,
-            badgeCentred = state.poured,
+            badgeCentered = state.poured,
             awake = state.doneA || state.poured,
             copy = copy,
             modifier = Modifier.weight(1f),
@@ -101,7 +101,7 @@ private fun PlatesRow(state: AddState, copy: Copy, sizes: TraySizes, onTap: (Int
 }
 
 /**
- * One plate of objects. A sleeping plate keeps its place and its rim colour
+ * One plate of objects. A sleeping plate keeps its place and its rim color
  * but its pieces are drawn washed-out and monochrome, so the child can see
  * which column is his before its turn arrives. It still answers the finger:
  * the core turns a tap there into a soft tick and records the reach, never a
@@ -115,7 +115,7 @@ private fun PlateTray(
     objectSize: Dp,
     perRow: Int,
     badge: String?,
-    badgeCentred: Boolean,
+    badgeCentered: Boolean,
     awake: Boolean,
     copy: Copy,
     modifier: Modifier,
@@ -158,8 +158,8 @@ private fun PlateTray(
             // corner: the one spot the pieces never reach (count chips sit at
             // each object's top-right), so the badge is a tag on the plate
             // rather than a lid over the last piece. Folded places hold the
-            // total centred, where there is nothing else left to cover.
-            val place = if (badgeCentred) {
+            // total centered, where there is nothing else left to cover.
+            val place = if (badgeCentered) {
                 Modifier.align(Alignment.Center)
             } else {
                 Modifier.align(Alignment.BottomEnd).offset(x = BadgeOverhang, y = BadgeOverhang)

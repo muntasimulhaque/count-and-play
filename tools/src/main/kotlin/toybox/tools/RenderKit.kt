@@ -42,7 +42,7 @@ fun darken(c: Int, t: Double) = mix(c, rgb(0, 0, 0), t)
 
 // -- Gradients -----------------------------------------------------------------
 
-/** Vertical multi-stop gradient: stops = (position 0..1, opaque colour). */
+/** Vertical multi-stop gradient: stops = (position 0..1, opaque color). */
 fun vgrad(w: Int, h: Int, stops: List<Pair<Double, Int>>): Img {
     val out = img(w, h)
     val raster = out.raster
@@ -173,7 +173,7 @@ fun graphics(im: Img): Graphics2D = im.createGraphics().apply {
     setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE)
 }
 
-/** Composite [tile] centred on ([cx], [cy]). */
+/** Composite [tile] centered on ([cx], [cy]). */
 fun placeTile(dst: Img, tile: Img, cx: Double, cy: Double) {
     val g = graphics(dst)
     g.drawImage(tile, (cx - tile.width / 2.0).roundToInt(), (cy - tile.height / 2.0).roundToInt(), null)

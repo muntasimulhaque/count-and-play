@@ -60,7 +60,7 @@ fun FlashOverlay(flash: Flash, copy: Copy) {
 }
 
 /**
- * The fact itself, on a floating white card: no ribbon, no border colour.
+ * The fact itself, on a floating white card: no ribbon, no border color.
  * To a screen reader it is one thing only: the spoken fact sentence ("three
  * and two make five"), not four bare glyphs. The polite live region keeps
  * the announcement automatic.

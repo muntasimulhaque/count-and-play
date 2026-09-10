@@ -40,7 +40,7 @@ class AudioFocus(
 
     /**
      * Asks to be heard. True: the voice may speak until the next loss. Under
-     * API 26 there is no request API to honour, and the system ducks us on
+     * API 26 there is no request API to honor, and the system ducks us on
      * its own, so the answer is simply yes.
      */
     fun request(): Boolean {

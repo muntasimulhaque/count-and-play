@@ -174,7 +174,7 @@ private fun LanguageRow(copy: Copy, language: Language, onSetLanguage: (Language
     }
 }
 
-/** One language choice: label and tick only, the travelling pill carries the surface. */
+/** One language choice: label and tick only, the traveling pill carries the surface. */
 @Composable
 private fun LangChoice(name: String, active: Boolean, modifier: Modifier, onClick: () -> Unit) {
     Row(
@@ -221,7 +221,7 @@ private fun SoundRow(copy: Copy, muted: Boolean, onToggleMute: () -> Unit) {
             fontWeight = ToyBold,
             fontFamily = ToyFont,
         )
-        // A second, colour-only statement of the state: green when sound
+        // A second, color-only statement of the state: green when sound
         // flows, red when it is switched off.
         Box(Modifier.size(14.dp).background(if (muted) Red else Green, CircleShape))
     }

@@ -209,7 +209,7 @@ class ScreenshotTest {
     )
 
     /** 3 + 2 poured: the folded plates wear 3 and 2, and the bowl of five
-     *  is fully counted in his order, each part seated on its plate colour. */
+     *  is fully counted in his order, each part seated on its plate color. */
     private fun addPoured() = AddState(
         a = 3, b = 2,
         plateA = persistentListOf(),

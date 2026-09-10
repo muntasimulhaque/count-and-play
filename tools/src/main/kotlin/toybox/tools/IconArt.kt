@@ -11,7 +11,7 @@ import java.io.File
  * where addition is visible as a fact. In the calm gallery the tray is a
  * white card floating on soft light, the candy green edge peeking beneath
  * it, exactly the keycap move the app's own keys make. Five countables sit
- * in their part colours, three apples on blue seats above two balls on
+ * in their part colors, three apples on blue seats above two balls on
  * orange seats, the 3+2 the app itself packs. One silhouette, nothing
  * overlapping, no numerals: quantities, not symbols, which is the promise
  * the app makes a three-year-old. The shapes are the exact bodies the
@@ -63,7 +63,7 @@ private fun galleryCard(img: Img, x: Double, y: Double, w: Double, h: Double, ed
 /**
  * The bowl exactly as the app now draws it: a white gallery card with the
  * green edge beneath, five seats in two rows, the parts still wearing
- * their part colours. [w] is the card's outer width; every other
+ * their part colors. [w] is the card's outer width; every other
  * proportion follows it.
  */
 fun paintBowl(img: Img, cx: Double, cy: Double, w: Double) {
@@ -74,7 +74,7 @@ fun paintBowl(img: Img, cx: Double, cy: Double, w: Double) {
     val rowDy = h * 0.16
     val colDx = w * 0.215
     // Three apples on blue seats above, two balls on orange seats below:
-    // the parts keep their colours inside the whole, the app's own 3+2.
+    // the parts keep their colors inside the whole, the app's own 3+2.
     for (t in listOf(-1.0, 0.0, 1.0)) {
         flatSeat(img, cx + t * colDx, cy - rowDy, seat, SEAT_A)
         flatCountable(img, "apple", cx + t * colDx, cy - rowDy, box)

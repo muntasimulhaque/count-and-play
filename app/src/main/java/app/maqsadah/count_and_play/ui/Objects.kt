@@ -51,7 +51,7 @@ import app.maqsadah.count_and_play.core.ShapeKind
 private fun chipDiameter(objectSize: Dp): Dp = maxOf(30.dp, objectSize * 0.36f)
 
 /**
- * One countable. Optionally on a rounded seat (the ADD bowl's part colours),
+ * One countable. Optionally on a rounded seat (the ADD bowl's part colors),
  * optionally wearing its count chip, and tappable only when [onTap] is given.
  *
  * [touchTarget] is the smallest node the finger gets. A full-width tray can
@@ -250,7 +250,7 @@ private val InnerRimDepth = 10.dp
  * arranged them, so the balanced arrangement computed in [TrayMath] is the
  * arrangement the child sees. [tint] quietly washes a place that means
  * something different (the TAKE taken-away box) without adding a second
- * chrome colour.
+ * chrome color.
  *
  * The caller passes a solved [layout]: COUNT and TAKE solve their single
  * tray against the room the screen offers, and ADD solves its plates and
@@ -282,7 +282,7 @@ internal fun Tray(
  * item to the next line: the solver says four-across and a phone renders
  * three-and-one, and the whole tray reflows taller. Placing the rows we have
  * already solved removes that class of drift entirely: exactly [perRow]
- * items per full row on every device, the remainder centred beneath, so a
+ * items per full row on every device, the remainder centered beneath, so a
  * five reads as the classic 3-over-2 instead of a lopsided 3-plus-2.
  */
 @Composable
