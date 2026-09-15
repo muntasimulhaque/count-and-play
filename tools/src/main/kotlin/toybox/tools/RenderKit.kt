@@ -8,6 +8,7 @@ import java.awt.geom.Ellipse2D
 import java.awt.geom.Line2D
 import java.awt.geom.Path2D
 import java.awt.geom.RoundRectangle2D
+import java.awt.image.AffineTransformOp
 import java.io.File
 import javax.imageio.ImageIO
 import kotlin.math.abs
@@ -200,40 +201,57 @@ fun confetti(
     smax: Double = 24.0,
 ) {
     repeat(n) {
-        val s = rng.nextDouble(smin, smax)
-        val c = colors[rng.nextInt(colors.size)]
-        val a = rng.nextInt(26, amax + 1)
-        val padv = (s * 2.6).toInt()
-        val tile = img(padv, padv)
-        val g = graphics(tile)
-        g.argb((a shl 24) or (c and 0xFFFFFF))
-        val mid = padv / 2.0
-        when (rng.nextDouble()) {
-            in 0.0..<0.35 -> g.fill(Ellipse2D.Double(mid - s / 2, mid - s / 2, s, s))
-            in 0.35..<0.70 -> {
-                val rr = RoundRectangle2D.Double(mid - s * 0.8, mid - s * 0.3, s * 1.6, s * 0.6, s * 0.6, s * 0.6)
-                g.fill(rr)
-            }
-            else -> {
-                val tri = Path2D.Double()
-                tri.moveTo(mid, mid - s * 0.65)
-                tri.lineTo(mid + s * 0.62, mid + s * 0.5)
-                tri.lineTo(mid - s * 0.62, mid + s * 0.5)
-                tri.closePath()
-                g.fill(tri)
-            }
-        }
-        g.dispose()
-        val rot = AffineTransform.getRotateInstance(rng.nextDouble(0.0, 2.0 * Math.PI), padv / 2.0, padv / 2.0)
-        val op = java.awt.image.AffineTransformOp(rot, java.awt.image.AffineTransformOp.TYPE_BILINEAR)
-        val rotated = op.filter(tile, null)
-        placeTile(dst, rotated, rng.nextInt(xbox.first, xbox.second + 1).toDouble(),
-            rng.nextInt(ybox.first, ybox.second + 1).toDouble())
+        val size = rng.nextDouble(smin, smax)
+        val tile = fleckTile(rng, size, amax, colors)
+        val rotated = rotateFleck(rng, tile)
+        placeTile(
+            dst,
+            rotated,
+            rng.nextInt(xbox.first, xbox.second + 1).toDouble(),
+            rng.nextInt(ybox.first, ybox.second + 1).toDouble(),
+        )
     }
 }
 
+/** One fleck at rest: a random shape from [colors], alpha within the ceiling. */
+private fun fleckTile(rng: Random, size: Double, amax: Int, colors: List<Int>): Img {
+    val c = colors[rng.nextInt(colors.size)]
+    val a = rng.nextInt(26, amax + 1)
+    val padv = (size * 2.6).toInt()
+    val tile = img(padv, padv)
+    val g = graphics(tile)
+    g.argb((a shl 24) or (c and 0xFFFFFF))
+    val mid = padv / 2.0
+    when (rng.nextDouble()) {
+        in 0.0..<0.35 -> g.fill(Ellipse2D.Double(mid - size / 2, mid - size / 2, size, size))
+        in 0.35..<0.70 -> {
+            val rr = RoundRectangle2D.Double(mid - size * 0.8, mid - size * 0.3, size * 1.6, size * 0.6, size * 0.6, size * 0.6)
+            g.fill(rr)
+        }
+        else -> {
+            val tri = Path2D.Double()
+            tri.moveTo(mid, mid - size * 0.65)
+            tri.lineTo(mid + size * 0.62, mid + size * 0.5)
+            tri.lineTo(mid - size * 0.62, mid + size * 0.5)
+            tri.closePath()
+            g.fill(tri)
+        }
+    }
+    g.dispose()
+    return tile
+}
+
+/** A fleck tipped at a random angle, the way every piece of paper lands. */
+private fun rotateFleck(rng: Random, tile: Img): Img {
+    val mid = tile.width / 2.0
+    val rot = AffineTransform.getRotateInstance(rng.nextDouble(0.0, 2.0 * Math.PI), mid, mid)
+    val op = AffineTransformOp(rot, AffineTransformOp.TYPE_BILINEAR)
+    return op.filter(tile, null)
+}
+
 /** Gently darken toward the corners so the ground has depth. */
-fun cornerShade(dst: Img, alpha: Double, shade: Int = rgb(24, 18, 10)) {    val w = dst.width
+fun cornerShade(dst: Img, alpha: Double, shade: Int = rgb(24, 18, 10)) {
+    val w = dst.width
     val h = dst.height
     val g = graphics(dst)
     val step = 4

@@ -1,6 +1,8 @@
 package toybox.tools
 
 import java.awt.BasicStroke
+import java.awt.Graphics2D
+import java.awt.Shape
 import java.awt.geom.Ellipse2D
 import java.awt.geom.Path2D
 
@@ -89,20 +91,34 @@ fun flatCountable(dst: Img, kind: String, cx: Double, cy: Double, box: Double, k
     val s = box / 100.0
     val x = cx - box / 2
     val y = cy - box / 2
-    val c = when (kind) {
-        "apple" -> APPLE_C
-        "star" -> STAR_C
-        "carrot" -> CARROT_C
-        else -> BALL_C
-    }
-    val body = when (kind) {
-        "apple" -> applePath(x, y, s)
-        "star" -> starPath(x, y, s)
-        "carrot" -> carrotPath(x, y, s)
-        else -> Ellipse2D.Double(x + 6 * s, y + 6 * s, 88 * s, 88 * s)
-    }
+    val c = flatColors(kind)
+    val body = flatBody(kind, x, y, s)
     val g = graphics(dst)
     g.stroke = outline(4 * s)
+    drawTrims(g, kind, x, y, s)
+    drawFacet(g, body, c, x, y, s)
+    if (kind == "ball") drawBands(g, body, x, y, s)
+    if (keyline > 0) drawKeyline(g, body, s, keyline)
+    drawOutline(g, body, c, s)
+    g.dispose()
+}
+
+private fun flatColors(kind: String): FlatColors = when (kind) {
+    "apple" -> APPLE_C
+    "star" -> STAR_C
+    "carrot" -> CARROT_C
+    else -> BALL_C
+}
+
+private fun flatBody(kind: String, x: Double, y: Double, s: Double): Shape = when (kind) {
+    "apple" -> applePath(x, y, s)
+    "star" -> starPath(x, y, s)
+    "carrot" -> carrotPath(x, y, s)
+    else -> Ellipse2D.Double(x + 6 * s, y + 6 * s, 88 * s, 88 * s)
+}
+
+/** The bits that sit behind the body: carrot fronds, apple stem and leaf. */
+private fun drawTrims(g: Graphics2D, kind: String, x: Double, y: Double, s: Double) {
     if (kind == "carrot") {
         // The green fronds sit behind the body.
         for (fx in listOf(-26.0, 0.0, 26.0)) {
@@ -119,6 +135,10 @@ fun flatCountable(dst: Img, kind: String, cx: Double, cy: Double, box: Double, k
         g.draw(leafPath(x, y, s))
         g.stroke = outline(4 * s)
     }
+}
+
+/** The body fill and its one hard facet, the light model every shape shares. */
+private fun drawFacet(g: Graphics2D, body: Shape, c: FlatColors, x: Double, y: Double, s: Double) {
     g.argb(c.fill)
     g.fill(body)
     val oldClip = g.clip
@@ -126,31 +146,42 @@ fun flatCountable(dst: Img, kind: String, cx: Double, cy: Double, box: Double, k
     g.argb(c.facet)
     g.fill(facetPath(x, y, s))
     g.clip = oldClip
-    if (kind == "ball") {
-        // The two liner bands, clipped to the ball.
-        g.clip = body
-        g.argb(LINER)
-        g.stroke = BasicStroke((9 * s).toFloat(), BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND)
-        g.draw(Path2D.Double().apply {
+}
+
+/** The ball's two liner bands, clipped to the ball like every other mark. */
+private fun drawBands(g: Graphics2D, body: Shape, x: Double, y: Double, s: Double) {
+    val oldClip = g.clip
+    g.clip = body
+    g.argb(LINER)
+    g.stroke = BasicStroke((9 * s).toFloat(), BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND)
+    g.draw(
+        Path2D.Double().apply {
             moveTo(x + 9 * s, y + 40 * s)
             quadTo(x + 50 * s, y + 30 * s, x + 91 * s, y + 40 * s)
-        })
-        g.draw(Path2D.Double().apply {
+        },
+    )
+    g.draw(
+        Path2D.Double().apply {
             moveTo(x + 12 * s, y + 66 * s)
             quadTo(x + 50 * s, y + 76 * s, x + 88 * s, y + 66 * s)
-        })
-        g.clip = oldClip
-        g.stroke = outline(4 * s)
-    }
-    if (keyline > 0) {
-        g.argb(WHITE)
-        g.stroke = outline(4 * s + keyline * 2)
-        g.draw(body)
-    }
+        },
+    )
+    g.clip = oldClip
+    g.stroke = outline(4 * s)
+}
+
+/** The white sticker edge, for art that sits on the cream ground. */
+private fun drawKeyline(g: Graphics2D, body: Shape, s: Double, keyline: Double) {
+    g.argb(WHITE)
+    g.stroke = outline(4 * s + keyline * 2)
+    g.draw(body)
+}
+
+/** The fat outline of the shape's own hue, the last mark on every body. */
+private fun drawOutline(g: Graphics2D, body: Shape, c: FlatColors, s: Double) {
     g.argb(c.stroke)
     g.stroke = outline(4 * s)
     g.draw(body)
-    g.dispose()
 }
 
 /** The app's counting chip: navy disc, white numeral in the brand face. */
