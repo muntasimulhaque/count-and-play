@@ -48,7 +48,7 @@ private val KeySpring = spring<Dp>(
  * shadow; under the finger it sinks flush, the shadow vanishes and the edge
  * disappears, so a press is felt as much as seen. Solid colors only: the
  * depth is geometry, not a gradient. Caps are white; [fill] overrides. Keys
- * FLOAT, wells (see Objects) hold.
+ * FLOAT, wells (see Tray) hold.
  *
  * The lift lives inside the key's own top padding, so callers lay keys out
  * exactly like plain boxes and neighbors never jump when one sinks.
@@ -74,36 +74,51 @@ fun Keycap(
     val active = pressed && !reducedMotion && onClick != null
     val sink by animateDpAsState(if (active) edgeHeight else 0.dp, KeySpring, label = "keycapSink")
     val lift by animateDpAsState(if (active) LiftHeld else LiftResting, KeySpring, label = "keycapLift")
-    val tick = rememberTick()
     val sizeModifier = if (stretch) Modifier.fillMaxSize() else Modifier
     Box(modifier.padding(top = edgeHeight)) {
         // The side of the key: the neutral sand shows exactly where the cap sits lifted.
         Box(sizeModifier.background(edge, KeyShape))
         Box(
-            sizeModifier
-                .offset { IntOffset(x = 0, y = (sink - edgeHeight).roundToPx()) }
-                .shadow(elevation = lift, shape = KeyShape)
-                .background(fill, KeyShape)
-                .border(BorderStroke(1.dp, Hairline), KeyShape)
-                .then(
-                    if (onClick != null) {
-                        Modifier.clickable(interactionSource, indication = null) {
-                            tick()
-                            onClick()
-                        }
-                    } else {
-                        Modifier
-                    },
-                )
-                .semantics(mergeDescendants = true) {
-                    role = Role.Button
-                    if (description != null) contentDescription = description
-                    if (stateDescription != null) this.stateDescription = stateDescription
-                },
+            sizeModifier.keycapCap(sink, edgeHeight, lift, fill, interactionSource, onClick, description, stateDescription),
             contentAlignment = contentAlignment,
             content = content,
         )
     }
+}
+
+/** The cap's surface: sink, float shadow, hairline rim, and the tap that seats it. */
+@Composable
+private fun Modifier.keycapCap(
+    sink: Dp,
+    edgeHeight: Dp,
+    lift: Dp,
+    fill: Color,
+    interactionSource: MutableInteractionSource,
+    onClick: (() -> Unit)?,
+    description: String?,
+    stateDescription: String?,
+): Modifier {
+    val tick = rememberTick()
+    return this
+        .offset { IntOffset(x = 0, y = (sink - edgeHeight).roundToPx()) }
+        .shadow(elevation = lift, shape = KeyShape)
+        .background(fill, KeyShape)
+        .border(BorderStroke(1.dp, Hairline), KeyShape)
+        .then(
+            if (onClick != null) {
+                Modifier.clickable(interactionSource, indication = null) {
+                    tick()
+                    onClick()
+                }
+            } else {
+                Modifier
+            },
+        )
+        .semantics(mergeDescendants = true) {
+            role = Role.Button
+            if (description != null) contentDescription = description
+            if (stateDescription != null) this.stateDescription = stateDescription
+        }
 }
 
 /**
